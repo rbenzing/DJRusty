@@ -1,0 +1,59 @@
+.list {
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  flex: 1;
+  /* Remove the default focus ring; individual rows show highlights instead. */
+  outline: none;
+}
+
+.emptyState {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-6);
+  color: var(--color-text-disabled);
+  font-size: var(--text-base);
+  text-align: center;
+}
+
+/* --- Skeleton loading rows --- */
+
+.skeletonRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  height: 52px;
+  padding: 0 var(--space-3);
+  border-bottom: 1px solid var(--color-border-subtle);
+  list-style: none;
+}
+
+.skeletonThumb {
+  flex-shrink: 0;
+  width: 80px;
+  height: 45px;
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-overlay);
+  animation: skeleton-pulse 1.5s ease-in-out infinite;
+}
+
+.skeletonInfo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.skeletonLine {
+  height: 10px;
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-overlay);
+  animation: skeleton-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes skeleton-pulse {
+  0%, 100% { opacity: 0.4; }
+  50%       { opacity: 0.8; }
+}

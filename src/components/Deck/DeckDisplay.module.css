@@ -1,0 +1,78 @@
+/**
+ * DeckDisplay.module.css — Track info and time display styles.
+ */
+
+.display {
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+/* Top row: deck label + BPM */
+.headerRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-1);
+}
+
+.deckLabel {
+  font-size: var(--text-xs);
+  /* Use the per-deck accent text colour so "DECK A" is blue and "DECK B" is red.
+     Falls back to --color-text-muted when the ancestor data-deck attribute is absent. */
+  color: var(--deck-accent-text, var(--color-text-muted));
+  letter-spacing: var(--tracking-widest);
+  text-transform: uppercase;
+  font-family: var(--font-primary);
+  font-weight: 600;
+}
+
+.bpmValue {
+  font-size: var(--text-md);
+  font-weight: 700;
+  font-family: var(--font-mono);
+  color: var(--color-accent-primary);
+}
+
+.bpmValueUnset {
+  color: #555;
+}
+
+.trackTitle {
+  font-size: var(--text-md);
+  color: var(--color-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: var(--space-1);
+}
+
+.trackTitleEmpty {
+  color: var(--color-text-disabled);
+}
+
+.channelName {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Time / rate row */
+.timeRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: var(--space-2);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+
+.timeDisplay {
+  letter-spacing: 0.04em;
+}
+
+.pitchRate {
+  letter-spacing: 0.04em;
+}

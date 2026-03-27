@@ -1,0 +1,42 @@
+{
+  "toolPermissions": [
+    { "toolName": "view", "permission": { "type": "allow" } },
+    { "toolName": "codebase-retrieval", "permission": { "type": "allow" } },
+    { "toolName": "grep-search", "permission": { "type": "allow" } },
+    { "toolName": "str-replace-editor", "permission": { "type": "allow" } },
+    { "toolName": "save-file", "permission": { "type": "allow" } },
+    { "toolName": "read-process", "permission": { "type": "allow" } },
+    { "toolName": "list-processes", "permission": { "type": "allow" } },
+    { "toolName": "write-process", "permission": { "type": "allow" } },
+    { "toolName": "web-search", "permission": { "type": "allow" } },
+    { "toolName": "web-fetch", "permission": { "type": "allow" } },
+
+    { "toolName": "launch-process", "shellInputRegex": "^(git status|git diff|git log|git branch|git show|git stash)", "permission": { "type": "allow" } },
+    { "toolName": "launch-process", "shellInputRegex": "^(ls|dir|pwd|echo|cat|type|Get-Content|Get-ChildItem|Get-Location|Write-Output|Select-String)", "permission": { "type": "allow" } },
+    { "toolName": "launch-process", "shellInputRegex": "^(npm test|npm run|npx|yarn|pnpm|node |tsc|jest|vitest|prettier|eslint)", "permission": { "type": "allow" } },
+    { "toolName": "launch-process", "shellInputRegex": "^(dotnet build|dotnet test|dotnet run|dotnet restore|dotnet format)", "permission": { "type": "allow" } },
+    { "toolName": "launch-process", "shellInputRegex": "^(python |pip |poetry |cargo |go |ruby |bundle )", "permission": { "type": "allow" } },
+    { "toolName": "launch-process", "shellInputRegex": "^(mkdir|New-Item|Copy-Item|Move-Item|Rename-Item)", "permission": { "type": "allow" } },
+
+    { "toolName": "launch-process", "shellInputRegex": "(rm -rf /|Remove-Item.*-Recurse.*C:\\\\|Remove-Item.*-Recurse.*\\$env:)", "permission": { "type": "deny" } },
+    { "toolName": "launch-process", "shellInputRegex": "^(sudo|runas|Start-Process.*-Verb RunAs)", "permission": { "type": "deny" } },
+    { "toolName": "launch-process", "shellInputRegex": "(shutdown|restart|Restart-Computer|Stop-Computer|reboot)", "permission": { "type": "deny" } },
+    { "toolName": "launch-process", "shellInputRegex": "(chmod 777|icacls.*/grant.*Everyone)", "permission": { "type": "deny" } },
+    { "toolName": "launch-process", "shellInputRegex": "(curl.*\\|.*sh|curl.*\\|.*bash|iex.*\\(.*Net\\.WebClient|Invoke-Expression.*Download)", "permission": { "type": "deny" } },
+    { "toolName": "launch-process", "shellInputRegex": "(Set-ExecutionPolicy|reg add|reg delete|New-Service|Stop-Service|Remove-Service)", "permission": { "type": "deny" } },
+    { "toolName": "launch-process", "shellInputRegex": "(format |diskpart|fdisk|mkfs|dd if=)", "permission": { "type": "deny" } },
+    { "toolName": "launch-process", "shellInputRegex": "(net user|net localgroup|Add-LocalGroupMember|passwd)", "permission": { "type": "deny" } },
+    { "toolName": "launch-process", "shellInputRegex": "(git push|git merge|git rebase|git reset --hard|git clean -fd)", "permission": { "type": "deny" } },
+    { "toolName": "launch-process", "shellInputRegex": "(npm publish|npm unpublish|dotnet nuget push|dotnet publish)", "permission": { "type": "deny" } },
+    { "toolName": "launch-process", "shellInputRegex": "(env |\\$env:|ConvertTo-SecureString|Get-Credential).*([Pp]assword|[Ss]ecret|[Tt]oken|[Kk]ey|[Cc]redential)", "permission": { "type": "deny" } },
+
+    { "toolName": "launch-process", "permission": { "type": "ask-user" } },
+
+    { "toolName": "remove-files", "permission": { "type": "ask-user" } },
+    { "toolName": "kill-process", "permission": { "type": "ask-user" } },
+
+    { "toolName": "github-api", "permission": { "type": "allow" } },
+    { "toolName": "linear", "permission": { "type": "allow" } },
+    { "toolName": "notion", "permission": { "type": "allow" } }
+  ]
+}

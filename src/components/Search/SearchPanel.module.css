@@ -1,0 +1,278 @@
+/* ── Fullscreen slide-up drawer ───────────────────────────────────────────── */
+
+.panel {
+  /* Fixed so it overlays the deck row when open and only shows the
+     44px handle when closed. Removed from normal document flow —
+     app-main has padding-bottom: 44px to reserve space for the handle. */
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: calc(100vh - 56px); /* full viewport minus the app header */
+  z-index: 200;
+
+  display: flex;
+  flex-direction: column;
+  background: var(--color-bg-surface);
+  border-top: 1px solid var(--color-border-default);
+  box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.6);
+
+  /* Closed: slide panel down so only the 44px handle peeks above viewport. */
+  transform: translateY(calc(100% - 44px));
+  transition: transform 300ms cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: transform;
+}
+
+.panelOpen {
+  transform: translateY(0);
+}
+
+/* Greyed-out state when unauthenticated and no API key. */
+.panelDisabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+/* ── Drawer handle — always visible at bottom of screen ──────────────────── */
+
+.handle {
+  height: 44px;
+  flex-shrink: 0;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 0 var(--space-4);
+  background: var(--color-bg-surface);
+  border: none;
+  border-bottom: 1px solid var(--color-border-default);
+  cursor: pointer;
+  color: var(--color-text-muted);
+  font-family: var(--font-primary);
+  font-size: var(--text-sm);
+  letter-spacing: var(--tracking-widest);
+  text-transform: uppercase;
+  text-align: left;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.handle:hover {
+  background: var(--color-bg-elevated);
+  color: var(--color-text-primary);
+}
+
+.handle:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 2px rgba(255, 107, 0, 0.4);
+}
+
+.handleChevron {
+  font-size: 9px;
+  color: var(--color-accent-primary);
+  transition: transform 300ms cubic-bezier(0.4, 0, 0.2, 1);
+  flex-shrink: 0;
+}
+
+.handleChevronOpen {
+  transform: rotate(180deg);
+}
+
+.handleLabel {
+  font-weight: 700;
+  font-size: var(--text-sm);
+  color: var(--color-accent-primary);
+  letter-spacing: var(--tracking-widest);
+  flex-shrink: 0;
+}
+
+.handleQuery {
+  flex: 1;
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+  font-family: var(--font-primary);
+}
+
+.handleKbd {
+  flex-shrink: 0;
+  font-size: var(--text-xs);
+  color: var(--color-text-disabled);
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-sm);
+  padding: 1px 6px;
+  font-family: var(--font-mono);
+  letter-spacing: 0;
+  text-transform: none;
+  line-height: 1.6;
+}
+
+/* ── Drawer content — fills all space below the handle when open ──────────── */
+
+.content {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow: hidden;
+  min-height: 0;
+}
+
+/* Overlay message shown on top of the disabled panel content area. */
+.disabledOverlay {
+  position: absolute;
+  inset: 44px 0 0 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.5);
+  color: var(--color-text-secondary);
+  font-size: var(--text-base);
+  font-family: var(--font-primary);
+  pointer-events: none;
+}
+
+/* ── Tab bar ──────────────────────────────────────────────────────────────── */
+
+.tabBar {
+  display: flex;
+  align-items: flex-end;
+  gap: 0;
+  padding: 0 var(--space-3);
+  border-bottom: 1px solid var(--color-border-default);
+  background: var(--color-bg-surface);
+  flex-shrink: 0;
+}
+
+.tab {
+  padding: var(--space-1) var(--space-3);
+  height: 28px;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--color-text-muted);
+  font-family: var(--font-primary);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  letter-spacing: var(--tracking-wide);
+  cursor: pointer;
+  transition: color var(--transition-fast), border-color var(--transition-fast);
+  text-transform: uppercase;
+}
+
+.tab:hover {
+  color: var(--color-text-secondary);
+}
+
+.tabActive {
+  border-bottom-color: var(--color-accent-primary);
+  color: var(--color-text-primary);
+}
+
+/* ── Error banner ─────────────────────────────────────────────────────────── */
+
+.errorBanner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  background: rgba(192, 57, 43, 0.15);
+  border-bottom: 1px solid var(--color-state-error);
+  color: #e07070;
+  font-size: var(--text-sm);
+  font-family: var(--font-primary);
+}
+
+.errorIcon {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-state-error);
+  color: #fff;
+  border-radius: 50%;
+  font-size: var(--text-xs);
+  font-weight: 700;
+}
+
+/* ── Pagination footer ────────────────────────────────────────────────────── */
+
+.pagination {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-2);
+  border-top: 1px solid var(--color-border-subtle);
+  background: var(--color-bg-surface);
+}
+
+.nextPageBtn {
+  padding: var(--space-1) var(--space-4);
+  height: var(--btn-height-sm);
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border-muted);
+  border-radius: var(--radius-md);
+  color: var(--color-text-secondary);
+  font-family: var(--font-primary);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  letter-spacing: var(--tracking-wide);
+  cursor: pointer;
+  transition: background var(--transition-fast), border-color var(--transition-fast),
+    color var(--transition-fast);
+}
+
+.nextPageBtn:hover {
+  background: var(--color-bg-overlay);
+  border-color: var(--color-border-strong);
+  color: var(--color-text-primary);
+}
+
+/* ── Tab panels — the visible panel fills all remaining drawer height ─────── */
+
+/* When a tabpanel is not hidden it must flex-fill the space below the tab bar.
+   The :not([hidden]) selector targets whichever panel is currently active.
+   display:flex + flex-direction:column lets inner content (lists, panels) use
+   flex-grow to fill the height rather than relying on fixed/max heights. */
+.content [role="tabpanel"]:not([hidden]) {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 0;
+}
+
+/* ── Recent tab ───────────────────────────────────────────────────────────── */
+
+.recentTab {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.recentList {
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.recentEmpty {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-6);
+  color: var(--color-text-disabled);
+  font-size: var(--text-base);
+  text-align: center;
+}

@@ -1,0 +1,412 @@
+/**
+ * SettingsModal.module.css — Styles for the Settings Modal.
+ *
+ * STORY-013: Settings Modal
+ *
+ * Z-index: 200 (Modals layer per ui-spec.md section 2.2)
+ * Max-width: 420px (per ui-spec.md section 7.2)
+ * Uses design tokens from :root in index.css
+ */
+
+/* ── Overlay / Backdrop ─────────────────────────────────────────────────── */
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--color-bg-modal-backdrop);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+  animation: overlayFadeIn var(--transition-slow) ease;
+}
+
+@keyframes overlayFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* ── Modal Panel ────────────────────────────────────────────────────────── */
+
+.modal {
+  background: var(--color-bg-modal);
+  border: 1px solid var(--color-border-muted);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  max-width: 420px;
+  width: calc(100% - var(--space-8));
+  padding: var(--space-6);
+  position: relative;
+  max-height: 90vh;
+  overflow-y: auto;
+  animation: modalEnter var(--transition-slow) ease;
+}
+
+@keyframes modalEnter {
+  from { opacity: 0; transform: scale(0.95); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+/* ── Modal Header ───────────────────────────────────────────────────────── */
+
+.modalHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-5);
+}
+
+.title {
+  font-size: var(--text-lg);
+  font-weight: 700;
+  color: var(--color-text-primary);
+  letter-spacing: var(--tracking-wide);
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.closeButton {
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  padding: var(--space-1);
+  border-radius: var(--radius-md);
+  transition: color var(--transition-fast);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+}
+
+.closeButton:hover {
+  color: var(--color-text-primary);
+}
+
+.closeButton:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus);
+}
+
+/* ── Divider ────────────────────────────────────────────────────────────── */
+
+.divider {
+  border: none;
+  border-top: 1px solid var(--color-border-default);
+  margin: var(--space-4) 0;
+}
+
+/* ── Section ────────────────────────────────────────────────────────────── */
+
+.section {
+  margin-bottom: var(--space-2);
+}
+
+.sectionTitle {
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--color-text-muted);
+  letter-spacing: var(--tracking-widest);
+  text-transform: uppercase;
+  margin: 0 0 var(--space-3) 0;
+}
+
+/* ── Account Section ────────────────────────────────────────────────────── */
+
+.accountInfo {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-full);
+  border: 2px solid var(--color-border-default);
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.accountDetails {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.accountName {
+  font-size: var(--text-md);
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.accountEmail {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.channelName {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+
+.unauthMessage {
+  font-size: var(--text-base);
+  color: var(--color-text-disabled);
+  margin: 0 0 var(--space-3) 0;
+}
+
+/* ── Sign Out button ─────────────────────────────────────────────────────── */
+
+.signOutButton {
+  background: var(--color-deck-b-bg);
+  color: var(--color-deck-b-text);
+  border: 1px solid var(--color-deck-b-border);
+  border-radius: var(--radius-md);
+  padding: 6px var(--space-4);
+  font-size: var(--text-base);
+  font-weight: 700;
+  letter-spacing: var(--tracking-wide);
+  cursor: pointer;
+  transition:
+    background var(--transition-fast),
+    border-color var(--transition-fast);
+}
+
+.signOutButton:hover {
+  background: #4a2020;
+  border-color: #cc4444;
+}
+
+.signOutButton:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus);
+}
+
+/* ── Sign In button (unauthenticated state in modal) ─────────────────────── */
+
+.signInButton {
+  background: var(--color-bg-elevated);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border-muted);
+  border-radius: var(--radius-md);
+  padding: 6px var(--space-4);
+  font-size: var(--text-base);
+  font-weight: 600;
+  letter-spacing: var(--tracking-wide);
+  cursor: pointer;
+  transition:
+    border-color var(--transition-base),
+    background var(--transition-base),
+    box-shadow var(--transition-base);
+}
+
+.signInButton:hover {
+  border-color: #4285f4;
+  background: var(--color-bg-overlay);
+  box-shadow: 0 0 0 2px rgba(66, 133, 244, 0.2);
+}
+
+.signInButton:focus-visible {
+  outline: none;
+  border-color: #4285f4;
+  box-shadow: 0 0 0 3px rgba(66, 133, 244, 0.35);
+}
+
+/* ── Audio Section ───────────────────────────────────────────────────────── */
+
+.controlRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+.controlLabel {
+  font-size: var(--text-base);
+  color: var(--color-text-secondary);
+  flex-shrink: 0;
+  min-width: 120px;
+}
+
+.sliderWrapper {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex: 1;
+}
+
+.slider {
+  flex: 1;
+  height: 4px;
+  cursor: pointer;
+  accent-color: var(--color-accent-primary);
+}
+
+.sliderValue {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  min-width: 36px;
+  text-align: right;
+  font-family: var(--font-mono);
+}
+
+/* ── Crossfader curve toggle ─────────────────────────────────────────────── */
+
+.toggleGroup {
+  display: flex;
+  gap: var(--space-1);
+}
+
+.toggleButton {
+  padding: 4px var(--space-3);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border-muted);
+  background: var(--color-bg-elevated);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  letter-spacing: var(--tracking-wide);
+  transition:
+    background var(--transition-fast),
+    border-color var(--transition-fast),
+    color var(--transition-fast);
+}
+
+.toggleButtonActive {
+  background: var(--color-accent-primary-dim);
+  border-color: var(--color-accent-primary);
+  color: var(--color-accent-primary);
+}
+
+.toggleButtonDisabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ── About Section ───────────────────────────────────────────────────────── */
+
+.aboutRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-2);
+}
+
+.aboutLabel {
+  font-size: var(--text-base);
+  color: var(--color-text-muted);
+}
+
+.aboutValue {
+  font-size: var(--text-base);
+  color: var(--color-text-secondary);
+  font-family: var(--font-mono);
+}
+
+.githubLink {
+  font-size: var(--text-base);
+  color: var(--color-accent-primary);
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+
+.githubLink:hover {
+  color: var(--color-accent-primary-bright);
+  text-decoration: underline;
+}
+
+.githubLink:focus-visible {
+  outline: 2px solid var(--color-accent-primary);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* ── Keyboard shortcuts ──────────────────────────────────────────────────── */
+
+.shortcutsBlock {
+  margin-top: var(--space-3);
+}
+
+.shortcutsTitle {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-text-muted);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  margin: 0 0 var(--space-2) 0;
+}
+
+.shortcutsTable {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.shortcutRow {
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.shortcutRow:last-child {
+  border-bottom: none;
+}
+
+.shortcutKey {
+  width: 40%;
+  padding: var(--space-1) 0;
+  vertical-align: top;
+}
+
+.shortcutKey kbd {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  color: var(--color-text-primary);
+  background: var(--color-bg-overlay);
+  border: 1px solid var(--color-border-muted);
+  border-radius: var(--radius-sm);
+  padding: 1px var(--space-1);
+  white-space: nowrap;
+}
+
+.shortcutAction {
+  padding: var(--space-1) 0 var(--space-1) var(--space-2);
+  font-size: var(--text-base);
+  color: var(--color-text-secondary);
+  vertical-align: top;
+}
+
+.shortcutNote {
+  font-size: var(--text-sm);
+  color: var(--color-text-disabled);
+  font-style: italic;
+}
+
+/* ── Screen reader only ──────────────────────────────────────────────────── */
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}

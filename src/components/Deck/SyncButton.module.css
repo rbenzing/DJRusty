@@ -1,0 +1,91 @@
+/**
+ * SyncButton.module.css — SYNC button with LED indicator.
+ *
+ * Follows the existing DeckControls .btn pattern exactly:
+ * same base size, border, background, and hover/focus/disabled states.
+ * The LED is a small circle to the left of the label text.
+ */
+
+.syncBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 1px solid var(--color-border-muted);
+  border-radius: var(--radius-md);
+  background: #1e1e1e;
+  color: #cccccc;
+  font-size: var(--text-sm);
+  font-weight: 700;
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  cursor: pointer;
+  transition:
+    background var(--transition-fast),
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast),
+    color var(--transition-fast);
+  min-width: 64px;
+  height: 36px;
+  padding: 0 var(--space-2);
+  font-family: var(--font-primary);
+  order: 3;
+}
+
+.syncBtn:hover:not(:disabled) {
+  background: #2a2a2a;
+  border-color: var(--color-border-strong);
+  color: #ffffff;
+}
+
+.syncBtn:focus-visible {
+  outline: none;
+  border-color: var(--color-accent-primary);
+  box-shadow: var(--shadow-focus);
+  color: #ffffff;
+}
+
+.syncBtn:disabled {
+  background: #141414;
+  border-color: #222;
+  color: #444;
+  cursor: not-allowed;
+  opacity: 0.35;
+}
+
+/* LED indicator dot */
+.syncLed {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #444;
+  transition:
+    background var(--transition-fast),
+    box-shadow var(--transition-fast);
+}
+
+/* Active (synced) state */
+.syncBtnActive {
+  background: var(--color-accent-primary);
+  border-color: var(--color-accent-primary-bright);
+  color: var(--color-text-inverse);
+  box-shadow: 0 0 12px rgba(255, 107, 0, 0.5);
+}
+
+.syncBtnActive .syncLed {
+  background: #00ff88;
+  box-shadow: 0 0 6px rgba(0, 255, 136, 0.7);
+}
+
+.syncBtnActive:hover:not(:disabled) {
+  background: var(--color-accent-primary-bright);
+  border-color: var(--color-accent-primary-bright);
+  color: var(--color-text-inverse);
+}
+
+/* Disabled LED */
+.syncBtn:disabled .syncLed {
+  background: #333;
+  box-shadow: none;
+}

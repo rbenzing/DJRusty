@@ -1,0 +1,45 @@
+/* VUMeter.module.css */
+
+.vuMeter {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 16px;
+  align-items: stretch;
+}
+
+.segment {
+  width: 16px;
+  height: 6px;
+  border-radius: 1px;
+  transition: background 80ms ease;
+}
+
+/* Inactive segment */
+.segmentInactive {
+  background: var(--color-bg-elevated);
+}
+
+/* Green — segments 1–8 (low levels) */
+.segmentLow {
+  background: var(--color-state-success);
+}
+
+/* Yellow — segments 9–10 (mid levels) */
+.segmentMid {
+  background: var(--color-state-warning);
+}
+
+/* Red — segments 11–12 (peak levels) */
+.segmentPeak {
+  background: var(--color-state-error);
+}
+
+/* Deck A tint on label (not used on segments themselves) */
+.meterA {
+  /* no difference in segment coloring per spec */
+}
+
+.meterB {
+  /* no difference in segment coloring per spec */
+}

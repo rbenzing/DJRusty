@@ -1,0 +1,55 @@
+/**
+ * SlipButton.module.css — Slip mode toggle button styles.
+ *
+ * Colour palette:
+ *   Inactive: background #1a1a1a, border #333, text #888 (matches loop buttons)
+ *   Active:   background #0a2a2a, border #2a8a8a, text #4ad4d4 (cyan/teal)
+ */
+
+.slipBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  height: 28px;
+  padding: 0 var(--space-2);
+  background: #1a1a1a;
+  border: 1px solid #333333;
+  border-radius: var(--radius-md);
+  color: #888888;
+  font-size: var(--text-xs);
+  font-weight: 700;
+  font-family: var(--font-primary);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  cursor: pointer;
+  transition:
+    background var(--transition-fast),
+    border-color var(--transition-fast),
+    color var(--transition-fast);
+}
+
+.slipBtn:hover:not([aria-pressed='true']) {
+  background: #242424;
+  border-color: #555555;
+  color: #aaaaaa;
+}
+
+.slipBtn:focus-visible {
+  outline: none;
+  border-color: var(--color-accent-primary);
+  box-shadow: var(--shadow-focus);
+}
+
+/* Active state: cyan/teal highlight */
+.slipBtnActive {
+  background: #0a2a2a;
+  border: 1px solid #2a8a8a;
+  color: #4ad4d4;
+}
+
+.slipBtnActive:hover {
+  background: #0f3535;
+  border-color: #3a9a9a;
+  color: #5ae4e4;
+}

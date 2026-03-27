@@ -1,0 +1,184 @@
+/**
+ * LoopControls.module.css — Loop buttons section styles.
+ *
+ * Colour palette per ui-spec.md §4.6:
+ *   Inactive loop button: background #1a1a1a, border #333, text #888
+ *   Active loop button:   background #1a3a1a, border #4a9a4a, text #7fd97f (green)
+ *   Disabled:             opacity 0.35, cursor not-allowed
+ *   EXIT dim (inactive):  opacity 0.4
+ */
+
+.wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-2) var(--space-4);
+  border-bottom: 1px solid var(--color-border-subtle);
+  gap: var(--space-3);
+}
+
+.label {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  letter-spacing: var(--tracking-widest);
+  text-transform: uppercase;
+  font-family: var(--font-primary);
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.buttons {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  flex-wrap: nowrap;
+}
+
+/* ---- Beat loop buttons (1B / 2B / 4B / 8B) ---- */
+
+.loopBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  height: 28px;
+  padding: 0 var(--space-2);
+  background: #1a1a1a;
+  border: 1px solid #333333;
+  border-radius: var(--radius-md);
+  color: #888888;
+  font-size: var(--text-xs);
+  font-weight: 700;
+  font-family: var(--font-primary);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  cursor: pointer;
+  transition:
+    background var(--transition-fast),
+    border-color var(--transition-fast),
+    color var(--transition-fast);
+}
+
+.loopBtn:hover:not(:disabled) {
+  background: #242424;
+  border-color: #555555;
+  color: #aaaaaa;
+}
+
+.loopBtn:focus-visible {
+  outline: none;
+  border-color: var(--color-accent-primary);
+  box-shadow: var(--shadow-focus);
+}
+
+/* Active state: green highlight per ui-spec.md */
+.loopBtnActive {
+  background: #1a3a1a;
+  border-color: #4a9a4a;
+  color: #7fd97f;
+}
+
+.loopBtnActive:hover {
+  background: #1f421f;
+  border-color: #5aaa5a;
+  color: #8fe98f;
+}
+
+/* Disabled state when no BPM is set */
+.loopBtnDisabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+/* ---- EXIT button ---- */
+
+.exitBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  height: 28px;
+  padding: 0 var(--space-2);
+  background: #2a1a1a;
+  border: 1px solid #5a2a2a;
+  border-radius: var(--radius-md);
+  color: #cc6666;
+  font-size: var(--text-xs);
+  font-weight: 700;
+  font-family: var(--font-primary);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  cursor: pointer;
+  transition:
+    background var(--transition-fast),
+    border-color var(--transition-fast),
+    color var(--transition-fast),
+    opacity var(--transition-fast);
+}
+
+.exitBtn:hover {
+  background: #3a1a1a;
+  border-color: #aa3a3a;
+  color: #ee7777;
+}
+
+.exitBtn:focus-visible {
+  outline: none;
+  border-color: var(--color-accent-primary);
+  box-shadow: var(--shadow-focus);
+}
+
+/* Dim EXIT when no loop is active */
+.exitBtnDim {
+  opacity: 0.4;
+}
+
+/* ---- ROLL toggle button ---- */
+
+.rollBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  height: 28px;
+  padding: 0 var(--space-2);
+  background: #1a1a1a;
+  border: 1px solid #333333;
+  border-radius: var(--radius-md);
+  color: #888888;
+  font-size: var(--text-xs);
+  font-weight: 700;
+  font-family: var(--font-primary);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  cursor: pointer;
+  transition:
+    background var(--transition-fast),
+    border-color var(--transition-fast),
+    color var(--transition-fast);
+}
+
+.rollBtn:hover:not([aria-pressed='true']) {
+  background: #242424;
+  border-color: #555555;
+  color: #aaaaaa;
+}
+
+.rollBtn:focus-visible {
+  outline: none;
+  border-color: var(--color-accent-primary);
+  box-shadow: var(--shadow-focus);
+}
+
+/* Active state: amber/orange highlight */
+.rollBtnActive {
+  background: #2a2a0a;
+  border-color: #8a8a2a;
+  color: #d4d44a;
+}
+
+.rollBtnActive:hover {
+  background: #353510;
+  border-color: #9a9a3a;
+  color: #e4e45a;
+}

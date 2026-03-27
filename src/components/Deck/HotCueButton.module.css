@@ -1,0 +1,79 @@
+/**
+ * HotCueButton.module.css — Styles for a single hot cue button.
+ *
+ * Per ui-spec.md §4.5:
+ *   Size:         36px × 28px
+ *   Empty cue:    background #1a1a1a, border #333, text #555
+ *   Set cue:      colour-coded background tint, bright border + text in cue colour
+ *   Hover:        slightly brighter border
+ *   Disabled:     opacity 0.35, cursor not-allowed
+ *
+ * CSS custom properties injected inline by the component when set:
+ *   --cue-color        Full accent hex (e.g. #ff4444)
+ *   --cue-color-bg     13% opacity tint (accent + '22' alpha hex)
+ *   --cue-color-border 53% opacity border (accent + '88' alpha hex)
+ */
+
+.hotCueBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 28px;
+  padding: 0;
+  border-radius: var(--radius-md);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  font-family: var(--font-mono);
+  letter-spacing: var(--tracking-wide);
+  cursor: pointer;
+  transition:
+    background var(--transition-fast),
+    border-color var(--transition-fast),
+    color var(--transition-fast),
+    box-shadow var(--transition-fast);
+  /* Prevent text selection during long-press */
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.hotCueBtn:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus);
+}
+
+.hotCueBtn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+/* ---- Unset state ---- */
+.hotCueBtnUnset {
+  background: #1a1a1a;
+  border: 1px solid #333333;
+  color: #555555;
+}
+
+.hotCueBtnUnset:hover:not(:disabled) {
+  background: #222222;
+  border-color: #444444;
+  color: #777777;
+}
+
+/* ---- Set state — uses CSS custom properties injected per-button ---- */
+.hotCueBtnSet {
+  background: var(--cue-color-bg, #1a3a5c);
+  border: 1px solid var(--cue-color-border, #2a6aaa);
+  color: var(--cue-color, #7ab8f5);
+  /* Subtle glow to indicate this button is active */
+  box-shadow: 0 0 6px color-mix(in srgb, var(--cue-color, #4488ff) 30%, transparent);
+}
+
+.hotCueBtnSet:hover:not(:disabled) {
+  border-color: var(--cue-color, #4488ff);
+  background: color-mix(in srgb, var(--cue-color, #4488ff) 20%, transparent);
+}
+
+.hotCueBtnSet:active:not(:disabled) {
+  box-shadow: 0 0 12px color-mix(in srgb, var(--cue-color, #4488ff) 50%, transparent);
+}

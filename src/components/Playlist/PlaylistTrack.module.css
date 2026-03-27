@@ -1,0 +1,114 @@
+.track {
+  display: flex;
+  align-items: center;
+  list-style: none;
+  border-bottom: 1px solid var(--color-border-subtle);
+  transition: background var(--transition-fast);
+}
+
+.track:hover {
+  background: var(--color-bg-elevated);
+}
+
+.trackActive {
+  background: rgba(var(--color-accent-primary-rgb, 66, 153, 225), 0.08);
+}
+
+.trackInfo {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-2);
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+  min-width: 0;
+  font-family: inherit;
+}
+
+.trackIndex {
+  flex-shrink: 0;
+  width: 20px;
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  text-align: center;
+  font-family: var(--font-mono);
+}
+
+.trackActive .trackIndex {
+  color: var(--color-accent-primary);
+  font-size: 11px;
+}
+
+.thumb {
+  flex-shrink: 0;
+  width: 40px;
+  height: 22px;
+  object-fit: cover;
+  border-radius: 2px;
+  background: var(--color-bg-overlay);
+}
+
+.trackMeta {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.trackTitle {
+  font-size: var(--text-sm);
+  color: var(--color-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 500;
+}
+
+.trackActive .trackTitle {
+  color: var(--color-text-primary);
+}
+
+.trackChannel {
+  font-size: 10px;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.trackDuration {
+  flex-shrink: 0;
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+  font-family: var(--font-mono);
+  padding-right: var(--space-1);
+}
+
+.removeBtn {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  margin-right: var(--space-1);
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background var(--transition-fast), color var(--transition-fast);
+  padding: 0;
+}
+
+.removeBtn:hover {
+  background: rgba(192, 57, 43, 0.15);
+  color: var(--color-state-error);
+}

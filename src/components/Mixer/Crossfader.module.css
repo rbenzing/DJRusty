@@ -1,0 +1,141 @@
+/* Crossfader.module.css */
+
+.crossfaderContainer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  width: 100%;
+  padding: var(--space-2) 0;
+}
+
+.labels {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 2px;
+}
+
+.labelA {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-deck-a-text);
+  letter-spacing: var(--tracking-wide);
+}
+
+.labelB {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-deck-b-text);
+  letter-spacing: var(--tracking-wide);
+}
+
+.trackWrapper {
+  position: relative;
+  width: 100%;
+  display: flex;
+  align-items: center;
+}
+
+/* Decorative centre notch above the slider track */
+.centreNotch {
+  position: absolute;
+  left: 50%;
+  top: -4px;
+  width: 1px;
+  height: calc(100% + 8px);
+  background: var(--color-border-strong);
+  transform: translateX(-50%);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* ---- Range input ---- */
+.slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 8px;
+  border-radius: 4px;
+  background: linear-gradient(
+    to right,
+    var(--color-deck-a-bg) 0%,
+    var(--color-bg-elevated) 40%,
+    var(--color-bg-elevated) 60%,
+    var(--color-deck-b-bg) 100%
+  );
+  outline: none;
+  cursor: grab;
+  position: relative;
+  z-index: 2;
+}
+
+.slider:active {
+  cursor: grabbing;
+}
+
+.slider:focus-visible {
+  box-shadow: var(--shadow-focus);
+}
+
+/* Webkit thumb */
+.slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 24px;
+  height: 18px;
+  border-radius: 3px;
+  background: linear-gradient(to bottom, var(--color-text-primary), var(--color-text-secondary));
+  border: 1px solid var(--color-border-strong);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.6);
+  cursor: grab;
+  transition: box-shadow var(--transition-fast);
+}
+
+.slider::-webkit-slider-thumb:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.8), 0 0 0 2px rgba(255, 255, 255, 0.15);
+}
+
+/* Firefox thumb */
+.slider::-moz-range-thumb {
+  width: 24px;
+  height: 18px;
+  border-radius: 3px;
+  background: linear-gradient(to bottom, var(--color-text-primary), var(--color-text-secondary));
+  border: 1px solid var(--color-border-strong);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.6);
+  cursor: grab;
+}
+
+/* Firefox track */
+.slider::-moz-range-track {
+  height: 8px;
+  border-radius: 4px;
+  background: linear-gradient(
+    to right,
+    var(--color-deck-a-bg) 0%,
+    var(--color-bg-elevated) 40%,
+    var(--color-bg-elevated) 60%,
+    var(--color-deck-b-bg) 100%
+  );
+}
+
+/* Sub-labels below the track */
+.sublabels {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 2px;
+}
+
+.sublabelA,
+.sublabelB,
+.sublabelCenter {
+  font-size: var(--text-xs);
+  color: var(--color-text-disabled);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+}
+
+.sublabelCenter {
+  color: var(--color-text-muted);
+}

@@ -1,0 +1,202 @@
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  height: 52px;
+  padding: 0 var(--space-3);
+  border-bottom: 1px solid var(--color-border-subtle);
+  list-style: none;
+  transition: background var(--transition-fast);
+}
+
+.row:hover {
+  background: var(--color-bg-elevated);
+}
+
+/* STORY-012: keyboard-navigation highlight */
+.rowHighlighted {
+  background: var(--color-bg-elevated);
+  outline: 1px solid var(--color-accent-primary);
+  outline-offset: -1px;
+}
+
+.thumbnail {
+  flex-shrink: 0;
+  width: 72px;
+  height: 40px;
+  border-radius: var(--radius-sm);
+  object-fit: cover;
+  background: var(--color-bg-overlay);
+}
+
+.info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.titleRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.title {
+  flex: 1;
+  font-size: var(--text-base);
+  color: var(--color-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.duration {
+  flex-shrink: 0;
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  font-family: var(--font-mono);
+}
+
+.channel {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* STORY-012: Now Playing deck badges (A / B) */
+.deckBadge {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0;
+  line-height: 1;
+}
+
+.deckBadgeA {
+  background: var(--color-deck-a-bg);
+  color: var(--color-deck-a-text);
+  border: 1px solid var(--color-deck-a-text);
+}
+
+.deckBadgeB {
+  background: var(--color-deck-b-bg);
+  color: var(--color-deck-b-text);
+  border: 1px solid var(--color-deck-b-text);
+}
+
+/* ── Action buttons — inline row ─────────────────────────────────────────── */
+
+.actions {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.loadBtn {
+  height: 28px;
+  padding: 0 var(--space-2);
+  min-width: 52px;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-primary);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  letter-spacing: var(--tracking-wide);
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.loadBtnA {
+  background: var(--color-deck-a-bg);
+  color: var(--color-deck-a-text);
+}
+
+.loadBtnA:hover {
+  background: #1e4a72;
+}
+
+.loadBtnB {
+  background: var(--color-deck-b-bg);
+  color: var(--color-deck-b-text);
+}
+
+.loadBtnB:hover {
+  background: #4a2020;
+}
+
+/* STORY-012: Copy YouTube URL — compact icon button */
+.copyBtn {
+  height: 28px;
+  width: 28px;
+  border: 1px solid var(--color-border-muted);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-elevated);
+  color: var(--color-text-muted);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background var(--transition-fast), color var(--transition-fast),
+    border-color var(--transition-fast);
+  padding: 0;
+}
+
+.copyBtn:hover {
+  background: var(--color-bg-overlay);
+  color: var(--color-text-secondary);
+  border-color: var(--color-border-strong);
+}
+
+/* Feedback state shown for 2s after a successful copy. */
+.copyBtnSuccess {
+  background: rgba(39, 174, 96, 0.2);
+  color: #7fd97f;
+  border-color: #4a9a4a;
+  font-size: 10px;
+  width: auto;
+  padding: 0 6px;
+}
+
+/* Download-to-playlist button */
+.saveBtn {
+  height: 28px;
+  width: 28px;
+  border: 1px solid var(--color-border-muted);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-elevated);
+  color: var(--color-text-muted);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background var(--transition-fast), color var(--transition-fast);
+  padding: 0;
+}
+
+.saveBtn:hover {
+  background: var(--color-bg-overlay);
+  color: var(--color-accent-primary);
+  border-color: var(--color-accent-primary);
+}
+
+.saveBtnAdding {
+  background: var(--color-accent-primary-dim);
+  color: var(--color-accent-primary);
+  border-color: var(--color-accent-primary);
+}
