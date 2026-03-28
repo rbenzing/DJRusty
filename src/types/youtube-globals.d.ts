@@ -1,9 +1,9 @@
 /**
- * youtube-globals.d.ts — Window interface augmentation for YouTube IFrame API globals.
+ * youtube-globals.d.ts — Window interface for YouTube IFrame API globals.
  *
  * The YouTube IFrame API sets `window.onYouTubeIframeAPIReady` as its initialisation
  * callback and `window.YT` as its namespace. The `@types/youtube` package provides
- * the `YT` namespace types but does not augment the Window interface for these globals.
+ * the `YT` namespace types but does not change the Window interface for these globals.
  */
 
 declare interface Window {
