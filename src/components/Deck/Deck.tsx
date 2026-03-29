@@ -32,6 +32,8 @@ import { SlipButton } from './SlipButton';
 import { PitchSlider } from './PitchSlider';
 import { TapTempo } from './TapTempo';
 import { VinylPlatter } from './VinylPlatter';
+import { WaveformDisplay } from './WaveformDisplay';
+import { FileImportZone } from '../FileImport/FileImportZone';
 import styles from './Deck.module.css';
 
 interface DeckProps {
@@ -91,6 +93,12 @@ export function Deck({ deckId }: DeckProps) {
           {error}
         </div>
       )}
+
+      {/* Waveform display — shown when peaks are available */}
+      <WaveformDisplay deckId={deckId} />
+
+      {/* File import — local MP3/WAV drag-and-drop */}
+      <FileImportZone deckId={deckId} />
 
       {/* Transport controls */}
       <DeckControls deckId={deckId} />
