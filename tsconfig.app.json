@@ -24,5 +24,6 @@
     /* Test globals (vitest, import.meta.env) and YouTube IFrame API types */
     "types": ["vitest/globals", "vite/client", "youtube"]
   },
-  "include": ["src"]
+  "include": ["src"],
+  "exclude": ["src/test"]
 }

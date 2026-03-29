@@ -1,6 +1,69 @@
 import '@testing-library/jest-dom';
 
 /**
+ * DataTransfer polyfill for jsdom.
+ *
+ * jsdom does not implement the DataTransfer API used by drag-and-drop tests.
+ * This minimal polyfill is sufficient for fireEvent.drop / fireEvent.dragOver tests.
+ */
+if (typeof DataTransfer === 'undefined') {
+  class DataTransferItemList {
+    private _items: File[] = [];
+
+    add(file: File): void {
+      this._items.push(file);
+    }
+
+    get length(): number {
+      return this._items.length;
+    }
+
+    [Symbol.iterator](): Iterator<File> {
+      return this._items[Symbol.iterator]();
+    }
+  }
+
+  class DataTransferFilesProxy {
+    private _items: File[];
+
+    constructor(items: File[]) {
+      this._items = items;
+      items.forEach((file, i) => {
+        (this as unknown as Record<number, File>)[i] = file;
+      });
+    }
+
+    get length(): number {
+      return this._items.length;
+    }
+
+    item(index: number): File | null {
+      return this._items[index] ?? null;
+    }
+
+    [Symbol.iterator](): Iterator<File> {
+      return this._items[Symbol.iterator]();
+    }
+  }
+
+  class DataTransferPolyfill {
+    items: DataTransferItemList;
+    dropEffect: string = 'none';
+    effectAllowed: string = 'all';
+
+    constructor() {
+      this.items = new DataTransferItemList();
+    }
+
+    get files(): DataTransferFilesProxy {
+      return new DataTransferFilesProxy(Array.from(this.items as unknown as Iterable<File>));
+    }
+  }
+
+  (globalThis as unknown as Record<string, unknown>).DataTransfer = DataTransferPolyfill;
+}
+
+/**
  * Mock the YouTube IFrame API global (window.YT).
  *
  * The YT global is injected by the YouTube IFrame API script, which is loaded

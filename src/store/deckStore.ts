@@ -129,6 +129,9 @@ interface DeckStoreActions {
   /** Set EQ values for the specified deck. */
   setEq: (deckId: 'A' | 'B', band: 'eqLow' | 'eqMid' | 'eqHigh', value: number) => void;
 
+  /** Set the track duration (seconds) — used by useAudioEngine after buffer decode. */
+  setDuration: (deckId: 'A' | 'B', duration: number) => void;
+
   /** Set an error state for the specified deck. */
   setError: (deckId: 'A' | 'B', error: string | null) => void;
 
@@ -340,6 +343,10 @@ export const useDeckStore = create<DeckStore>((set, get) => ({
 
   setEq: (deckId, band, value) => {
     updateDeck(set, deckId, { [band]: value });
+  },
+
+  setDuration: (deckId, duration) => {
+    updateDeck(set, deckId, { duration });
   },
 
   setError: (deckId, error) => {

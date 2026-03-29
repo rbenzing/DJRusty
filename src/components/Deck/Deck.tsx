@@ -21,6 +21,7 @@
  */
 import { useDeck } from '../../store/deckStore';
 import { useMixerStore } from '../../store/mixerStore';
+import { useAudioEngine } from '../../hooks/useAudioEngine';
 import { DeckControls } from './DeckControls';
 import { DeckDisplay } from './DeckDisplay';
 import { EQPanel } from './EQPanel';
@@ -39,6 +40,7 @@ interface DeckProps {
 }
 
 export function Deck({ deckId }: DeckProps) {
+  useAudioEngine(deckId);
   const deck = useDeck(deckId);
   const setChannelFaderA = useMixerStore((s) => s.setChannelFaderA);
   const setChannelFaderB = useMixerStore((s) => s.setChannelFaderB);

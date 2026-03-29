@@ -1,0 +1,78 @@
+/**
+ * FileImportZone.module.css — Styles for the file drag-and-drop import zone.
+ */
+
+.zone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2, 8px);
+  padding: var(--space-4, 16px);
+  border: 2px dashed var(--color-border-default, #444);
+  border-radius: var(--radius-lg, 8px);
+  background: var(--color-bg-surface, #1a1a2e);
+  cursor: pointer;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+  outline: none;
+}
+
+.zone:focus-visible {
+  outline: 2px solid var(--color-focus-ring, #4a90e2);
+  outline-offset: 2px;
+}
+
+/* Dragover state */
+.dragover {
+  border-color: var(--color-accent-primary, #4a90e2);
+  background: var(--color-bg-accent, #1a2a3e);
+}
+
+/* Error state */
+.error {
+  border-color: var(--color-error, #e24a4a);
+  background: var(--color-bg-error, #2e1a1a);
+}
+
+/* Hidden file input */
+.hiddenInput {
+  position: absolute;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+/* Idle instruction text */
+.instructions {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--color-text-muted, #888);
+  text-align: center;
+  pointer-events: none;
+}
+
+/* Error message */
+.errorText {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--color-error, #e24a4a);
+  text-align: center;
+}
+
+/* Browse button */
+.browseButton {
+  padding: var(--space-1, 4px) var(--space-3, 12px);
+  font-size: 0.8125rem;
+  border: 1px solid var(--color-border-default, #444);
+  border-radius: var(--radius-sm, 4px);
+  background: var(--color-bg-elevated, #222);
+  color: var(--color-text-default, #ccc);
+  cursor: pointer;
+  transition: background-color 0.1s ease;
+}
+
+.browseButton:hover {
+  background: var(--color-bg-hover, #2a2a2a);
+}
