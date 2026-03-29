@@ -12,6 +12,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { formatTime } from '../../utils/formatTime';
 import { useDeckStore } from '../../store/deckStore';
+import { useDownloadStore } from '../../store/downloadStore';
 import type { TrackSummary } from '../../types/search';
 import styles from './SearchResult.module.css';
 
@@ -20,6 +21,8 @@ interface SearchResultProps {
   onLoadToDeck: (deckId: 'A' | 'B', result: TrackSummary) => void;
   /** Called when the user clicks +A or +B to add the track to a deck's playlist. */
   onQueueToDeck: (deckId: 'A' | 'B', result: TrackSummary) => void;
+  /** Called when the user clicks the DL (download) button. */
+  onDownload?: (result: TrackSummary) => void;
   /** Whether this row is keyboard-highlighted (for arrow-key navigation). */
   highlighted?: boolean;
 }
@@ -28,8 +31,15 @@ interface SearchResultProps {
 const COPY_FEEDBACK_DURATION_MS = 2000;
 const QUEUE_FEEDBACK_DURATION_MS = 1500;
 
-export function SearchResult({ result, onLoadToDeck, onQueueToDeck, highlighted = false }: SearchResultProps) {
+export function SearchResult({ result, onLoadToDeck, onQueueToDeck, onDownload, highlighted = false }: SearchResultProps) {
   const { videoId, title, artist, duration, thumbnailUrl } = result;
+  const vid = videoId ?? '';
+
+  // Download status from downloadStore
+  const dlStatusOverride = useDownloadStore((s) => s.statusOverrides[vid]);
+  const dlTrack = useDownloadStore((s) => s.tracks.find((t) => t.videoId === vid));
+  const dlStatus = dlStatusOverride ?? dlTrack?.status ?? null;
+  const dlProgress = useDownloadStore((s) => s.progress[vid] ?? 0);
 
   // STORY-012: Read both deck track IDs to determine Now Playing badges.
   const deckATrackId = useDeckStore((state) => state.decks.A.trackId);
@@ -172,6 +182,24 @@ export function SearchResult({ result, onLoadToDeck, onQueueToDeck, highlighted 
         >
           {copied ? '✓' : '⎘'}
         </button>
+        {/* Download to local library */}
+        {onDownload && (
+          <button
+            type="button"
+            className={`${styles.dlBtn} ${dlStatus ? styles[`dlBtn_${dlStatus}`] : ''}`}
+            onClick={() => dlStatus !== 'ready' && dlStatus !== 'downloading' && onDownload(result)}
+            aria-label={`Download ${title}`}
+            title={
+              dlStatus === 'ready' ? 'Downloaded' :
+              dlStatus === 'downloading' ? `Downloading ${Math.round(dlProgress)}%` :
+              dlStatus === 'error' ? 'Download failed — retry' :
+              'Download to local library'
+            }
+            disabled={dlStatus === 'downloading' || dlStatus === 'pending'}
+          >
+            {dlStatus === 'ready' ? '✓DL' : dlStatus === 'downloading' ? `${Math.round(dlProgress)}%` : 'DL'}
+          </button>
+        )}
       </div>
     </li>
   );

@@ -200,3 +200,40 @@
   color: var(--color-accent-primary);
   border-color: var(--color-accent-primary);
 }
+
+.dlBtn {
+  min-width: 36px;
+  height: 26px;
+  padding: 0 5px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  background: transparent;
+  color: #888;
+  border: 1px solid #444;
+  border-radius: 3px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.dlBtn:hover:not(:disabled) {
+  color: #f0a500;
+  border-color: #f0a500;
+}
+
+.dlBtn_ready {
+  color: #4a9eff;
+  border-color: #4a9eff;
+}
+
+.dlBtn_downloading,
+.dlBtn_pending {
+  color: #f0a500;
+  border-color: #f0a500;
+  cursor: default;
+}
+
+.dlBtn_error {
+  color: #e74c3c;
+  border-color: #e74c3c;
+}

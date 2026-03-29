@@ -27,6 +27,8 @@ import { SearchResultList } from './SearchResultList';
 import { SearchResult } from './SearchResult';
 import { PlaylistPanel } from '../Playlist/PlaylistPanel';
 import { getRecentTracks, type RecentTrack } from '../../utils/recentlyPlayed';
+import { useDownloadManager } from '../../hooks/useDownloadManager';
+import { DownloadLibrary } from '../Library/DownloadLibrary';
 import type { TrackSummary } from '../../types/search';
 import styles from './SearchPanel.module.css';
 
@@ -50,7 +52,7 @@ function recentTrackToSummary(track: RecentTrack): TrackSummary {
   };
 }
 
-type ActiveTab = 'search' | 'recent' | 'playlist';
+type ActiveTab = 'search' | 'recent' | 'playlist' | 'library';
 
 interface SearchPanelProps {
   isOpen: boolean;
@@ -61,6 +63,7 @@ export function SearchPanel({ isOpen, onToggle }: SearchPanelProps) {
   const { query, results, nextPageToken, loading, error, setQuery, setResults,
     appendResults, setLoading, setError } = useSearchStore();
   const { accessToken, signedIn } = useAuthStore();
+  const { requestDownload, removeFromLibrary } = useDownloadManager();
 
   // Track whether the user has submitted at least one search this session.
   const [hasSearched, setHasSearched] = useState(false);
@@ -258,6 +261,17 @@ export function SearchPanel({ isOpen, onToggle }: SearchPanelProps) {
         >
           Playlist
         </button>
+        <button
+          role="tab"
+          type="button"
+          id="library-tab"
+          className={`${styles.tab} ${activeTab === 'library' ? styles.tabActive : ''}`}
+          aria-selected={activeTab === 'library'}
+          aria-controls="library-tab-panel"
+          onClick={() => setActiveTab('library')}
+        >
+          Library
+        </button>
       </div>
 
       {/* STORY-014: role="tabpanel" with aria-labelledby wired to matching tab id */}
@@ -280,6 +294,13 @@ export function SearchPanel({ isOpen, onToggle }: SearchPanelProps) {
           hasSearched={hasSearched}
           onLoadToDeck={handleLoadToDeck}
           onQueueToDeck={handleQueueToDeck}
+          onDownload={(result) => void requestDownload({
+            videoId: result.videoId!,
+            title: result.title,
+            artist: result.artist,
+            duration: result.duration,
+            thumbnailUrl: result.thumbnailUrl,
+          })}
         />
 
         {nextPageToken && !loading && (
@@ -332,6 +353,15 @@ export function SearchPanel({ isOpen, onToggle }: SearchPanelProps) {
         hidden={activeTab !== 'playlist'}
       >
         <PlaylistPanel />
+      </div>
+
+      <div
+        role="tabpanel"
+        id="library-tab-panel"
+        aria-labelledby="library-tab"
+        hidden={activeTab !== 'library'}
+      >
+        <DownloadLibrary onRemove={removeFromLibrary} />
       </div>
 
       </div>{/* end .content */}

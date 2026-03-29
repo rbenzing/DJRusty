@@ -62,9 +62,13 @@ export function useAudioEngine(deckId: 'A' | 'B'): void {
 
       const { playlists, currentIndex } = usePlaylistStore.getState();
       const entry = playlists[deckId][currentIndex[deckId]];
-      if (!entry?.file) return;
+      if (!entry) return;
 
-      void loadAudioFile(deckId, engineRef, entry.file, autoPlayOnLoad, isMountedRef, suppressTransportRef);
+      if (entry.file) {
+        void loadAudioFile(deckId, engineRef, entry.file, autoPlayOnLoad, isMountedRef, suppressTransportRef);
+      } else if (entry.audioUrl) {
+        void loadAudioUrl(deckId, engineRef, entry.audioUrl, autoPlayOnLoad, isMountedRef, suppressTransportRef);
+      }
     });
 
     return unsubscribe;
@@ -241,6 +245,58 @@ async function loadAudioFile(
     useDeckStore.getState().setError(
       deckId,
       `Failed to decode: ${err instanceof Error ? err.message : 'Unknown error'}`,
+    );
+  }
+}
+
+async function loadAudioUrl(
+  deckId: 'A' | 'B',
+  engineRef: React.MutableRefObject<AudioEngineImpl | null>,
+  audioUrl: string,
+  autoPlay: boolean,
+  isMountedRef: React.MutableRefObject<boolean>,
+  suppressTransportRef: React.MutableRefObject<boolean>,
+): Promise<void> {
+  const store = useDeckStore.getState();
+  store.setDecoding(deckId, true);
+  store.setBpmDetecting(deckId, true);
+  try {
+    const resp = await fetch(audioUrl);
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const arrayBuffer = await resp.arrayBuffer();
+    if (!isMountedRef.current || !engineRef.current) return;
+
+    const audioCtx = new AudioContext();
+    const buffer = await audioCtx.decodeAudioData(arrayBuffer);
+    audioCtx.close();
+
+    const engine = engineRef.current;
+    engine.loadBuffer(buffer);
+    useDeckStore.getState().setDuration(deckId, buffer.duration);
+    useDeckStore.getState().setDecoding(deckId, false);
+    useDeckStore.getState().setPlayerReady(deckId, true);
+    useDeckStore.getState().setCurrentTime(deckId, 0);
+    useDeckStore.getState().setPitchRateLocked(deckId, false);
+
+    const peaks = extractWaveformPeaks(buffer, WAVEFORM_PEAKS);
+    if (isMountedRef.current) useDeckStore.getState().setWaveformPeaks(deckId, peaks);
+
+    launchBpmWorker(deckId, buffer, isMountedRef);
+
+    if (autoPlay) {
+      await engine.play();
+      if (!isMountedRef.current) return;
+      suppressTransportRef.current = true;
+      useDeckStore.getState().setPlaybackState(deckId, 'playing');
+      useDeckStore.getState().clearAutoPlayOnLoad(deckId);
+    }
+  } catch (err) {
+    if (!isMountedRef.current) return;
+    useDeckStore.getState().setDecoding(deckId, false);
+    useDeckStore.getState().setBpmDetecting(deckId, false);
+    useDeckStore.getState().setError(
+      deckId,
+      `Failed to load: ${err instanceof Error ? err.message : 'Unknown error'}`,
     );
   }
 }
