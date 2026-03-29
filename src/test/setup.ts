@@ -102,6 +102,20 @@ window.YT = {
 } as unknown as typeof YT;
 
 /**
+ * Minimal Worker stub — prevents "Worker is not defined" in jsdom for tests
+ * that don't specifically test BPM detection (those override via vi.stubGlobal).
+ */
+if (typeof Worker === 'undefined') {
+  class WorkerStub {
+    onmessage: ((e: MessageEvent) => void) | null = null;
+    onerror: ((e: ErrorEvent) => void) | null = null;
+    postMessage() {}
+    terminate() {}
+  }
+  (globalThis as unknown as Record<string, unknown>).Worker = WorkerStub;
+}
+
+/**
  * Reset all mocks between tests to prevent state leaking across test cases.
  */
 beforeEach(() => {
