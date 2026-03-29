@@ -18,6 +18,7 @@
 import { create } from 'zustand';
 import type { PlaylistEntry } from '../types/playlist';
 import { useDeckStore } from './deckStore';
+import { useDownloadStore } from './downloadStore';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -71,15 +72,30 @@ function generateId(): string {
  *    is no videoId. This ensures trackId is always a non-empty string.
  */
 function loadDeckTrack(deckId: 'A' | 'B', entry: PlaylistEntry, autoPlay: boolean): void {
+  // INT-005: if this is a YouTube track and we have a local downloaded copy, use it.
+  let resolvedEntry = entry;
+  if (entry.sourceType === 'youtube' && entry.videoId) {
+    const dl = useDownloadStore.getState().tracks.find(
+      (t) => t.videoId === entry.videoId && t.status === 'ready',
+    );
+    if (dl) {
+      resolvedEntry = {
+        ...entry,
+        sourceType: 'mp3',
+        audioUrl: `http://localhost:3001/api/audio/${dl.videoId}`,
+      };
+    }
+  }
+
   useDeckStore.getState().loadTrack(
     deckId,
-    entry.videoId ?? entry.id,
+    resolvedEntry.videoId ?? resolvedEntry.id,
     {
-      sourceType: entry.sourceType,
-      title: entry.title,
-      artist: entry.artist,
-      duration: entry.duration,
-      thumbnailUrl: entry.thumbnailUrl,
+      sourceType: resolvedEntry.sourceType,
+      title: resolvedEntry.title,
+      artist: resolvedEntry.artist,
+      duration: resolvedEntry.duration,
+      thumbnailUrl: resolvedEntry.thumbnailUrl,
     },
     autoPlay,
   );

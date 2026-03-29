@@ -29,6 +29,7 @@ import { PlaylistPanel } from '../Playlist/PlaylistPanel';
 import { getRecentTracks, type RecentTrack } from '../../utils/recentlyPlayed';
 import { useDownloadManager } from '../../hooks/useDownloadManager';
 import { DownloadLibrary } from '../Library/DownloadLibrary';
+import { ChannelPanel } from '../Library/ChannelPanel';
 import type { TrackSummary } from '../../types/search';
 import styles from './SearchPanel.module.css';
 
@@ -52,7 +53,7 @@ function recentTrackToSummary(track: RecentTrack): TrackSummary {
   };
 }
 
-type ActiveTab = 'search' | 'recent' | 'playlist' | 'library';
+type ActiveTab = 'search' | 'recent' | 'playlist' | 'library' | 'channel';
 
 interface SearchPanelProps {
   isOpen: boolean;
@@ -272,6 +273,17 @@ export function SearchPanel({ isOpen, onToggle }: SearchPanelProps) {
         >
           Library
         </button>
+        <button
+          role="tab"
+          type="button"
+          id="channel-tab"
+          className={`${styles.tab} ${activeTab === 'channel' ? styles.tabActive : ''}`}
+          aria-selected={activeTab === 'channel'}
+          aria-controls="channel-tab-panel"
+          onClick={() => setActiveTab('channel')}
+        >
+          My Channel
+        </button>
       </div>
 
       {/* STORY-014: role="tabpanel" with aria-labelledby wired to matching tab id */}
@@ -362,6 +374,15 @@ export function SearchPanel({ isOpen, onToggle }: SearchPanelProps) {
         hidden={activeTab !== 'library'}
       >
         <DownloadLibrary onRemove={removeFromLibrary} />
+      </div>
+
+      <div
+        role="tabpanel"
+        id="channel-tab-panel"
+        aria-labelledby="channel-tab"
+        hidden={activeTab !== 'channel'}
+      >
+        <ChannelPanel />
       </div>
 
       </div>{/* end .content */}
