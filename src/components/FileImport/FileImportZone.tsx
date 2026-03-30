@@ -74,33 +74,24 @@ export function FileImportZone({ deckId, onFileAccepted }: FileImportZoneProps) 
    *  4. Invoke the optional onFileAccepted callback.
    */
   function processFile(file: File): void {
-    // Notify parent first (contract: receives File, not null, not string).
     onFileAccepted?.(file);
 
     const audioUrl = URL.createObjectURL(file);
     const title = stripExtension(file.name);
 
-    const audio = new Audio();
-    audio.src = audioUrl;
-
-    audio.onloadedmetadata = function () {
-      const rawDuration = (audio as HTMLAudioElement).duration;
-      const duration = Number.isFinite(rawDuration) ? rawDuration : 0;
-
-      const entry: Omit<PlaylistEntry, 'id'> = {
-        sourceType: 'mp3',
-        title,
-        artist: 'Local File',
-        duration,
-        thumbnailUrl: null,
-        file,
-        audioUrl,
-      };
-
-      usePlaylistStore.getState().addTrack(deckId, entry);
+    // Add track immediately — duration starts at 0 and is updated by
+    // useAudioEngine after the AudioBuffer is decoded.
+    const entry: Omit<PlaylistEntry, 'id'> = {
+      sourceType: 'mp3',
+      title,
+      artist: 'Local File',
+      duration: 0,
+      thumbnailUrl: null,
+      file,
+      audioUrl,
     };
 
-    audio.load();
+    usePlaylistStore.getState().addTrack(deckId, entry);
   }
 
   /**

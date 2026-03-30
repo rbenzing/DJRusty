@@ -705,8 +705,7 @@ describe('FileImportZone — file picker (Browse Files button)', () => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe('FileImportZone — duration extraction', () => {
-  it('passes duration extracted from Audio element to addTrack', () => {
-    mockAudioElement(240); // 4 minutes
+  it('passes duration 0 to addTrack (duration resolved later by audio decoder)', () => {
     render(<FileImportZone deckId="A" />);
     const zone = screen.getByRole('button', { name: /deck a/i });
     const file = makeFile('long-track.mp3', 'audio/mpeg');
@@ -715,12 +714,11 @@ describe('FileImportZone — duration extraction', () => {
 
     expect(mockAddTrack).toHaveBeenCalledWith(
       'A',
-      expect.objectContaining({ duration: 240 }),
+      expect.objectContaining({ duration: 0 }),
     );
   });
 
-  it('passes 0 as duration when Audio element cannot determine it (NaN)', () => {
-    mockAudioElement(NaN);
+  it('addTrack is called synchronously on drop (no onloadedmetadata delay)', () => {
     render(<FileImportZone deckId="A" />);
     const zone = screen.getByRole('button', { name: /deck a/i });
     const file = makeFile('unknown-dur.mp3', 'audio/mpeg');

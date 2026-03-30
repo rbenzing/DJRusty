@@ -23,6 +23,24 @@ export function useAudioEngine(deckId: 'A' | 'B'): void {
   // Prevents autoPlay's setPlaybackState('playing') from triggering a second engine.play()
   const suppressTransportRef = useRef(false);
 
+  /** Start the 250 ms currentTime poll. Idempotent — clears any existing poll first. */
+  function startPoll(): void {
+    if (pollRef.current) clearInterval(pollRef.current);
+    pollRef.current = setInterval(() => {
+      if (!engineRef.current || !isMountedRef.current) return;
+      const time = engineRef.current.getCurrentTime();
+      skipSeekRef.current = true;
+      useDeckStore.getState().setCurrentTime(deckId, time);
+      const deck = useDeckStore.getState().decks[deckId];
+      if (deck.loopActive && deck.loopEnd !== null && time >= deck.loopEnd) {
+        engineRef.current.seekTo(deck.loopStart ?? 0);
+      }
+      if (deck.slipMode && deck.slipStartTime !== null && deck.loopActive) {
+        useDeckStore.getState().updateSlipPosition(deckId);
+      }
+    }, 250);
+  }
+
   // ── 1. Create / Destroy ───────────────────────────────────────────────────
   useEffect(() => {
     isMountedRef.current = true;
@@ -92,23 +110,7 @@ export function useAudioEngine(deckId: 'A' | 'B'): void {
         void (async () => {
           await engine.play();
           if (!isMountedRef.current) return;
-          // Start currentTime poll
-          if (pollRef.current) clearInterval(pollRef.current);
-          pollRef.current = setInterval(() => {
-            if (!engineRef.current || !isMountedRef.current) return;
-            const time = engineRef.current.getCurrentTime();
-            skipSeekRef.current = true;
-            useDeckStore.getState().setCurrentTime(deckId, time);
-            // Loop enforcement
-            const deck = useDeckStore.getState().decks[deckId];
-            if (deck.loopActive && deck.loopEnd !== null && time >= deck.loopEnd) {
-              engineRef.current.seekTo(deck.loopStart ?? 0);
-            }
-            // Slip tracking
-            if (deck.slipMode && deck.slipStartTime !== null && deck.loopActive) {
-              useDeckStore.getState().updateSlipPosition(deckId);
-            }
-          }, 250);
+          startPoll();
         })();
       } else if (playbackState === 'paused') {
         engine.pause();
@@ -120,6 +122,29 @@ export function useAudioEngine(deckId: 'A' | 'B'): void {
       unsubscribe();
       if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [deckId]);
+
+  // ── 3b. playerReady → start playback if user already clicked play during decode ──
+  useEffect(() => {
+    let prev = useDeckStore.getState().decks[deckId].playerReady;
+
+    const unsubscribe = useDeckStore.subscribe((state) => {
+      const { playerReady, playbackState, sourceType } = state.decks[deckId];
+      if (playerReady === prev) return;
+      prev = playerReady;
+      if (!playerReady || sourceType !== 'mp3' || !engineRef.current) return;
+      // User may have clicked play while the buffer was still decoding.
+      if (playbackState === 'playing') {
+        void (async () => {
+          await engineRef.current!.play();
+          if (!isMountedRef.current) return;
+          startPoll();
+        })();
+      }
+    });
+
+    return unsubscribe;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [deckId]);
 

@@ -211,6 +211,7 @@ export const useDeckStore = create<DeckStore>((set, get) => ({
       thumbnailUrl,
       currentTime: 0,
       playbackState: 'unstarted',
+      playerReady: false,
       loopActive: false,
       loopStart: null,
       loopEnd: null,

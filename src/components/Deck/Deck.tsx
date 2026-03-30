@@ -97,8 +97,8 @@ export function Deck({ deckId }: DeckProps) {
       {/* Waveform display — shown when peaks are available */}
       <WaveformDisplay deckId={deckId} />
 
-      {/* File import — local MP3/WAV drag-and-drop */}
-      <FileImportZone deckId={deckId} />
+      {/* File import — only shown when no track is loaded */}
+      {!hasTrack && <FileImportZone deckId={deckId} />}
 
       {/* Transport controls */}
       <DeckControls deckId={deckId} />
