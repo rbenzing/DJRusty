@@ -53,7 +53,7 @@ function recentTrackToSummary(track: RecentTrack): TrackSummary {
   };
 }
 
-type ActiveTab = 'search' | 'recent' | 'playlist' | 'library' | 'channel';
+type ActiveTab = 'search' | 'recent' | 'playlist' | 'library';
 
 interface SearchPanelProps {
   isOpen: boolean;
@@ -65,6 +65,7 @@ export function SearchPanel({ isOpen, onToggle }: SearchPanelProps) {
     appendResults, setLoading, setError } = useSearchStore();
   const { accessToken, signedIn } = useAuthStore();
   const { requestDownload, removeFromLibrary } = useDownloadManager();
+  const [showChannel, setShowChannel] = useState(false);
 
   // Track whether the user has submitted at least one search this session.
   const [hasSearched, setHasSearched] = useState(false);
@@ -219,13 +220,24 @@ export function SearchPanel({ isOpen, onToggle }: SearchPanelProps) {
           </div>
         )}
 
-        <SearchBar
-          initialQuery={query}
-          loading={loading}
-          disabled={panelDisabled}
-          onSearch={handleSearch}
-          onClear={handleClear}
-        />
+        <div className={styles.searchRow}>
+          <SearchBar
+            initialQuery={query}
+            loading={loading}
+            disabled={panelDisabled}
+            onSearch={handleSearch}
+            onClear={handleClear}
+          />
+          <button
+            type="button"
+            className={`${styles.channelToggleBtn} ${showChannel ? styles.channelToggleBtnActive : ''}`}
+            onClick={() => setShowChannel((v) => !v)}
+            title="Browse My Channel"
+            aria-pressed={showChannel}
+          >
+            📺
+          </button>
+        </div>
 
       {/* STORY-012: Tab switcher — STORY-014: full ARIA tabs pattern */}
       <div className={styles.tabBar} role="tablist" aria-label="Track browser tabs">
@@ -273,17 +285,6 @@ export function SearchPanel({ isOpen, onToggle }: SearchPanelProps) {
         >
           Library
         </button>
-        <button
-          role="tab"
-          type="button"
-          id="channel-tab"
-          className={`${styles.tab} ${activeTab === 'channel' ? styles.tabActive : ''}`}
-          aria-selected={activeTab === 'channel'}
-          aria-controls="channel-tab-panel"
-          onClick={() => setActiveTab('channel')}
-        >
-          My Channel
-        </button>
       </div>
 
       {/* STORY-014: role="tabpanel" with aria-labelledby wired to matching tab id */}
@@ -293,6 +294,10 @@ export function SearchPanel({ isOpen, onToggle }: SearchPanelProps) {
         aria-labelledby="search-tab"
         hidden={activeTab !== 'search'}
       >
+        {showChannel ? (
+          <ChannelPanel />
+        ) : (
+          <>
         {error && (
           <div className={styles.errorBanner} role="alert">
             <span className={styles.errorIcon}>!</span>
@@ -327,6 +332,8 @@ export function SearchPanel({ isOpen, onToggle }: SearchPanelProps) {
               {loadingMore ? 'Loading...' : 'Load Next Page'}
             </button>
           </div>
+        )}
+          </>
         )}
       </div>
 
@@ -374,15 +381,6 @@ export function SearchPanel({ isOpen, onToggle }: SearchPanelProps) {
         hidden={activeTab !== 'library'}
       >
         <DownloadLibrary onRemove={removeFromLibrary} />
-      </div>
-
-      <div
-        role="tabpanel"
-        id="channel-tab-panel"
-        aria-labelledby="channel-tab"
-        hidden={activeTab !== 'channel'}
-      >
-        <ChannelPanel />
       </div>
 
       </div>{/* end .content */}

@@ -153,3 +153,8 @@
   --deck-accent-text: var(--color-deck-b-text);
   border-color: var(--color-deck-b-border);
 }
+
+.deckDragover {
+  outline: 2px dashed #4a9eff;
+  outline-offset: -4px;
+}

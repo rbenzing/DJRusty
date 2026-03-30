@@ -14,6 +14,7 @@
  * Seek is issued directly via playerRegistry to keep Zustand state clean.
  */
 import { useDeck, useDeckStore } from '../../store/deckStore';
+import { usePlaylistStore } from '../../store/playlistStore';
 import { playerRegistry } from '../../services/playerRegistry';
 import {
   setHotCue as persistSetHotCue,
@@ -29,7 +30,8 @@ interface DeckControlsProps {
 
 export function DeckControls({ deckId }: DeckControlsProps) {
   const deck = useDeck(deckId);
-  const { setPlaybackState, setHotCue } = useDeckStore();
+  const { setPlaybackState, setHotCue, clearTrack } = useDeckStore();
+  const clearPlaylist = usePlaylistStore((s) => s.clearPlaylist);
 
   const { playbackState, trackId, currentTime, hotCues, playerReady } = deck;
   const isPlaying = playbackState === 'playing';
@@ -174,6 +176,23 @@ export function DeckControls({ deckId }: DeckControlsProps) {
 
       {/* Skip to next playlist track */}
       <SkipButton deckId={deckId} />
+
+      {/* Eject / clear deck */}
+      <button
+        type="button"
+        className={`${styles.btn} ${styles.ejectBtn}`}
+        onClick={() => {
+          if (!hasTrack) return;
+          setPlaybackState(deckId, 'paused');
+          clearTrack(deckId);
+          clearPlaylist(deckId);
+        }}
+        disabled={!hasTrack}
+        aria-label={`Eject track from Deck ${deckId}`}
+        title="Eject — clear deck and playlist"
+      >
+        ⏏
+      </button>
     </div>
   );
 }

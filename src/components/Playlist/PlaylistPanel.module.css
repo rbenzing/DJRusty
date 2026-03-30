@@ -116,3 +116,9 @@
   color: var(--color-text-secondary);
   font-family: var(--font-mono);
 }
+
+.deckColDragover {
+  outline: 2px dashed #4a9eff;
+  outline-offset: -3px;
+  background: rgba(74, 158, 255, 0.04);
+}

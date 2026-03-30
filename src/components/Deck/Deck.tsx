@@ -19,9 +19,13 @@
  *   - Error: error message banner beneath platter
  *   - Playing/Paused/Ended: platter spin controlled by playbackState
  */
+import { useState } from 'react';
+import type { DragEvent } from 'react';
 import { useDeck } from '../../store/deckStore';
 import { useMixerStore } from '../../store/mixerStore';
 import { useAudioEngine } from '../../hooks/useAudioEngine';
+import { usePlaylistStore } from '../../store/playlistStore';
+import type { PlaylistEntry } from '../../types/playlist';
 import { DeckControls } from './DeckControls';
 import { DeckDisplay } from './DeckDisplay';
 import { EQPanel } from './EQPanel';
@@ -47,12 +51,44 @@ export function Deck({ deckId }: DeckProps) {
   const setChannelFaderA = useMixerStore((s) => s.setChannelFaderA);
   const setChannelFaderB = useMixerStore((s) => s.setChannelFaderB);
   const channelFader = useMixerStore((s) => deckId === 'A' ? s.channelFaderA : s.channelFaderB);
+  const addTrack = usePlaylistStore((s) => s.addTrack);
 
   const { playbackState, trackId, thumbnailUrl, pitchRate, error } = deck;
 
   const isPlaying = playbackState === 'playing';
   const isBuffering = playbackState === 'buffering';
   const hasTrack = trackId !== null;
+
+  const [deckDragover, setDeckDragover] = useState(false);
+
+  function handleDeckDragOver(e: DragEvent<HTMLDivElement>) {
+    if (e.dataTransfer.types.includes('Files')) {
+      e.preventDefault();
+      setDeckDragover(true);
+    }
+  }
+
+  function handleDeckDragLeave(e: DragEvent<HTMLDivElement>) {
+    // Only clear if leaving the deck entirely (not entering a child)
+    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+      setDeckDragover(false);
+    }
+  }
+
+  function handleDeckDrop(e: DragEvent<HTMLDivElement>) {
+    e.preventDefault();
+    setDeckDragover(false);
+    const files = Array.from(e.dataTransfer.files).filter((f) => f.type.startsWith('audio/'));
+    files.forEach((file) => {
+      const audioUrl = URL.createObjectURL(file);
+      const title = file.name.replace(/\.[^/.]+$/, '');
+      const entry: Omit<PlaylistEntry, 'id'> = {
+        sourceType: 'mp3', title, artist: 'Local File',
+        duration: 0, thumbnailUrl: null, file, audioUrl,
+      };
+      addTrack(deckId, entry);
+    });
+  }
 
   function handleVolumeChange(event: React.ChangeEvent<HTMLInputElement>) {
     const val = parseInt(event.target.value, 10);
@@ -62,8 +98,11 @@ export function Deck({ deckId }: DeckProps) {
 
   return (
     <div
-      className={styles.deck}
+      className={`${styles.deck}${deckDragover ? ` ${styles.deckDragover}` : ''}`}
       data-deck={deckId.toLowerCase()}
+      onDragOver={handleDeckDragOver}
+      onDragLeave={handleDeckDragLeave}
+      onDrop={handleDeckDrop}
     >
       {/* Track info / time display */}
       <DeckDisplay deckId={deckId} />

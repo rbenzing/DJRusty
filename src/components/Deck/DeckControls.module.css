@@ -96,3 +96,13 @@
   order: 2;
   min-width: 40px;
 }
+
+.ejectBtn {
+  font-size: 1rem;
+  color: #888;
+  border-color: #444;
+}
+.ejectBtn:hover:not(:disabled) {
+  color: #e74c3c;
+  border-color: #e74c3c;
+}

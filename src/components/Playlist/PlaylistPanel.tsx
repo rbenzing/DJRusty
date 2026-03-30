@@ -5,8 +5,11 @@
  * side-by-side, with the active track highlighted. Clicking a track in
  * the list calls jumpToTrack which loads and auto-plays it.
  */
+import { useState } from 'react';
+import type { DragEvent } from 'react';
 import { usePlaylistStore } from '../../store/playlistStore';
 import { PlaylistTrack } from './PlaylistTrack';
+import type { PlaylistEntry } from '../../types/playlist';
 import styles from './PlaylistPanel.module.css';
 
 export function PlaylistPanel() {
@@ -15,6 +18,35 @@ export function PlaylistPanel() {
   const clearPlaylist = usePlaylistStore((s) => s.clearPlaylist);
   const jumpToTrack = usePlaylistStore((s) => s.jumpToTrack);
   const removeTrack = usePlaylistStore((s) => s.removeTrack);
+  const addTrack = usePlaylistStore((s) => s.addTrack);
+
+  const [dragoverDeck, setDragoverDeck] = useState<'A' | 'B' | null>(null);
+
+  function makeDropHandlers(deckId: 'A' | 'B') {
+    return {
+      onDragOver(e: DragEvent<HTMLDivElement>) {
+        if (e.dataTransfer.types.includes('Files')) { e.preventDefault(); setDragoverDeck(deckId); }
+      },
+      onDragLeave(e: DragEvent<HTMLDivElement>) {
+        if (!e.currentTarget.contains(e.relatedTarget as Node)) setDragoverDeck(null);
+      },
+      onDrop(e: DragEvent<HTMLDivElement>) {
+        e.preventDefault();
+        setDragoverDeck(null);
+        Array.from(e.dataTransfer.files)
+          .filter((f) => f.type.startsWith('audio/'))
+          .forEach((file) => {
+            const audioUrl = URL.createObjectURL(file);
+            const title = file.name.replace(/\.[^/.]+$/, '');
+            const entry: Omit<PlaylistEntry, 'id'> = {
+              sourceType: 'mp3', title, artist: 'Local File',
+              duration: 0, thumbnailUrl: null, file, audioUrl,
+            };
+            addTrack(deckId, entry);
+          });
+      },
+    };
+  }
 
   function renderDeck(deckId: 'A' | 'B') {
     const playlist = playlists[deckId];
@@ -22,8 +54,12 @@ export function PlaylistPanel() {
     const deckColorVar =
       deckId === 'A' ? 'var(--color-deck-a-text)' : 'var(--color-deck-b-text)';
 
+    const dropHandlers = makeDropHandlers(deckId);
     return (
-      <div className={styles.deckCol}>
+      <div
+        className={`${styles.deckCol}${dragoverDeck === deckId ? ` ${styles.deckColDragover}` : ''}`}
+        {...dropHandlers}
+      >
         <div className={styles.deckHeader}>
           <span className={styles.deckLabel} style={{ color: deckColorVar }}>
             DECK {deckId}

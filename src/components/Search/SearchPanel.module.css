@@ -276,3 +276,31 @@
   font-size: var(--text-base);
   text-align: center;
 }
+
+.searchRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.channelToggleBtn {
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  background: transparent;
+  border: 1px solid #333;
+  border-radius: 4px;
+  font-size: 1rem;
+  cursor: pointer;
+  line-height: 1;
+  color: #888;
+}
+
+.channelToggleBtn:hover {
+  border-color: #4a9eff;
+}
+
+.channelToggleBtnActive {
+  border-color: #4a9eff;
+  background: rgba(74, 158, 255, 0.12);
+}
