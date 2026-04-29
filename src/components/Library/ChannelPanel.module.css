@@ -7,7 +7,17 @@
 
 .toolbar {
   display: flex;
+  align-items: center;
   gap: 6px;
+}
+
+.channelLabel {
+  flex: 1;
+  font-size: 0.72rem;
+  color: #888;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .channelInput {
@@ -149,6 +159,32 @@
   color: #4a9eff;
   border-color: #4a9eff;
   cursor: default;
+}
+
+.loadBtn {
+  padding: 3px 7px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  background: transparent;
+  color: var(--color-deck-a-text, #4a9eff);
+  border: 1px solid var(--color-deck-a-text, #4a9eff);
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.loadBtn:hover {
+  background: var(--color-deck-a-text, #4a9eff);
+  color: #000;
+}
+
+.loadBtnB {
+  color: var(--color-deck-b-text, #ff6b4a);
+  border-color: var(--color-deck-b-text, #ff6b4a);
+}
+
+.loadBtnB:hover {
+  background: var(--color-deck-b-text, #ff6b4a);
+  color: #000;
 }
 
 .loadMoreBtn {

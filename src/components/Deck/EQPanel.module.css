@@ -23,7 +23,7 @@
   font-weight: 600;
 }
 
-.v1Badge {
+.statusBadge {
   font-size: 9px;
   color: #555;
   background: #1a1a1a;
@@ -32,6 +32,12 @@
   padding: 1px 4px;
   letter-spacing: 0.04em;
   cursor: help;
+}
+
+.statusBadge[data-active='true'] {
+  color: #44ff88;
+  background: #0a2015;
+  border-color: #226633;
 }
 
 .knobsRow {
@@ -87,4 +93,59 @@
   text-transform: uppercase;
   letter-spacing: 0.04em;
   font-family: var(--font-primary);
+}
+
+/* Kill button */
+.killBtn {
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: #555;
+  background: #1a1a1a;
+  border: 1px solid #333;
+  border-radius: 2px;
+  padding: 1px 5px;
+  cursor: pointer;
+  transition: all 0.1s;
+  line-height: 1.4;
+}
+
+.killBtn:hover {
+  color: #ff4444;
+  border-color: #ff4444;
+}
+
+.killBtnActive {
+  color: #ff4444 !important;
+  background: #2a0808 !important;
+  border-color: #ff4444 !important;
+  box-shadow: 0 0 6px rgba(255, 68, 68, 0.4);
+}
+
+/* Killed knob group — desaturate */
+.knobGroupKilled .knob {
+  opacity: 0.4;
+}
+
+/* Filter sweep */
+.sweepGroup {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.sweepKnob {
+  background: radial-gradient(circle at 35% 35%, #2a3a4a, #0a0f18);
+  border-color: #336699;
+}
+
+.sweepLabel {
+  font-size: 8px;
+  color: #4af5ff;
+  letter-spacing: 0.08em;
+  font-family: var(--font-primary);
+  text-transform: uppercase;
+  min-width: 24px;
+  text-align: center;
 }

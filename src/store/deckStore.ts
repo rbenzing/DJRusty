@@ -17,6 +17,7 @@ function createInitialDeckState(deckId: 'A' | 'B'): DeckState {
     title: '',
     artist: '',
     waveformPeaks: null,
+    waveformColoredPeaks: null,
     decoding: false,
     bpmDetecting: false,
     duration: 0,
@@ -36,6 +37,13 @@ function createInitialDeckState(deckId: 'A' | 'B'): DeckState {
     eqLow: 0,
     eqMid: 0,
     eqHigh: 0,
+    eqKillLow: false,
+    eqKillMid: false,
+    eqKillHigh: false,
+    filterSweep: 0,
+    effectType: 'none',
+    effectEnabled: false,
+    effectWetDry: 0.5,
     error: null,
     pitchRateLocked: false,
     synced: false,
@@ -82,6 +90,24 @@ interface DeckStoreActions {
 
   /** Set the waveform peak data after waveform analysis completes (mp3-008). */
   setWaveformPeaks: (deckId: 'A' | 'B', peaks: Float32Array | null) => void;
+
+  /** Set the frequency-colored peak data for the center waveform display. */
+  setWaveformColoredPeaks: (deckId: 'A' | 'B', peaks: import('../utils/extractColoredPeaks').ColoredPeak[] | null) => void;
+
+  /** Toggle an EQ band kill switch (instantly silences that band). */
+  setEqKill: (deckId: 'A' | 'B', band: 'low' | 'mid' | 'high', kill: boolean) => void;
+
+  /** Set the filter sweep position: -1 = full HPF, 0 = flat, 1 = full LPF. */
+  setFilterSweep: (deckId: 'A' | 'B', position: number) => void;
+
+  /** Set the active effect type for the deck. */
+  setEffectType: (deckId: 'A' | 'B', type: 'none' | 'echo' | 'reverb') => void;
+
+  /** Toggle effects on/off. */
+  setEffectEnabled: (deckId: 'A' | 'B', enabled: boolean) => void;
+
+  /** Set the wet/dry mix for the effect (0 = dry, 1 = wet). */
+  setEffectWetDry: (deckId: 'A' | 'B', wetDry: number) => void;
 
   /** Clear the autoPlayOnLoad flag after the player has issued the load command. */
   clearAutoPlayOnLoad: (deckId: 'A' | 'B') => void;
@@ -222,6 +248,7 @@ export const useDeckStore = create<DeckStore>((set, get) => ({
       hotCues: getHotCues(trackId),
       error: null,
       waveformPeaks: null,
+      waveformColoredPeaks: null,
       decoding: false,
       bpmDetecting: false,
       // Reset pitch lock — will be re-evaluated by the player's onReady / onPlaybackRateChange.
@@ -248,6 +275,31 @@ export const useDeckStore = create<DeckStore>((set, get) => ({
 
   setWaveformPeaks: (deckId, peaks) => {
     updateDeck(set, deckId, { waveformPeaks: peaks });
+  },
+
+  setWaveformColoredPeaks: (deckId, peaks) => {
+    updateDeck(set, deckId, { waveformColoredPeaks: peaks });
+  },
+
+  setEqKill: (deckId, band, kill) => {
+    const key = band === 'low' ? 'eqKillLow' : band === 'mid' ? 'eqKillMid' : 'eqKillHigh';
+    updateDeck(set, deckId, { [key]: kill });
+  },
+
+  setFilterSweep: (deckId, position) => {
+    updateDeck(set, deckId, { filterSweep: Math.max(-1, Math.min(1, position)) });
+  },
+
+  setEffectType: (deckId, type) => {
+    updateDeck(set, deckId, { effectType: type });
+  },
+
+  setEffectEnabled: (deckId, enabled) => {
+    updateDeck(set, deckId, { effectEnabled: enabled });
+  },
+
+  setEffectWetDry: (deckId, wetDry) => {
+    updateDeck(set, deckId, { effectWetDry: Math.max(0, Math.min(1, wetDry)) });
   },
 
   clearAutoPlayOnLoad: (deckId) => {
@@ -369,12 +421,14 @@ export const useDeckStore = create<DeckStore>((set, get) => ({
       title: '',
       artist: '',
       waveformPeaks: null,
+      waveformColoredPeaks: null,
       decoding: false,
       bpmDetecting: false,
       duration: 0,
       currentTime: 0,
       thumbnailUrl: null,
       playbackState: 'unstarted',
+      playerReady: false,
       loopActive: false,
       loopStart: null,
       loopEnd: null,

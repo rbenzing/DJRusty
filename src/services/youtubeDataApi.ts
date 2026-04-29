@@ -169,6 +169,46 @@ function mergeSearchResults(
 }
 
 /**
+ * Fetches all videos for a given YouTube channel, ordered by date (newest first).
+ *
+ * Uses the same two-step flow as searchVideos:
+ *   1. search.list scoped to the channel — returns video IDs + snippets.
+ *   2. videos.list — batch-fetches contentDetails (duration).
+ *
+ * @param channelId  - The YouTube channel ID (e.g. VITE_YOUTUBE_CHANNEL_ID).
+ * @param token      - OAuth access token, or null to fall back to API key.
+ * @param pageToken  - Optional next-page token from a previous call.
+ * @returns Merged list of video summaries and optional next-page token.
+ */
+export async function fetchChannelVideos(
+  channelId: string,
+  token: string | null,
+  pageToken?: string,
+): Promise<{ results: TrackSummary[]; nextPageToken: string | null }> {
+  const searchRes = (await apiFetch(`${BASE}/search`, token, {
+    part: 'snippet',
+    channelId,
+    type: 'video',
+    maxResults: '50',
+    order: 'date',
+    pageToken,
+  })) as SearchListResponse;
+
+  if (!searchRes.items || searchRes.items.length === 0) {
+    return { results: [], nextPageToken: null };
+  }
+
+  const videoIds = searchRes.items.map((i) => i.id.videoId).join(',');
+
+  const detailsRes = (await apiFetch(`${BASE}/videos`, token, {
+    part: 'contentDetails,snippet',
+    id: videoIds,
+  })) as VideoListResponse;
+
+  return mergeSearchResults(searchRes, detailsRes);
+}
+
+/**
  * Searches YouTube for videos matching `query`.
  *
  * Two-step flow:

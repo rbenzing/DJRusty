@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { AuthButton } from './components/Auth/AuthButton';
 import { SettingsModal } from './components/Auth/SettingsModal';
+import { CenterWaveform } from './components/CenterWaveform/CenterWaveform';
 import { Deck } from './components/Deck/Deck';
 import { YouTubePlayer } from './components/Deck/YouTubePlayer';
 import { Mixer } from './components/Mixer/Mixer';
@@ -157,6 +158,9 @@ function App() {
       </header>
 
       <main className="app-main">
+        {/* Serato-style dual scrolling waveform — full width above deck columns */}
+        <CenterWaveform />
+
         <div className="app-deck-row">
           {/* Deck A — left column (~38% width) */}
           <div className="app-deck-col">

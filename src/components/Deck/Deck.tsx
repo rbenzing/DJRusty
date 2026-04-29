@@ -21,7 +21,7 @@
  */
 import { useState } from 'react';
 import type { DragEvent } from 'react';
-import { useDeck } from '../../store/deckStore';
+import { useDeck, useDeckStore } from '../../store/deckStore';
 import { useMixerStore } from '../../store/mixerStore';
 import { useAudioEngine } from '../../hooks/useAudioEngine';
 import { usePlaylistStore } from '../../store/playlistStore';
@@ -29,6 +29,7 @@ import type { PlaylistEntry } from '../../types/playlist';
 import { DeckControls } from './DeckControls';
 import { DeckDisplay } from './DeckDisplay';
 import { EQPanel } from './EQPanel';
+import { EffectsPanel } from './EffectsPanel';
 import { HotCues } from './HotCues';
 import { BeatJump } from './BeatJump';
 import { LoopControls } from './LoopControls';
@@ -79,6 +80,14 @@ export function Deck({ deckId }: DeckProps) {
     e.preventDefault();
     setDeckDragover(false);
     const files = Array.from(e.dataTransfer.files).filter((f) => f.type.startsWith('audio/'));
+    if (files.length === 0) return;
+
+    // Dropping onto the deck replaces whatever is loaded — stop, clear, then load.
+    const ds = useDeckStore.getState();
+    ds.setPlaybackState(deckId, 'paused');
+    ds.clearTrack(deckId);
+    usePlaylistStore.getState().clearPlaylist(deckId);
+
     files.forEach((file) => {
       const audioUrl = URL.createObjectURL(file);
       const title = file.name.replace(/\.[^/.]+$/, '');
@@ -160,8 +169,11 @@ export function Deck({ deckId }: DeckProps) {
       {/* Pitch slider */}
       <PitchSlider deckId={deckId} />
 
-      {/* EQ knobs (visual only) */}
+      {/* EQ knobs with kill switches and filter sweep */}
       <EQPanel deckId={deckId} />
+
+      {/* Effects — Echo / Reverb (MP3 only) */}
+      <EffectsPanel deckId={deckId} />
 
       {/* Volume fader */}
       <div className={styles.volumeSection}>

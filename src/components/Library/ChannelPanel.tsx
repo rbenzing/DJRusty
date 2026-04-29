@@ -1,33 +1,23 @@
 /**
  * ChannelPanel.tsx — Lists videos from the configured YouTube channel.
  *
- * Uses VITE_YOUTUBE_CHANNEL_ID from env (no manual input needed).
- * Fetches from the backend /api/videos endpoint.
+ * Calls the YouTube Data API directly from the frontend (no backend proxy needed).
+ * Uses VITE_YOUTUBE_CHANNEL_ID from env. Falls back to OAuth token or API key.
  */
 import { useState, useCallback } from 'react';
+import { useAuthStore } from '../../store/authStore';
 import { useDownloadStore } from '../../store/downloadStore';
 import { useDownloadManager } from '../../hooks/useDownloadManager';
+import { fetchChannelVideos } from '../../services/youtubeDataApi';
+import type { TrackSummary } from '../../types/search';
 import styles from './ChannelPanel.module.css';
 
 const CHANNEL_ID = (import.meta as unknown as { env: Record<string, string | undefined> })
   .env.VITE_YOUTUBE_CHANNEL_ID ?? '';
 
-const SERVER = 'http://localhost:3001';
-
-interface ChannelVideo {
-  videoId: string;
-  title: string;
-  artist: string;
-  thumbnailUrl: string | null;
-}
-
-interface ChannelResponse {
-  items: ChannelVideo[];
-  nextPageToken: string | null;
-}
-
 export function ChannelPanel() {
-  const [videos, setVideos] = useState<ChannelVideo[]>([]);
+  const { accessToken } = useAuthStore();
+  const [videos, setVideos] = useState<TrackSummary[]>([]);
   const [nextPageToken, setNextPageToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -46,27 +36,30 @@ export function ChannelPanel() {
     setLoading(true);
     setError(null);
     try {
-      const url = new URL(`${SERVER}/api/videos`);
-      url.searchParams.set('channelId', CHANNEL_ID);
-      if (pageToken) url.searchParams.set('pageToken', pageToken);
-      const resp = await fetch(url.toString());
-      if (!resp.ok) {
-        const body = await resp.json() as { error?: string };
-        throw new Error(body.error ?? `HTTP ${resp.status}`);
-      }
-      const data = await resp.json() as ChannelResponse;
-      setVideos((prev) => pageToken ? [...prev, ...data.items] : data.items);
-      setNextPageToken(data.nextPageToken);
+      const { results, nextPageToken: newPageToken } = await fetchChannelVideos(
+        CHANNEL_ID,
+        accessToken,
+        pageToken,
+      );
+      setVideos((prev) => pageToken ? [...prev, ...results] : results);
+      setNextPageToken(newPageToken);
       setHasFetched(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch channel videos');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [accessToken]);
 
   function getStatus(videoId: string) {
     return statusOverrides[videoId] ?? tracks.find((t) => t.videoId === videoId)?.status ?? null;
+  }
+
+  function handleLoadToDeck(deckId: 'A' | 'B', video: TrackSummary) {
+    const event = new CustomEvent('dj-rusty:load-track', {
+      detail: { deckId, result: video },
+    });
+    window.dispatchEvent(event);
   }
 
   return (
@@ -96,8 +89,8 @@ export function ChannelPanel() {
 
       <ul className={styles.list}>
         {videos.map((video) => {
-          const status = getStatus(video.videoId);
-          const pct = progress[video.videoId] ?? 0;
+          const status = getStatus(video.videoId!);
+          const pct = progress[video.videoId!] ?? 0;
           const isReady = status === 'ready';
           const isDownloading = status === 'downloading' || status === 'pending';
           return (
@@ -113,11 +106,31 @@ export function ChannelPanel() {
                   disabled={isDownloading}
                   onClick={() => {
                     if (!isReady && !isDownloading) {
-                      void requestDownload({ videoId: video.videoId, title: video.title, artist: video.artist });
+                      void requestDownload({
+                        videoId: video.videoId!,
+                        title: video.title,
+                        artist: video.artist,
+                        duration: video.duration,
+                        thumbnailUrl: video.thumbnailUrl,
+                      });
                     }
                   }}
                 >
                   {isReady ? '✓' : 'DL'}
+                </button>
+                <button
+                  className={styles.loadBtn}
+                  onClick={() => handleLoadToDeck('A', video)}
+                  title="Load to Deck A"
+                >
+                  A
+                </button>
+                <button
+                  className={`${styles.loadBtn} ${styles.loadBtnB}`}
+                  onClick={() => handleLoadToDeck('B', video)}
+                  title="Load to Deck B"
+                >
+                  B
                 </button>
               </div>
             </li>

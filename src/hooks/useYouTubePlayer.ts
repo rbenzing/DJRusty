@@ -119,7 +119,10 @@ export function useYouTubePlayer(
     if (player !== playerRef.current) return;
 
     isReadyRef.current = true;
-    useDeckStore.getState().setPlayerReady(deckId, true);
+    // Only take over playerReady for YouTube tracks — MP3 tracks manage it via useAudioEngine
+    if (useDeckStore.getState().decks[deckId].sourceType !== 'mp3') {
+      useDeckStore.getState().setPlayerReady(deckId, true);
+    }
     console.debug(`[YTPlayer ${deckId}] onReady fired`);
 
     // Check whether the loaded video supports variable playback rates.
@@ -147,8 +150,8 @@ export function useYouTubePlayer(
 
     // Race condition: if the user clicked play before onReady fired, the
     // playbackState subscription would have bailed (isReadyRef was false).
-    // Resume the play command now.
-    if (playbackState === 'playing') {
+    // Resume the play command now — only for YouTube tracks.
+    if (playbackState === 'playing' && pendingSourceType === 'youtube') {
       console.debug(`[YTPlayer ${deckId}] resuming pending play command`);
       if (!hasPlayedRef.current) {
         hasPlayedRef.current = true;
@@ -175,6 +178,8 @@ export function useYouTubePlayer(
     event: YT.OnStateChangeEvent,
   ) {
     if (!isMountedRef.current) return;
+    // Only apply YouTube state changes when a YouTube track is active
+    if (useDeckStore.getState().decks[deckId].sourceType !== 'youtube') return;
 
     const mappedState = mapYtStateToDeckState(event.data);
     if (mappedState === null) return;
@@ -319,10 +324,11 @@ export function useYouTubePlayer(
     let prevPitchRate = useDeckStore.getState().decks[deckId].pitchRate;
 
     const unsubscribe = useDeckStore.subscribe((state) => {
-      const pitchRate = state.decks[deckId].pitchRate;
+      const { pitchRate, sourceType } = state.decks[deckId];
       if (pitchRate === prevPitchRate) return;
       prevPitchRate = pitchRate;
 
+      if (sourceType !== 'youtube') return;
       if (!playerRef.current || !isReadyRef.current) return;
       playerRef.current.setPlaybackRate(pitchRate);
     });
@@ -359,9 +365,12 @@ export function useYouTubePlayer(
     let prevPlaybackState = useDeckStore.getState().decks[deckId].playbackState;
 
     const unsubscribe = useDeckStore.subscribe((state) => {
-      const { playbackState, volume } = state.decks[deckId];
+      const { playbackState, volume, sourceType } = state.decks[deckId];
       if (playbackState === prevPlaybackState) return;
       prevPlaybackState = playbackState;
+
+      // Only control the YouTube player when a YouTube track is active
+      if (sourceType !== 'youtube') return;
 
       if (!playerRef.current) {
         console.warn(`[YTPlayer ${deckId}] playbackState→${playbackState}: playerRef is null`);

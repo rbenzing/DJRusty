@@ -11,6 +11,7 @@ import { playerRegistry } from '../services/playerRegistry';
 import { useDeckStore } from '../store/deckStore';
 import { usePlaylistStore } from '../store/playlistStore';
 import { extractWaveformPeaks } from '../utils/extractWaveformPeaks';
+import { extractColoredPeaks } from '../utils/extractColoredPeaks';
 
 const WAVEFORM_PEAKS = 1000;
 
@@ -73,7 +74,15 @@ export function useAudioEngine(deckId: 'A' | 'B'): void {
       const { trackId, sourceType, autoPlayOnLoad } = state.decks[deckId];
       if (trackId === prevTrackId) return;
       prevTrackId = trackId;
-      if (!trackId || sourceType !== 'mp3' || !engineRef.current) return;
+
+      if (!trackId) {
+        // Track cleared (eject) — stop audio and cancel the poll
+        if (engineRef.current) engineRef.current.stop();
+        if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
+        return;
+      }
+
+      if (sourceType !== 'mp3' || !engineRef.current) return;
 
       // Clear previous waveform immediately
       useDeckStore.getState().setWaveformPeaks(deckId, null);
@@ -175,7 +184,7 @@ export function useAudioEngine(deckId: 'A' | 'B'): void {
       if (volume === prev) return;
       prev = volume;
       if (sourceType !== 'mp3' || !engineRef.current) return;
-      engineRef.current.setVolume(volume / 100);
+      engineRef.current.setVolume(volume);
     });
 
     return unsubscribe;
@@ -195,6 +204,60 @@ export function useAudioEngine(deckId: 'A' | 'B'): void {
       if (eqLow !== prevLow) { engineRef.current.setEQ('low', eqLow); prevLow = eqLow; }
       if (eqMid !== prevMid) { engineRef.current.setEQ('mid', eqMid); prevMid = eqMid; }
       if (eqHigh !== prevHigh) { engineRef.current.setEQ('high', eqHigh); prevHigh = eqHigh; }
+    });
+
+    return unsubscribe;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [deckId]);
+
+  // ── 6b. EQ Kill switches ──────────────────────────────────────────────────
+  useEffect(() => {
+    let prevKillLow = useDeckStore.getState().decks[deckId].eqKillLow;
+    let prevKillMid = useDeckStore.getState().decks[deckId].eqKillMid;
+    let prevKillHigh = useDeckStore.getState().decks[deckId].eqKillHigh;
+
+    const unsubscribe = useDeckStore.subscribe((state) => {
+      const { eqKillLow, eqKillMid, eqKillHigh, sourceType } = state.decks[deckId];
+      if (eqKillLow === prevKillLow && eqKillMid === prevKillMid && eqKillHigh === prevKillHigh) return;
+      if (sourceType !== 'mp3' || !engineRef.current) return;
+      if (eqKillLow !== prevKillLow) { engineRef.current.setEQKill('low', eqKillLow); prevKillLow = eqKillLow; }
+      if (eqKillMid !== prevKillMid) { engineRef.current.setEQKill('mid', eqKillMid); prevKillMid = eqKillMid; }
+      if (eqKillHigh !== prevKillHigh) { engineRef.current.setEQKill('high', eqKillHigh); prevKillHigh = eqKillHigh; }
+    });
+
+    return unsubscribe;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [deckId]);
+
+  // ── 6c. Filter sweep ──────────────────────────────────────────────────────
+  useEffect(() => {
+    let prev = useDeckStore.getState().decks[deckId].filterSweep;
+
+    const unsubscribe = useDeckStore.subscribe((state) => {
+      const { filterSweep, sourceType } = state.decks[deckId];
+      if (filterSweep === prev) return;
+      prev = filterSweep;
+      if (sourceType !== 'mp3' || !engineRef.current) return;
+      engineRef.current.setFilterSweep(filterSweep);
+    });
+
+    return unsubscribe;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [deckId]);
+
+  // ── 6d. Effects ───────────────────────────────────────────────────────────
+  useEffect(() => {
+    let prevType = useDeckStore.getState().decks[deckId].effectType;
+    let prevEnabled = useDeckStore.getState().decks[deckId].effectEnabled;
+    let prevWetDry = useDeckStore.getState().decks[deckId].effectWetDry;
+
+    const unsubscribe = useDeckStore.subscribe((state) => {
+      const { effectType, effectEnabled, effectWetDry, sourceType, bpm } = state.decks[deckId];
+      if (effectType === prevType && effectEnabled === prevEnabled && effectWetDry === prevWetDry) return;
+      prevType = effectType; prevEnabled = prevEnabled; prevWetDry = effectWetDry;
+      if (sourceType !== 'mp3' || !engineRef.current) return;
+      const active = effectEnabled ? effectType : 'none';
+      engineRef.current.setEffect(active, effectWetDry, bpm ?? 120);
     });
 
     return unsubscribe;
@@ -243,6 +306,8 @@ async function loadAudioFile(
 
     const engine = engineRef.current;
     engine.loadBuffer(buffer);
+    // Sync engine volume to current mixer-computed deck volume immediately
+    engine.setVolume(useDeckStore.getState().decks[deckId].volume);
     useDeckStore.getState().setDuration(deckId, buffer.duration);
     useDeckStore.getState().setDecoding(deckId, false);
     useDeckStore.getState().setPlayerReady(deckId, true);
@@ -252,6 +317,10 @@ async function loadAudioFile(
     // Waveform peaks (synchronous — runs on decoded buffer)
     const peaks = extractWaveformPeaks(buffer, WAVEFORM_PEAKS);
     if (isMountedRef.current) useDeckStore.getState().setWaveformPeaks(deckId, peaks);
+
+    // Frequency-colored peaks for CenterWaveform display
+    const coloredPeaks = extractColoredPeaks(buffer, WAVEFORM_PEAKS);
+    if (isMountedRef.current) useDeckStore.getState().setWaveformColoredPeaks(deckId, coloredPeaks);
 
     // BPM detection in a worker
     launchBpmWorker(deckId, buffer, isMountedRef);
@@ -297,6 +366,7 @@ async function loadAudioUrl(
 
     const engine = engineRef.current;
     engine.loadBuffer(buffer);
+    engine.setVolume(useDeckStore.getState().decks[deckId].volume);
     useDeckStore.getState().setDuration(deckId, buffer.duration);
     useDeckStore.getState().setDecoding(deckId, false);
     useDeckStore.getState().setPlayerReady(deckId, true);
@@ -305,6 +375,9 @@ async function loadAudioUrl(
 
     const peaks = extractWaveformPeaks(buffer, WAVEFORM_PEAKS);
     if (isMountedRef.current) useDeckStore.getState().setWaveformPeaks(deckId, peaks);
+
+    const coloredPeaks = extractColoredPeaks(buffer, WAVEFORM_PEAKS);
+    if (isMountedRef.current) useDeckStore.getState().setWaveformColoredPeaks(deckId, coloredPeaks);
 
     launchBpmWorker(deckId, buffer, isMountedRef);
 

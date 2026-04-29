@@ -8,61 +8,49 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { AudioEngineImpl } from '../services/audioEngine';
 
-// Mock Web Audio API
+// ── Mock Web Audio API ────────────────────────────────────────────────────
+
 const mockContext = {
   createGain: vi.fn(),
   createBiquadFilter: vi.fn(),
   createAnalyser: vi.fn(),
   createBufferSource: vi.fn(),
+  createDelay: vi.fn(),
+  createConvolver: vi.fn(),
   currentTime: 0,
   state: 'running',
   destination: {},
+  sampleRate: 44100,
 };
 
-const mockGainNode = {
-  connect: vi.fn(),
-  disconnect: vi.fn(),
-  gain: { value: 1.0 },
-};
+function makeMockGain() {
+  return { connect: vi.fn(), disconnect: vi.fn(), gain: { value: 1.0 } };
+}
 
-const mockLowFilter = {
-  connect: vi.fn(),
-  disconnect: vi.fn(),
-  gain: { value: 0 },
-  frequency: { value: 320 },
-  Q: { value: 0.7 },
-  type: 'lowshelf',
-};
+function makeMockFilter(type: string, freq: number) {
+  return { connect: vi.fn(), disconnect: vi.fn(), gain: { value: 0 }, frequency: { value: freq }, Q: { value: 0.7 }, type };
+}
 
-const mockMidFilter = {
-  connect: vi.fn(),
-  disconnect: vi.fn(),
-  gain: { value: 0 },
-  frequency: { value: 1000 },
-  Q: { value: 0.7 },
-  type: 'peaking',
-};
+// Named mocks for the signal chain nodes (in constructor order)
+let mockGainNode: ReturnType<typeof makeMockGain>;
+let mockLowKillGain: ReturnType<typeof makeMockGain>;
+let mockMidKillGain: ReturnType<typeof makeMockGain>;
+let mockHighKillGain: ReturnType<typeof makeMockGain>;
+let mockDryGain: ReturnType<typeof makeMockGain>;
+let mockWetGain: ReturnType<typeof makeMockGain>;
+let mockLowFilter: ReturnType<typeof makeMockFilter>;
+let mockMidFilter: ReturnType<typeof makeMockFilter>;
+let mockHighFilter: ReturnType<typeof makeMockFilter>;
+let mockSweepFilter: ReturnType<typeof makeMockFilter>;
 
-const mockHighFilter = {
-  connect: vi.fn(),
-  disconnect: vi.fn(),
-  gain: { value: 0 },
-  frequency: { value: 3200 },
-  Q: { value: 0.7 },
-  type: 'highshelf',
-};
-
-const mockAnalyser = {
-  connect: vi.fn(),
-  disconnect: vi.fn(),
-};
+const mockAnalyser = { connect: vi.fn(), disconnect: vi.fn() };
 
 const mockSourceNode = {
   connect: vi.fn(),
   disconnect: vi.fn(),
   start: vi.fn(),
   stop: vi.fn(),
-  buffer: null,
+  buffer: null as AudioBuffer | null,
   playbackRate: { value: 1.0 },
   onended: null as (() => void) | null,
 };
@@ -73,18 +61,50 @@ vi.mock('../services/audioContext', () => ({
   ensureAudioContextResumed: vi.fn().mockResolvedValue(undefined),
 }));
 
+/** Set up createGain/createBiquadFilter mocks for one AudioEngineImpl construction. */
+function setupConstructorMocks() {
+  mockGainNode     = makeMockGain();
+  mockLowKillGain  = makeMockGain();
+  mockMidKillGain  = makeMockGain();
+  mockHighKillGain = makeMockGain();
+  mockDryGain      = makeMockGain();
+  mockWetGain      = makeMockGain();
+  mockLowFilter    = makeMockFilter('lowshelf',  320);
+  mockMidFilter    = makeMockFilter('peaking',  1000);
+  mockHighFilter   = makeMockFilter('highshelf', 3200);
+  mockSweepFilter  = makeMockFilter('allpass',  20000);
+
+  // createGain order: gainNode, lowKill, midKill, highKill, dryGain, wetGain
+  mockContext.createGain
+    .mockReturnValueOnce(mockGainNode)
+    .mockReturnValueOnce(mockLowKillGain)
+    .mockReturnValueOnce(mockMidKillGain)
+    .mockReturnValueOnce(mockHighKillGain)
+    .mockReturnValueOnce(mockDryGain)
+    .mockReturnValueOnce(mockWetGain);
+
+  // createBiquadFilter order: low, mid, high, sweep
+  mockContext.createBiquadFilter
+    .mockReturnValueOnce(mockLowFilter)
+    .mockReturnValueOnce(mockMidFilter)
+    .mockReturnValueOnce(mockHighFilter)
+    .mockReturnValueOnce(mockSweepFilter);
+
+  mockContext.createAnalyser.mockReturnValue(mockAnalyser);
+  mockContext.createBufferSource.mockReturnValue(mockSourceNode);
+}
+
 describe('AudioEngine', () => {
   let engine: AudioEngineImpl;
 
   beforeEach(() => {
-    // Set up mock returns
-    mockContext.createGain.mockReturnValue(mockGainNode);
-    mockContext.createBiquadFilter.mockReturnValueOnce(mockLowFilter);
-    mockContext.createBiquadFilter.mockReturnValueOnce(mockMidFilter);
-    mockContext.createBiquadFilter.mockReturnValueOnce(mockHighFilter);
-    mockContext.createAnalyser.mockReturnValue(mockAnalyser);
-    mockContext.createBufferSource.mockReturnValue(mockSourceNode);
+    vi.clearAllMocks();
+    mockContext.currentTime = 0;
+    mockSourceNode.onended = null;
+    mockSourceNode.buffer = null;
+    mockSourceNode.playbackRate.value = 1.0;
 
+    setupConstructorMocks();
     engine = new AudioEngineImpl();
   });
 
@@ -94,15 +114,20 @@ describe('AudioEngine', () => {
 
   describe('initialization', () => {
     it('creates the signal chain correctly', () => {
-      expect(mockContext.createGain).toHaveBeenCalled();
-      expect(mockContext.createBiquadFilter).toHaveBeenCalledTimes(3);
+      expect(mockContext.createGain).toHaveBeenCalledTimes(6);        // gain + 3 kills + dry + wet
+      expect(mockContext.createBiquadFilter).toHaveBeenCalledTimes(4); // low + mid + high + sweep
       expect(mockContext.createAnalyser).toHaveBeenCalled();
 
-      // Verify connections: Gain -> Low -> Mid -> High -> Analyser -> Destination
+      // Key connections
       expect(mockGainNode.connect).toHaveBeenCalledWith(mockLowFilter);
-      expect(mockLowFilter.connect).toHaveBeenCalledWith(mockMidFilter);
-      expect(mockMidFilter.connect).toHaveBeenCalledWith(mockHighFilter);
-      expect(mockHighFilter.connect).toHaveBeenCalledWith(mockAnalyser);
+      expect(mockLowFilter.connect).toHaveBeenCalledWith(mockLowKillGain);
+      expect(mockLowKillGain.connect).toHaveBeenCalledWith(mockMidFilter);
+      expect(mockMidFilter.connect).toHaveBeenCalledWith(mockMidKillGain);
+      expect(mockMidKillGain.connect).toHaveBeenCalledWith(mockHighFilter);
+      expect(mockHighFilter.connect).toHaveBeenCalledWith(mockHighKillGain);
+      expect(mockHighKillGain.connect).toHaveBeenCalledWith(mockSweepFilter);
+      expect(mockSweepFilter.connect).toHaveBeenCalledWith(mockDryGain);
+      expect(mockDryGain.connect).toHaveBeenCalledWith(mockAnalyser);
       expect(mockAnalyser.connect).toHaveBeenCalledWith(mockContext.destination);
     });
 
@@ -141,16 +166,10 @@ describe('AudioEngine', () => {
     });
 
     it('throws when playing without buffer', async () => {
-      // Create a new engine with mocks set up
-      mockContext.createGain.mockReturnValue(mockGainNode);
-      mockContext.createBiquadFilter.mockReturnValueOnce(mockLowFilter);
-      mockContext.createBiquadFilter.mockReturnValueOnce(mockMidFilter);
-      mockContext.createBiquadFilter.mockReturnValueOnce(mockHighFilter);
-      mockContext.createAnalyser.mockReturnValue(mockAnalyser);
-      mockContext.createBufferSource.mockReturnValue(mockSourceNode);
-
+      setupConstructorMocks();
       const emptyEngine = new AudioEngineImpl();
       await expect(emptyEngine.play()).rejects.toThrow('No audio buffer loaded');
+      emptyEngine.destroy();
     });
 
     it('starts playback correctly', async () => {
@@ -298,6 +317,19 @@ describe('AudioEngine', () => {
     });
   });
 
+  describe('EQ kill', () => {
+    it('silences a band when killed', () => {
+      engine.setEQKill('low', true);
+      expect(mockLowKillGain.gain.value).toBe(0);
+    });
+
+    it('restores a band when unkilled', () => {
+      engine.setEQKill('mid', true);
+      engine.setEQKill('mid', false);
+      expect(mockMidKillGain.gain.value).toBe(1);
+    });
+  });
+
   describe('analyser access', () => {
     it('returns the analyser node', () => {
       expect(engine.getAnalyser()).toBe(mockAnalyser);
@@ -350,6 +382,7 @@ describe('AudioEngine', () => {
       expect(mockMidFilter.disconnect).toHaveBeenCalled();
       expect(mockHighFilter.disconnect).toHaveBeenCalled();
       expect(mockAnalyser.disconnect).toHaveBeenCalled();
+      expect(mockDryGain.disconnect).toHaveBeenCalled();
     });
   });
 });

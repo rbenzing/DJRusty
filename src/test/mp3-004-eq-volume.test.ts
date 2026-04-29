@@ -61,20 +61,20 @@ describe('MP3-004 — volume: mp3 deck', () => {
   beforeEach(() => { resetStores(); mockEngineInstances.length = 0; vi.clearAllMocks(); mockDecode.mockResolvedValue(fakeBuffer); });
   afterEach(() => { vi.clearAllMocks(); });
 
-  it('calls engine.setVolume(vol/100) when volume changes', async () => {
+  it('calls engine.setVolume(vol) when volume changes', async () => {
     renderHook(() => useAudioEngine('A'));
     await loadMp3Track('A');
     act(() => { useDeckStore.getState().setVolume('A', 60); });
-    expect(mockEngineInstances[0]!.setVolume).toHaveBeenCalledWith(0.6);
+    expect(mockEngineInstances[0]!.setVolume).toHaveBeenCalledWith(60);
   });
 
-  it('converts volume 0 → 0 and 100 → 1', async () => {
+  it('passes volume 0 and 100 directly to engine (scale 0-100)', async () => {
     renderHook(() => useAudioEngine('A'));
     await loadMp3Track('A');
     act(() => { useDeckStore.getState().setVolume('A', 0); });
     expect(mockEngineInstances[0]!.setVolume).toHaveBeenCalledWith(0);
     act(() => { useDeckStore.getState().setVolume('A', 100); });
-    expect(mockEngineInstances[0]!.setVolume).toHaveBeenCalledWith(1);
+    expect(mockEngineInstances[0]!.setVolume).toHaveBeenCalledWith(100);
   });
 
   it('does NOT call setVolume for youtube source', async () => {

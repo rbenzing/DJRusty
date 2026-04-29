@@ -1,5 +1,7 @@
 import type { PitchRate } from '../constants/pitchRates';
 import type { TrackSourceType } from './playlist';
+import type { ColoredPeak } from '../utils/extractColoredPeaks';
+export type { ColoredPeak };
 
 export type { PitchRate };
 
@@ -43,6 +45,32 @@ export interface DeckState {
    * waveform analysis completes (populated by mp3-008 story).
    */
   waveformPeaks: Float32Array | null;
+
+  /**
+   * Frequency-colored peak data for the CenterWaveform display.
+   * Each entry corresponds to one bar; contains amplitude + bass/mid/high energy shares.
+   * Null until waveform analysis completes (MP3 only).
+   */
+  waveformColoredPeaks: ColoredPeak[] | null;
+
+  /**
+   * Filter sweep position: -1 = full high-pass, 0 = flat (bypass), 1 = full low-pass.
+   * Applied to a dedicated BiquadFilterNode in the Web Audio signal chain.
+   * EQ kill: instantly silence a specific EQ band.
+   */
+  filterSweep: number;
+  eqKillLow: boolean;
+  eqKillMid: boolean;
+  eqKillHigh: boolean;
+
+  /**
+   * Effects (Echo / Reverb) state.
+   * 'none' = bypass, 'echo' = delay node, 'reverb' = convolver.
+   */
+  effectType: 'none' | 'echo' | 'reverb';
+  effectEnabled: boolean;
+  /** Wet/dry mix: 0 = fully dry, 1 = fully wet. */
+  effectWetDry: number;
 
   /**
    * True while the Web Audio API is decoding an MP3 ArrayBuffer.
