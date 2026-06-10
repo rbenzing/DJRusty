@@ -2,7 +2,7 @@
  * DeckControls.tsx — Transport controls: Play/Pause, Cue (jump), Set Cue.
  *
  * Play/Pause: toggles playbackState by dispatching to deckStore.
- * Cue (Jump to Cue): seeks to hotCues[0] via playerRegistry.seekTo().
+ * Cue (Jump to Cue): seeks to hotCues[0] via getActivePlayer().
  * Set Cue: stores the current time as hotCues[0] and persists to localStorage.
  *
  * The Cue button uses hot cue index 0 as the "main cue point" per the spec.
@@ -11,11 +11,11 @@
  *
  * Note: Actual player seek/play/pause commands are handled by useYouTubePlayer
  * which subscribes to deckStore.playbackState changes and issues IFrame API calls.
- * Seek is issued directly via playerRegistry to keep Zustand state clean.
+ * Seek is issued directly via getActivePlayer to keep Zustand state clean.
  */
 import { useDeck, useDeckStore } from '../../store/deckStore';
 import { usePlaylistStore } from '../../store/playlistStore';
-import { playerRegistry } from '../../services/playerRegistry';
+import { getActivePlayer } from '../../services/playerRegistry';
 import {
   setHotCue as persistSetHotCue,
 } from '../../utils/hotCues';
@@ -33,7 +33,7 @@ export function DeckControls({ deckId }: DeckControlsProps) {
   const { setPlaybackState, setHotCue, clearTrack } = useDeckStore();
   const clearPlaylist = usePlaylistStore((s) => s.clearPlaylist);
 
-  const { playbackState, trackId, currentTime, hotCues, playerReady } = deck;
+  const { playbackState, trackId, currentTime, hotCues, playerReady, sourceType } = deck;
   const isPlaying = playbackState === 'playing';
   const hasTrack = trackId !== null;
 
@@ -64,7 +64,7 @@ export function DeckControls({ deckId }: DeckControlsProps) {
     if (!hasCue || cuePoint === undefined) return;
     if (!playerReady) return;
     // Seek via the player registry — direct imperative call to the YT.Player.
-    const player = playerRegistry.get(deckId);
+    const player = getActivePlayer(deckId, sourceType);
     if (player) {
       player.seekTo(cuePoint, true);
     }
@@ -72,7 +72,7 @@ export function DeckControls({ deckId }: DeckControlsProps) {
 
   function handleRestart() {
     if (!playerReady || !hasTrack) return;
-    const player = playerRegistry.get(deckId);
+    const player = getActivePlayer(deckId, sourceType);
     if (player) {
       player.seekTo(0, true);
     }
@@ -80,7 +80,7 @@ export function DeckControls({ deckId }: DeckControlsProps) {
 
   function handleSkipBack() {
     if (!playerReady || !hasTrack) return;
-    const player = playerRegistry.get(deckId);
+    const player = getActivePlayer(deckId, sourceType);
     if (player) {
       const newTime = Math.max(0, currentTime - 15);
       player.seekTo(newTime, true);
@@ -89,7 +89,7 @@ export function DeckControls({ deckId }: DeckControlsProps) {
 
   function handleSkipForward() {
     if (!playerReady || !hasTrack) return;
-    const player = playerRegistry.get(deckId);
+    const player = getActivePlayer(deckId, sourceType);
     if (player) {
       player.seekTo(currentTime + 15, true);
     }
