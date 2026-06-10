@@ -15,7 +15,7 @@
 
 import { useEffect, useRef } from 'react';
 import { useDeckStore } from '../store/deckStore';
-import { playerRegistry } from '../services/playerRegistry';
+import { getActivePlayer } from '../services/playerRegistry';
 import { TapTempoCalculator } from '../utils/tapTempo';
 import { setHotCue as persistSetHotCue } from '../utils/hotCues';
 import { calculateJumpSeconds, clampTime } from '../utils/beatJump';
@@ -43,7 +43,7 @@ export function useKeyboardShortcuts(): void {
       const jumpSeconds = calculateJumpSeconds(deck.beatJumpSize, deck.bpm);
       const newTime = deck.currentTime + direction * jumpSeconds;
       const clamped = clampTime(newTime, deck.duration);
-      playerRegistry.get(deckId)?.seekTo(clamped, true);
+      getActivePlayer(deckId, useDeckStore.getState().decks[deckId].sourceType)?.seekTo(clamped, true);
     }
 
     function handleKeyDown(e: KeyboardEvent): void {
@@ -80,7 +80,7 @@ export function useKeyboardShortcuts(): void {
         case 'q': {
           const cueA = deckA.hotCues[0];
           if (cueA !== undefined) {
-            playerRegistry.get('A')?.seekTo(cueA, true);
+            getActivePlayer('A', useDeckStore.getState().decks['A'].sourceType)?.seekTo(cueA, true);
           }
           break;
         }
@@ -88,7 +88,7 @@ export function useKeyboardShortcuts(): void {
         case 'w': {
           const cueB = deckB.hotCues[0];
           if (cueB !== undefined) {
-            playerRegistry.get('B')?.seekTo(cueB, true);
+            getActivePlayer('B', useDeckStore.getState().decks['B'].sourceType)?.seekTo(cueB, true);
           }
           break;
         }
@@ -150,7 +150,7 @@ export function useKeyboardShortcuts(): void {
           const indexA = Number(e.key) - 1;
           const timestampA = deckA.hotCues[indexA];
           if (timestampA !== undefined) {
-            playerRegistry.get('A')?.seekTo(timestampA, true);
+            getActivePlayer('A', useDeckStore.getState().decks['A'].sourceType)?.seekTo(timestampA, true);
           }
           break;
         }
@@ -165,7 +165,7 @@ export function useKeyboardShortcuts(): void {
           const indexB = Number(e.key) - 5;
           const timestampB = deckB.hotCues[indexB];
           if (timestampB !== undefined) {
-            playerRegistry.get('B')?.seekTo(timestampB, true);
+            getActivePlayer('B', useDeckStore.getState().decks['B'].sourceType)?.seekTo(timestampB, true);
           }
           break;
         }

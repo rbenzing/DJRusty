@@ -9,7 +9,7 @@
  * no track is loaded.
  */
 import { useDeck, useDeckStore } from '../../store/deckStore';
-import { playerRegistry } from '../../services/playerRegistry';
+import { getActivePlayer } from '../../services/playerRegistry';
 import { BEAT_JUMP_SIZES, calculateJumpSeconds, clampTime } from '../../utils/beatJump';
 import styles from './BeatJump.module.css';
 
@@ -26,7 +26,7 @@ function getSizeLabel(size: number): string {
 }
 
 export function BeatJump({ deckId }: BeatJumpProps) {
-  const { bpm, currentTime, duration, beatJumpSize, trackId, playerReady } = useDeck(deckId);
+  const { bpm, currentTime, duration, beatJumpSize, trackId, playerReady, sourceType } = useDeck(deckId);
   const { setBeatJumpSize } = useDeckStore();
 
   const isDisabled = !trackId || !bpm || bpm === 0 || !playerReady;
@@ -35,14 +35,14 @@ export function BeatJump({ deckId }: BeatJumpProps) {
     if (isDisabled || bpm === null || bpm === 0) return;
     const jumpSec = calculateJumpSeconds(beatJumpSize, bpm);
     const newTime = clampTime(currentTime - jumpSec, duration);
-    playerRegistry.get(deckId)?.seekTo(newTime, true);
+    getActivePlayer(deckId, sourceType)?.seekTo(newTime, true);
   }
 
   function handleForwardJump() {
     if (isDisabled || bpm === null || bpm === 0) return;
     const jumpSec = calculateJumpSeconds(beatJumpSize, bpm);
     const newTime = clampTime(currentTime + jumpSec, duration);
-    playerRegistry.get(deckId)?.seekTo(newTime, true);
+    getActivePlayer(deckId, sourceType)?.seekTo(newTime, true);
   }
 
   return (

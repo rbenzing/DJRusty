@@ -31,7 +31,7 @@ import {
   setHotCue as persistSetHotCue,
   clearHotCue as persistClearHotCue,
 } from '../../utils/hotCues';
-import { playerRegistry } from '../../services/playerRegistry';
+import { getActivePlayer } from '../../services/playerRegistry';
 import { HotCueButton } from './HotCueButton';
 import styles from './HotCues.module.css';
 
@@ -46,7 +46,7 @@ export function HotCues({ deckId }: HotCuesProps) {
   const deck = useDeck(deckId);
   const { setHotCue, clearHotCue } = useDeckStore();
 
-  const { trackId, currentTime, hotCues, playerReady } = deck;
+  const { trackId, currentTime, hotCues, playerReady, sourceType } = deck;
   const hasTrack = trackId !== null;
 
   /**
@@ -67,7 +67,7 @@ export function HotCues({ deckId }: HotCuesProps) {
     if (timestamp === undefined) return;
     if (!playerReady) return;
 
-    const player = playerRegistry.get(deckId);
+    const player = getActivePlayer(deckId, sourceType);
     if (player) {
       player.seekTo(timestamp, true);
     }

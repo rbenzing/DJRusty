@@ -4,7 +4,7 @@ import type { TrackSourceType } from '../types/playlist';
 import { DEFAULT_PITCH_RATE, type PitchRate } from '../constants/pitchRates';
 import { getHotCues } from '../utils/hotCues';
 import { DEFAULT_BEAT_JUMP_SIZE } from '../utils/beatJump';
-import { playerRegistry } from '../services/playerRegistry';
+import { getActivePlayer } from '../services/playerRegistry';
 
 /**
  * Initial state for a single deck.
@@ -363,7 +363,7 @@ export const useDeckStore = create<DeckStore>((set, get) => ({
     // Slip-aware exit: if slip mode is on and a shadow position is tracked,
     // seek to the shadow position before deactivating the loop.
     if (deck.slipMode && deck.slipPosition !== null) {
-      playerRegistry.get(deckId)?.seekTo(deck.slipPosition, true);
+      getActivePlayer(deckId, deck.sourceType)?.seekTo(deck.slipPosition, true);
     }
     updateDeck(set, deckId, {
       loopActive: false,
@@ -533,7 +533,7 @@ export const useDeckStore = create<DeckStore>((set, get) => ({
     } else {
       seekTarget = Math.max(0, seekTarget);
     }
-    playerRegistry.get(deckId)?.seekTo(seekTarget, true);
+    getActivePlayer(deckId, deck.sourceType)?.seekTo(seekTarget, true);
     updateDeck(set, deckId, {
       rollStartWallClock: null,
       rollStartPosition: null,
