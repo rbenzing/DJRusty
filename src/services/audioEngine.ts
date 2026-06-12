@@ -376,7 +376,7 @@ export class AudioEngineImpl implements AudioEngine {
     if (this.sourceNode) {
       try {
         this.sourceNode.stop();
-      } catch (e) {
+      } catch {
         // Source might already be stopped
       }
       this.sourceNode.disconnect();

@@ -38,9 +38,11 @@ export function useDownloadManager() {
     return remove;
   }, [setProgress, markReady, markError, setStatusOverride]);
 
-  // Load library from server on mount
+  // Load library from server on mount. fetchLibrary only closes over stable
+  // setters, so a one-time mount run is intentional.
   useEffect(() => {
     void fetchLibrary();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function fetchLibrary() {
@@ -87,6 +89,7 @@ export function useDownloadManager() {
     } catch { /* ignore */ }
   }, []);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const refreshLibrary = useCallback(() => { void fetchLibrary(); }, []);
 
   return { requestDownload, removeFromLibrary, refreshLibrary };

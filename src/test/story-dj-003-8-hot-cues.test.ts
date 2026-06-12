@@ -12,7 +12,7 @@
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { act } from '@testing-library/react';
-import { HOT_CUE_COLORS } from '../components/Deck/HotCueButton';
+import { HOT_CUE_COLORS } from '../constants/hotCueColors';
 import { useDeckStore } from '../store/deckStore';
 import { getHotCues, setHotCue, clearHotCue } from '../utils/hotCues';
 

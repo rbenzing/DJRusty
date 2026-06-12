@@ -19,7 +19,6 @@ import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useDeckStore } from '../store/deckStore';
 import { usePlaylistStore } from '../store/playlistStore';
-import { playerRegistry } from '../services/playerRegistry';
 
 // ---------------------------------------------------------------------------
 // Module mocks — must be declared before the hook import

@@ -262,14 +262,14 @@ export function useYouTubePlayer(
       // Register a YouTubePlayerAdapter in the module-level registry so that
       // components outside this hook (e.g. HotCues) can issue imperative seek
       // commands via the DeckPlayer interface, independent of the underlying backend.
-      playerRegistry.register(deckId, new YouTubePlayerAdapter(playerRef.current));
+      playerRegistry.register(deckId, 'youtube', new YouTubePlayerAdapter(playerRef.current));
     });
 
     return () => {
       isMountedRef.current = false;
       isReadyRef.current = false;
       stopCurrentTimePoll();
-      playerRegistry.unregister(deckId);
+      playerRegistry.unregister(deckId, 'youtube');
       playerRef.current?.destroy();
       playerRef.current = null;
     };
@@ -404,6 +404,8 @@ export function useYouTubePlayer(
     });
 
     return unsubscribe;
+    // startCurrentTimePoll/stopCurrentTimePoll are stable refs — safe to omit.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [deckId]);
 
   return { playerRef };

@@ -11,13 +11,22 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { act } from '@testing-library/react';
 import { useDeckStore } from '../store/deckStore';
 import { playerRegistry } from '../services/playerRegistry';
+import type { DeckPlayer } from '../services/playerRegistry';
+
+/** Register a mock backend whose seekTo is the given spy, under the 'youtube' backend key. */
+function registerMockBackend(deckId: 'A' | 'B', seekTo: ReturnType<typeof vi.fn>): void {
+  const player: DeckPlayer = { seekTo, getCurrentTime: () => 0, getDuration: () => 300 };
+  playerRegistry.register(deckId, 'youtube', player);
+}
 
 /** Full initial state for a deck, including all slip/roll fields. */
 function makeDeckState(deckId: 'A' | 'B') {
   return {
     deckId,
     trackId: null,
-    sourceType: null,
+    // 'youtube' so seek routing resolves the registered backend (getActivePlayer
+    // returns undefined for a null sourceType). State-reset tests don't assert on this.
+    sourceType: 'youtube' as const,
     title: '',
     artist: '',
     waveformPeaks: null,
@@ -61,6 +70,12 @@ beforeEach(() => {
       B: makeDeckState('B'),
     },
   });
+  // Seek routing now flows through getActivePlayer → the per-backend registry.
+  // Clear any backend left over from a prior test so each test starts clean.
+  playerRegistry.unregister('A', 'youtube');
+  playerRegistry.unregister('A', 'audio');
+  playerRegistry.unregister('B', 'youtube');
+  playerRegistry.unregister('B', 'audio');
   vi.restoreAllMocks();
 });
 
@@ -390,9 +405,7 @@ describe('Roll Mode - Store Actions', () => {
 
   it('endRoll computes correct seek target from elapsed time', () => {
     const mockSeekTo = vi.fn();
-    vi.spyOn(playerRegistry, 'get').mockReturnValue({
-      seekTo: mockSeekTo,
-    } as unknown as YT.Player);
+    registerMockBackend('A', mockSeekTo);
 
     vi.useFakeTimers();
     try {
@@ -431,9 +444,7 @@ describe('Roll Mode - Store Actions', () => {
 
   it('endRoll clamps seek target to duration', () => {
     const mockSeekTo = vi.fn();
-    vi.spyOn(playerRegistry, 'get').mockReturnValue({
-      seekTo: mockSeekTo,
-    } as unknown as YT.Player);
+    registerMockBackend('A', mockSeekTo);
 
     vi.useFakeTimers();
     try {
@@ -471,9 +482,7 @@ describe('Roll Mode - Store Actions', () => {
 
   it('endRoll clears roll state and deactivates loop', () => {
     const mockSeekTo = vi.fn();
-    vi.spyOn(playerRegistry, 'get').mockReturnValue({
-      seekTo: mockSeekTo,
-    } as unknown as YT.Player);
+    registerMockBackend('A', mockSeekTo);
 
     useDeckStore.setState({
       decks: {
@@ -506,9 +515,7 @@ describe('Roll Mode - Store Actions', () => {
 
   it('endRoll is no-op when rollStartWallClock is null', () => {
     const mockSeekTo = vi.fn();
-    vi.spyOn(playerRegistry, 'get').mockReturnValue({
-      seekTo: mockSeekTo,
-    } as unknown as YT.Player);
+    registerMockBackend('A', mockSeekTo);
 
     act(() => {
       useDeckStore.getState().endRoll('A');
@@ -525,9 +532,7 @@ describe('Roll Mode - Store Actions', () => {
 describe('deactivateLoop with Slip Mode', () => {
   it('seeks to slipPosition when slipMode is on and slipPosition is set', () => {
     const mockSeekTo = vi.fn();
-    vi.spyOn(playerRegistry, 'get').mockReturnValue({
-      seekTo: mockSeekTo,
-    } as unknown as YT.Player);
+    registerMockBackend('A', mockSeekTo);
 
     useDeckStore.setState({
       decks: {
@@ -555,9 +560,7 @@ describe('deactivateLoop with Slip Mode', () => {
 
   it('clears slip tracking fields after seeking', () => {
     const mockSeekTo = vi.fn();
-    vi.spyOn(playerRegistry, 'get').mockReturnValue({
-      seekTo: mockSeekTo,
-    } as unknown as YT.Player);
+    registerMockBackend('A', mockSeekTo);
 
     useDeckStore.setState({
       decks: {
@@ -588,9 +591,7 @@ describe('deactivateLoop with Slip Mode', () => {
 
   it('behaves normally when slipMode is off', () => {
     const mockSeekTo = vi.fn();
-    vi.spyOn(playerRegistry, 'get').mockReturnValue({
-      seekTo: mockSeekTo,
-    } as unknown as YT.Player);
+    registerMockBackend('A', mockSeekTo);
 
     useDeckStore.setState({
       decks: {

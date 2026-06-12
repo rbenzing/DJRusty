@@ -236,12 +236,12 @@ describe('useAudioEngine — lifecycle: mount', () => {
 
   it('registers the engine in playerRegistry with the correct deckId on mount', () => {
     renderHook(() => useAudioEngine('A'));
-    expect(playerRegistry.register).toHaveBeenCalledWith('A', mockEngineInstances[0]);
+    expect(playerRegistry.register).toHaveBeenCalledWith('A', 'audio', mockEngineInstances[0]);
   });
 
   it('registers with deckId B when called with B', () => {
     renderHook(() => useAudioEngine('B'));
-    expect(playerRegistry.register).toHaveBeenCalledWith('B', mockEngineInstances[0]);
+    expect(playerRegistry.register).toHaveBeenCalledWith('B', 'audio', mockEngineInstances[0]);
   });
 
   it('registers exactly once on mount (no double registration)', () => {
@@ -272,13 +272,13 @@ describe('useAudioEngine — lifecycle: unmount', () => {
   it('unregisters from playerRegistry on unmount with the correct deckId', () => {
     const { unmount } = renderHook(() => useAudioEngine('A'));
     unmount();
-    expect(playerRegistry.unregister).toHaveBeenCalledWith('A');
+    expect(playerRegistry.unregister).toHaveBeenCalledWith('A', 'audio');
   });
 
   it('unregisters deck B from playerRegistry on unmount', () => {
     const { unmount } = renderHook(() => useAudioEngine('B'));
     unmount();
-    expect(playerRegistry.unregister).toHaveBeenCalledWith('B');
+    expect(playerRegistry.unregister).toHaveBeenCalledWith('B', 'audio');
   });
 
   it('does not call destroy before unmount', () => {
@@ -815,8 +815,8 @@ describe('useAudioEngine — deck isolation', () => {
   it('registers separate players for deck A and deck B', () => {
     renderHook(() => useAudioEngine('A'));
     renderHook(() => useAudioEngine('B'));
-    expect(playerRegistry.register).toHaveBeenCalledWith('A', mockEngineInstances[0]);
-    expect(playerRegistry.register).toHaveBeenCalledWith('B', mockEngineInstances[1]!);
+    expect(playerRegistry.register).toHaveBeenCalledWith('A', 'audio', mockEngineInstances[0]);
+    expect(playerRegistry.register).toHaveBeenCalledWith('B', 'audio', mockEngineInstances[1]!);
   });
 
   it('does not decode deck A track when deck B trackId changes', async () => {
@@ -837,7 +837,7 @@ describe('useAudioEngine — deck isolation', () => {
 
     unmountA();
 
-    expect(playerRegistry.unregister).toHaveBeenCalledWith('A');
-    expect(playerRegistry.unregister).not.toHaveBeenCalledWith('B');
+    expect(playerRegistry.unregister).toHaveBeenCalledWith('A', 'audio');
+    expect(playerRegistry.unregister).not.toHaveBeenCalledWith('B', 'audio');
   });
 });
