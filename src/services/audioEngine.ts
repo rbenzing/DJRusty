@@ -84,10 +84,10 @@ export class AudioEngineImpl implements AudioEngine {
   private highKillGain: GainNode;
   // Filter sweep: single BiquadFilter inserted after EQ
   private sweepFilter: BiquadFilterNode;
-  // Effects: dry/wet nodes + delay + convolver
+  // Effects: dry/wet nodes + per-effect nodes (tracked for teardown)
   private dryGain: GainNode;
   private wetGain: GainNode;
-  private effectNode: DelayNode | ConvolverNode | null = null;
+  private effectNodes: AudioNode[] = [];
   private analyser: AnalyserNode;
 
   // Playback state
@@ -292,11 +292,11 @@ export class AudioEngineImpl implements AudioEngine {
   }
 
   setEffect(type: 'none' | 'echo' | 'reverb', wetDry: number, bpm = 120): void {
-    // Disconnect and destroy any previous effect node
-    if (this.effectNode) {
-      try { this.effectNode.disconnect(); } catch { /* already disconnected */ }
-      this.effectNode = null;
+    // Tear down all nodes from the previous effect
+    for (const node of this.effectNodes) {
+      try { node.disconnect(); } catch { /* already disconnected */ }
     }
+    this.effectNodes = [];
     this.wetGain.disconnect();
 
     if (type === 'none' || wetDry === 0) {
@@ -320,14 +320,16 @@ export class AudioEngineImpl implements AudioEngine {
       delay.connect(feedbackGain);
       feedbackGain.connect(delay); // feedback loop
       delay.connect(this.analyser);
-      this.effectNode = delay;
+      // Track both nodes for teardown
+      this.effectNodes.push(delay, feedbackGain);
     } else if (type === 'reverb') {
       const convolver = this.context.createConvolver();
       convolver.buffer = this.createReverbImpulse(2.5, 0.7);
       this.sweepFilter.connect(this.wetGain);
       this.wetGain.connect(convolver);
       convolver.connect(this.analyser);
-      this.effectNode = convolver;
+      // Track convolver for teardown
+      this.effectNodes.push(convolver);
     }
   }
 
@@ -366,7 +368,10 @@ export class AudioEngineImpl implements AudioEngine {
 
   destroy(): void {
     this.stopSource();
-    if (this.effectNode) { try { this.effectNode.disconnect(); } catch { /* ok */ } }
+    for (const node of this.effectNodes) {
+      try { node.disconnect(); } catch { /* ok */ }
+    }
+    this.effectNodes = [];
     [
       this.gainNode, this.lowFilter, this.lowKillGain,
       this.midFilter, this.midKillGain, this.highFilter, this.highKillGain,

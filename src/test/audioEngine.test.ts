@@ -404,4 +404,57 @@ describe('AudioEngine', () => {
       expect(mockDryGain.disconnect).toHaveBeenCalled();
     });
   });
+
+  describe('effects', () => {
+    it('switching away from echo disconnects all echo nodes (no feedback-gain leak)', () => {
+      // Prepare mock nodes that setEffect('echo') will create: delay + feedbackGain
+      const mockDelay = { connect: vi.fn(), disconnect: vi.fn(), delayTime: { value: 0 } };
+      const mockFeedbackGain = makeMockGain();
+      mockContext.createDelay.mockReturnValueOnce(mockDelay);
+      mockContext.createGain.mockReturnValueOnce(mockFeedbackGain);
+
+      engine.setEffect('echo', 0.5, 120);
+
+      // Now switch away from echo — both nodes must be disconnected
+      engine.setEffect('none', 0, 120);
+
+      expect(mockDelay.disconnect).toHaveBeenCalled();
+      expect(mockFeedbackGain.disconnect).toHaveBeenCalled();
+    });
+
+    it('destroy() disconnects all echo effect nodes', () => {
+      const mockDelay = { connect: vi.fn(), disconnect: vi.fn(), delayTime: { value: 0 } };
+      const mockFeedbackGain = makeMockGain();
+      mockContext.createDelay.mockReturnValueOnce(mockDelay);
+      mockContext.createGain.mockReturnValueOnce(mockFeedbackGain);
+
+      engine.setEffect('echo', 0.5, 120);
+
+      engine.destroy();
+
+      expect(mockDelay.disconnect).toHaveBeenCalled();
+      expect(mockFeedbackGain.disconnect).toHaveBeenCalled();
+    });
+
+    it('switching echo to reverb disconnects echo nodes first', () => {
+      const mockDelay = { connect: vi.fn(), disconnect: vi.fn(), delayTime: { value: 0 } };
+      const mockFeedbackGain = makeMockGain();
+      mockContext.createDelay.mockReturnValueOnce(mockDelay);
+      mockContext.createGain.mockReturnValueOnce(mockFeedbackGain);
+
+      engine.setEffect('echo', 0.5, 120);
+
+      // Prepare reverb mock — createBuffer is needed for the impulse response
+      const mockConvolver = { connect: vi.fn(), disconnect: vi.fn(), buffer: null as AudioBuffer | null };
+      mockContext.createConvolver.mockReturnValueOnce(mockConvolver);
+      const mockImpulseBuffer = { getChannelData: vi.fn().mockReturnValue(new Float32Array(10)) };
+      mockContext.createBuffer = vi.fn().mockReturnValue(mockImpulseBuffer);
+
+      engine.setEffect('reverb', 0.5, 120);
+
+      // Echo nodes must have been disconnected when reverb was activated
+      expect(mockDelay.disconnect).toHaveBeenCalled();
+      expect(mockFeedbackGain.disconnect).toHaveBeenCalled();
+    });
+  });
 });
