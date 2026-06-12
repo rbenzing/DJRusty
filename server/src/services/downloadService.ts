@@ -3,6 +3,7 @@ import { statSync, existsSync } from 'fs';
 import { join } from 'path';
 import { broadcast } from '../ws/broadcast.js';
 import { updateTrackStatus, upsertTrack } from './libraryService.js';
+import { isValidVideoId } from '../utils/validateVideoId.js';
 
 const DOWNLOADS_DIR = process.env['DOWNLOADS_DIR'] ?? join(process.cwd(), 'downloads');
 
@@ -20,6 +21,12 @@ export async function enqueueDownload(opts: {
   thumbnailUrl?: string | null;
 }): Promise<void> {
   const { videoId } = opts;
+
+  if (!isValidVideoId(videoId)) {
+    // Defence-in-depth: the route layer already 400s. Don't write a DB row
+    // for an id that was never (and can never be) inserted.
+    return;
+  }
 
   // Dedup — if already ready, skip
   upsertTrack(opts);
