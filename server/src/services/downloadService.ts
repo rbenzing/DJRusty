@@ -1,5 +1,5 @@
 import { spawn } from 'child_process';
-import { statSync, existsSync } from 'fs';
+import { statSync, existsSync, readdirSync, unlinkSync } from 'fs';
 import { join } from 'path';
 import { broadcast } from '../ws/broadcast.js';
 import { updateTrackStatus, upsertTrack } from './libraryService.js';
@@ -11,6 +11,17 @@ const active = new Set<string>();
 
 export function getDownloadsDir(): string {
   return DOWNLOADS_DIR;
+}
+
+function cleanupPartials(videoId: string): void {
+  try {
+    for (const name of readdirSync(DOWNLOADS_DIR)) {
+      // Remove leftovers like `${id}.part`, `${id}.webm`, `${id}.mp3.part` — but keep a finished `${id}.mp3`.
+      if (name.startsWith(`${videoId}.`) && name !== `${videoId}.mp3`) {
+        try { unlinkSync(join(DOWNLOADS_DIR, name)); } catch { /* best effort */ }
+      }
+    }
+  } catch { /* downloads dir missing — nothing to clean */ }
 }
 
 // ── Worker pool ───────────────────────────────────────────────────────────────
@@ -38,12 +49,16 @@ function runDownload(opts: DownloadOpts): Promise<void> {
     updateTrackStatus(videoId, 'downloading');
     broadcast({ type: 'status_update', videoId, status: 'downloading' });
 
+    const TIMEOUT_MS = parseInt(process.env['DOWNLOAD_TIMEOUT_MS'] ?? '300000', 10);
+
     const ytdlp = spawn('yt-dlp', [
       '-x', '--audio-format', 'mp3', '--audio-quality', '0',
       '--no-playlist', '--newline',
       '-o', outputTemplate,
       `https://www.youtube.com/watch?v=${videoId}`,
     ]);
+
+    const killTimer = setTimeout(() => ytdlp.kill('SIGKILL'), TIMEOUT_MS);
 
     ytdlp.stdout.on('data', (chunk: Buffer) => {
       const line = chunk.toString();
@@ -59,16 +74,19 @@ function runDownload(opts: DownloadOpts): Promise<void> {
     });
 
     ytdlp.on('error', (err: NodeJS.ErrnoException) => {
+      clearTimeout(killTimer);
       active.delete(videoId);
       const msg = err.code === 'ENOENT'
         ? 'yt-dlp not found — install with: winget install yt-dlp.yt-dlp'
         : err.message;
+      cleanupPartials(videoId);
       updateTrackStatus(videoId, 'error', { errorMessage: msg });
       broadcast({ type: 'download_error', videoId, error: msg });
       resolveJob();
     });
 
     ytdlp.on('close', (code: number | null) => {
+      clearTimeout(killTimer);
       active.delete(videoId);
       if (code === 0 && existsSync(mp3Path)) {
         const size = statSync(mp3Path).size;
@@ -76,6 +94,7 @@ function runDownload(opts: DownloadOpts): Promise<void> {
         broadcast({ type: 'download_complete', videoId, audioUrl: `/api/audio/${videoId}` });
       } else if (code !== 0) {
         const msg = `yt-dlp exited with code ${code}`;
+        cleanupPartials(videoId);
         updateTrackStatus(videoId, 'error', { errorMessage: msg });
         broadcast({ type: 'download_error', videoId, error: msg });
       }

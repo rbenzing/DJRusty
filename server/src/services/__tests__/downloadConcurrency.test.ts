@@ -41,3 +41,17 @@ describe('download concurrency cap', () => {
     expect(live.max).toBeLessThanOrEqual(2);
   });
 });
+
+describe('download lifecycle hygiene', () => {
+  it('kills a hung process after the timeout', async () => {
+    vi.useFakeTimers();
+    process.env['DOWNLOAD_TIMEOUT_MS'] = '1000';
+    children.length = 0;
+    void enqueueDownload({ videoId: 'fffffffffff', title: 't' });
+    await Promise.resolve();
+    const child = children[0]!;
+    vi.advanceTimersByTime(1001);
+    expect(child.kill).toHaveBeenCalled();
+    vi.useRealTimers();
+  });
+});
