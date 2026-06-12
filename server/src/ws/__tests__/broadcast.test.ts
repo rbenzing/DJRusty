@@ -5,7 +5,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // ── Mocks ─────────────────────────────────────────────────────────────────────
 
-const mockClients = new Set<{ readyState: number; send: ReturnType<typeof vi.fn> }>();
+const mockClients = new Set<{ readyState: number; send: ReturnType<typeof vi.fn>; bufferedAmount: number }>();
 const mockOn = vi.fn();
 
 vi.mock('ws', () => {
@@ -32,7 +32,7 @@ beforeEach(() => {
 
 describe('broadcast', () => {
   it('sends JSON message to OPEN clients', () => {
-    const client = { readyState: 1 /* OPEN */, send: vi.fn() };
+    const client = { readyState: 1 /* OPEN */, send: vi.fn(), bufferedAmount: 0 };
     mockClients.add(client);
 
     const msg = { type: 'download_progress' as const, videoId: 'abc', percent: 42 };
@@ -42,7 +42,7 @@ describe('broadcast', () => {
   });
 
   it('does not send to CLOSED clients', () => {
-    const client = { readyState: 3 /* CLOSED */, send: vi.fn() };
+    const client = { readyState: 3 /* CLOSED */, send: vi.fn(), bufferedAmount: 0 };
     mockClients.add(client);
 
     broadcast({ type: 'status_update', videoId: 'x', status: 'downloading' });
@@ -51,8 +51,8 @@ describe('broadcast', () => {
   });
 
   it('sends to multiple OPEN clients', () => {
-    const c1 = { readyState: 1, send: vi.fn() };
-    const c2 = { readyState: 1, send: vi.fn() };
+    const c1 = { readyState: 1, send: vi.fn(), bufferedAmount: 0 };
+    const c2 = { readyState: 1, send: vi.fn(), bufferedAmount: 0 };
     mockClients.add(c1);
     mockClients.add(c2);
 
