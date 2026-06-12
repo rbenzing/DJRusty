@@ -8,7 +8,7 @@
  * A brief visual flash on the button provides tactile feedback on each tap.
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useDeckStore } from '../../store/deckStore';
+import { useDeckActions } from '../../store/deckStore';
 import { TapTempoCalculator } from '../../utils/tapTempo';
 import { BpmDisplay } from './BpmDisplay';
 import styles from './TapTempo.module.css';
@@ -24,7 +24,7 @@ export function TapTempo({ deckId }: TapTempoProps) {
   const [isFlashing, setIsFlashing] = useState(false);
   const flashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const { setBpm } = useDeckStore();
+  const { setBpm } = useDeckActions();
 
   // Cancel any pending flash timer on unmount to prevent state updates on
   // an unmounted component and to avoid timer leaks.

@@ -13,7 +13,7 @@
  * which subscribes to deckStore.playbackState changes and issues IFrame API calls.
  * Seek is issued directly via getActivePlayer to keep Zustand state clean.
  */
-import { useDeck, useDeckStore } from '../../store/deckStore';
+import { useDeckStore, useDeckActions } from '../../store/deckStore';
 import { usePlaylistStore } from '../../store/playlistStore';
 import { getActivePlayer } from '../../services/playerRegistry';
 import {
@@ -29,11 +29,14 @@ interface DeckControlsProps {
 }
 
 export function DeckControls({ deckId }: DeckControlsProps) {
-  const deck = useDeck(deckId);
-  const { setPlaybackState, setHotCue, clearTrack } = useDeckStore();
+  const { setPlaybackState, setHotCue, clearTrack } = useDeckActions();
   const clearPlaylist = usePlaylistStore((s) => s.clearPlaylist);
 
-  const { playbackState, trackId, currentTime, hotCues, playerReady, sourceType } = deck;
+  const playbackState = useDeckStore((s) => s.decks[deckId].playbackState);
+  const trackId = useDeckStore((s) => s.decks[deckId].trackId);
+  const hotCues = useDeckStore((s) => s.decks[deckId].hotCues);
+  const playerReady = useDeckStore((s) => s.decks[deckId].playerReady);
+  const sourceType = useDeckStore((s) => s.decks[deckId].sourceType);
   const isPlaying = playbackState === 'playing';
   const hasTrack = trackId !== null;
 
@@ -54,6 +57,7 @@ export function DeckControls({ deckId }: DeckControlsProps) {
   function handleSetCue() {
     if (!hasTrack) return;
     // Persist to localStorage and update in-memory store.
+    const currentTime = useDeckStore.getState().decks[deckId].currentTime;
     if (trackId) {
       persistSetHotCue(trackId, 0, currentTime);
     }
@@ -82,6 +86,7 @@ export function DeckControls({ deckId }: DeckControlsProps) {
     if (!playerReady || !hasTrack) return;
     const player = getActivePlayer(deckId, sourceType);
     if (player) {
+      const currentTime = useDeckStore.getState().decks[deckId].currentTime;
       const newTime = Math.max(0, currentTime - 15);
       player.seekTo(newTime, true);
     }
@@ -91,6 +96,7 @@ export function DeckControls({ deckId }: DeckControlsProps) {
     if (!playerReady || !hasTrack) return;
     const player = getActivePlayer(deckId, sourceType);
     if (player) {
+      const currentTime = useDeckStore.getState().decks[deckId].currentTime;
       player.seekTo(currentTime + 15, true);
     }
   }

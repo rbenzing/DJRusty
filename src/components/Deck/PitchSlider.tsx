@@ -13,7 +13,7 @@
  */
 import { PITCH_RATES, DEFAULT_PITCH_RATE } from '../../constants/pitchRates';
 import type { PitchRate } from '../../constants/pitchRates';
-import { useDeck, useDeckStore } from '../../store/deckStore';
+import { useDeckStore, useDeckActions } from '../../store/deckStore';
 import styles from './PitchSlider.module.css';
 
 interface PitchSliderProps {
@@ -25,8 +25,9 @@ const MAX_INDEX = PITCH_RATES.length - 1; // 7
 const DEFAULT_INDEX = PITCH_RATES.indexOf(DEFAULT_PITCH_RATE); // 3 (1×)
 
 export function PitchSlider({ deckId }: PitchSliderProps) {
-  const { pitchRate, pitchRateLocked } = useDeck(deckId);
-  const { setPitchRate, setSynced } = useDeckStore();
+  const pitchRate = useDeckStore((s) => s.decks[deckId].pitchRate);
+  const pitchRateLocked = useDeckStore((s) => s.decks[deckId].pitchRateLocked);
+  const { setPitchRate, setSynced } = useDeckActions();
 
   // Find the index of the current pitch rate in PITCH_RATES array
   const currentIndex = PITCH_RATES.indexOf(pitchRate as PitchRate);

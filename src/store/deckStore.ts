@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { useShallow } from 'zustand/react/shallow';
 import type { DeckState, PlaybackState } from '../types/deck';
 import type { TrackSourceType } from '../types/playlist';
 import { DEFAULT_PITCH_RATE, type PitchRate } from '../constants/pitchRates';
@@ -553,4 +554,24 @@ export const useDeckStore = create<DeckStore>((set, get) => ({
  */
 export function useDeck(deckId: 'A' | 'B'): DeckState {
   return useDeckStore((state) => state.decks[deckId]);
+}
+
+/**
+ * Subscribe to a stable bag of deck ACTIONS without subscribing to any reactive
+ * state. Action identities never change, so a component using only this never
+ * re-renders from state updates (e.g. currentTime ticks).
+ */
+export function useDeckActions() {
+  return useDeckStore(
+    useShallow((s) => ({
+      loadTrack: s.loadTrack, clearTrack: s.clearTrack, setPlaybackState: s.setPlaybackState,
+      setCurrentTime: s.setCurrentTime, setHotCue: s.setHotCue, clearHotCue: s.clearHotCue,
+      setBpm: s.setBpm, setVolume: s.setVolume, setPitchRate: s.setPitchRate,
+      setEq: s.setEq, setEqKill: s.setEqKill, setFilterSweep: s.setFilterSweep,
+      setEffectType: s.setEffectType, setEffectEnabled: s.setEffectEnabled, setEffectWetDry: s.setEffectWetDry,
+      activateLoop: s.activateLoop, activateLoopBeat: s.activateLoopBeat, deactivateLoop: s.deactivateLoop,
+      setBeatJumpSize: s.setBeatJumpSize, setSlipMode: s.setSlipMode, setSynced: s.setSynced,
+      setRollMode: s.setRollMode, startRoll: s.startRoll, endRoll: s.endRoll,
+    })),
+  );
 }

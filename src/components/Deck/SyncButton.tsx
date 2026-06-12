@@ -9,7 +9,7 @@
  * change to the YouTube player automatically — no direct player API calls
  * are needed here.
  */
-import { useDeck, useDeckStore } from '../../store/deckStore';
+import { useDeckStore, useDeckActions } from '../../store/deckStore';
 import { calculateSyncRate } from '../../utils/beatSync';
 import styles from './SyncButton.module.css';
 
@@ -18,14 +18,12 @@ interface SyncButtonProps {
 }
 
 export function SyncButton({ deckId }: SyncButtonProps) {
-  const thisDeck = useDeck(deckId);
   const otherDeckId = deckId === 'A' ? 'B' : 'A';
-  const otherDeck = useDeck(otherDeckId);
-  const { setPitchRate, setSynced } = useDeckStore();
+  const { setPitchRate, setSynced } = useDeckActions();
 
-  const thisBpm = thisDeck.bpm;
-  const otherBpm = otherDeck.bpm;
-  const isSynced = thisDeck.synced;
+  const thisBpm = useDeckStore((s) => s.decks[deckId].bpm);
+  const otherBpm = useDeckStore((s) => s.decks[otherDeckId].bpm);
+  const isSynced = useDeckStore((s) => s.decks[deckId].synced);
 
   // Disabled when either deck has no BPM (null or 0)
   const isDisabled = !thisBpm || !otherBpm;

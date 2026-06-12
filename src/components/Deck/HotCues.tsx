@@ -26,7 +26,7 @@
  *   useYouTubePlayer. To perform a seek from outside the hook we use a simple
  *   module-level registry that the hook populates on mount and clears on unmount.
  */
-import { useDeck, useDeckStore } from '../../store/deckStore';
+import { useDeckStore, useDeckActions } from '../../store/deckStore';
 import {
   setHotCue as persistSetHotCue,
   clearHotCue as persistClearHotCue,
@@ -43,10 +43,12 @@ interface HotCuesProps {
 }
 
 export function HotCues({ deckId }: HotCuesProps) {
-  const deck = useDeck(deckId);
-  const { setHotCue, clearHotCue } = useDeckStore();
+  const { setHotCue, clearHotCue } = useDeckActions();
 
-  const { trackId, currentTime, hotCues, playerReady, sourceType } = deck;
+  const trackId = useDeckStore((s) => s.decks[deckId].trackId);
+  const hotCues = useDeckStore((s) => s.decks[deckId].hotCues);
+  const playerReady = useDeckStore((s) => s.decks[deckId].playerReady);
+  const sourceType = useDeckStore((s) => s.decks[deckId].sourceType);
   const hasTrack = trackId !== null;
 
   /**
@@ -55,6 +57,7 @@ export function HotCues({ deckId }: HotCuesProps) {
    */
   function handleSet(index: number) {
     if (!trackId) return;
+    const currentTime = useDeckStore.getState().decks[deckId].currentTime;
     persistSetHotCue(trackId, index, currentTime);
     setHotCue(deckId, index, currentTime);
   }
