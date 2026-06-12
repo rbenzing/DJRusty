@@ -206,4 +206,24 @@ describe('wsClient', () => {
     wsClient.disconnect();
     expect(sock.close).toHaveBeenCalledTimes(1);
   });
+
+  it('disconnect() permanently stops reconnection — no new socket is created even after a long timer advance', async () => {
+    vi.useFakeTimers();
+    const { wsClient } = await import('../services/wsClient');
+
+    wsClient.connect();
+    const sock = MockWS.instances[0]!;
+    sock.open(); // retryMs resets to 1_000 on open
+
+    // Deliberate teardown — this must prevent any future reconnect
+    wsClient.disconnect();
+
+    // ws.close() fires onclose synchronously, which calls scheduleRetry().
+    // The stopped guard must have suppressed that retry.
+    // Advance well past the max backoff (30_000 ms) to be sure.
+    vi.advanceTimersByTime(60_000);
+
+    // No second WebSocket should have been constructed
+    expect(MockWS.instances.length).toBe(1);
+  });
 });

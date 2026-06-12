@@ -19,6 +19,7 @@ const MAX_RETRY_MS = 30_000;
 let ws: WebSocket | null = null;
 let retryMs = 1_000;
 let retryTimer: ReturnType<typeof setTimeout> | null = null;
+let stopped = false;
 const handlers = new Set<MessageHandler>();
 
 function tryConnect(): void {
@@ -45,6 +46,7 @@ function tryConnect(): void {
 }
 
 function scheduleRetry(): void {
+  if (stopped) return;
   if (retryTimer) return;
   retryTimer = setTimeout(() => {
     retryTimer = null;
@@ -54,12 +56,13 @@ function scheduleRetry(): void {
 }
 
 export const wsClient = {
-  connect(): void { tryConnect(); },
+  connect(): void { stopped = false; tryConnect(); },
   addHandler(fn: MessageHandler): () => void {
     handlers.add(fn);
     return () => handlers.delete(fn);
   },
   disconnect(): void {
+    stopped = true;
     if (retryTimer) { clearTimeout(retryTimer); retryTimer = null; }
     ws?.close();
     ws = null;
