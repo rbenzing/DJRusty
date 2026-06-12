@@ -7,6 +7,7 @@
 
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { AudioEngineImpl } from '../services/audioEngine';
+import * as audioContext from '../services/audioContext';
 
 // ── Mock Web Audio API ────────────────────────────────────────────────────
 
@@ -236,6 +237,24 @@ describe('AudioEngine', () => {
 
       engine.seekTo(200);
       expect(engine.getCurrentTime()).toBe(120);
+    });
+
+    it('seekTo while playing swallows a rejected play() restart', async () => {
+      await engine.play();
+
+      // Force the next ensureAudioContextResumed call to reject, simulating a
+      // suspended/failed AudioContext during the seek-triggered play() restart.
+      vi.spyOn(audioContext, 'ensureAudioContextResumed').mockRejectedValueOnce(
+        new Error('ctx suspended')
+      );
+
+      // seekTo must not throw synchronously
+      expect(() => engine.seekTo(10)).not.toThrow();
+
+      // Flush microtasks so the rejected promise settles; no unhandled rejection
+      // should surface (Vitest treats unhandled rejections as test failures).
+      await Promise.resolve();
+      await Promise.resolve();
     });
   });
 

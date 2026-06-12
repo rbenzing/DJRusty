@@ -209,7 +209,9 @@ export class AudioEngineImpl implements AudioEngine {
     if (this.isPlayingFlag) {
       // Seek while playing: stop current source and start new one
       this.seekOffset = clampedSeconds;
-      this.play(clampedSeconds);
+      void this.play(clampedSeconds).catch((err) => {
+        console.error('[audioEngine] seek-restart play() failed:', err);
+      });
     } else {
       // Seek while paused: just update offset
       this.seekOffset = clampedSeconds;
