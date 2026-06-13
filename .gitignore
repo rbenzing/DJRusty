@@ -27,3 +27,9 @@ Thumbs.db
 
 .claude/
 orchestration/
+
+# Runtime data & downloads (recreated from schema.sql on first run)
+server/data/*.db
+server/data/*.db-shm
+server/data/*.db-wal
+server/downloads/
