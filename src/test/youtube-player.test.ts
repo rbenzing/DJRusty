@@ -29,6 +29,7 @@ function initialDeckState(deckId: 'A' | 'B') {
     title: '',
     artist: '',
     waveformPeaks: null,
+    waveformColoredPeaks: null,
     decoding: false,
     bpmDetecting: false,
     duration: 0,
@@ -48,6 +49,13 @@ function initialDeckState(deckId: 'A' | 'B') {
     eqLow: 0,
     eqMid: 0,
     eqHigh: 0,
+    eqKillLow: false,
+    eqKillMid: false,
+    eqKillHigh: false,
+    filterSweep: 0,
+    effectType: 'none' as const,
+    effectEnabled: false,
+    effectWetDry: 0.5,
     error: null,
     pitchRateLocked: false,
     synced: false,
@@ -59,6 +67,10 @@ function initialDeckState(deckId: 'A' | 'B') {
     rollStartWallClock: null,
     rollStartPosition: null,
     autoPlayOnLoad: false,
+    anchor: null,
+    gridConfirmed: false,
+    cuePoint: null,
+    transportState: 'CUED' as const,
   };
 }
 
