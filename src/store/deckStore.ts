@@ -56,6 +56,10 @@ function createInitialDeckState(deckId: 'A' | 'B'): DeckState {
     rollStartWallClock: null,
     rollStartPosition: null,
     autoPlayOnLoad: false,
+    anchor: null,
+    gridConfirmed: false,
+    cuePoint: null,
+    transportState: 'CUED',
   };
 }
 
@@ -194,6 +198,15 @@ interface DeckStoreActions {
 
   /** End a loop roll: seek to the computed target position and deactivate the loop. */
   endRoll: (deckId: 'A' | 'B') => void;
+
+  /** Set the beat grid: bpm, anchor position, and mark grid as confirmed. */
+  setGrid: (deckId: 'A' | 'B', bpm: number, anchor: number) => void;
+
+  /** Shift the beat-grid anchor by deltaSeconds. No-op if anchor is null. */
+  nudgeGrid: (deckId: 'A' | 'B', deltaSeconds: number) => void;
+
+  /** Set the hardware CUE point for the specified deck. */
+  setCuePoint: (deckId: 'A' | 'B', time: number) => void;
 }
 
 interface DeckStoreState {
@@ -263,6 +276,10 @@ export const useDeckStore = create<DeckStore>((set, get) => ({
       rollStartWallClock: null,
       rollStartPosition: null,
       autoPlayOnLoad: autoPlay,
+      anchor: null,
+      gridConfirmed: false,
+      cuePoint: null,
+      transportState: 'CUED',
     });
   },
 
@@ -448,6 +465,10 @@ export const useDeckStore = create<DeckStore>((set, get) => ({
       rollStartWallClock: null,
       rollStartPosition: null,
       autoPlayOnLoad: false,
+      anchor: null,
+      gridConfirmed: false,
+      cuePoint: null,
+      transportState: 'CUED',
     });
   },
 
@@ -547,6 +568,16 @@ export const useDeckStore = create<DeckStore>((set, get) => ({
       slipStartPosition: null,
     });
   },
+
+  setGrid: (deckId, bpm, anchor) => updateDeck(set, deckId, { bpm, anchor, gridConfirmed: true }),
+
+  nudgeGrid: (deckId, deltaSeconds) => {
+    const deck = get().decks[deckId];
+    if (deck.anchor === null) return;
+    updateDeck(set, deckId, { anchor: deck.anchor + deltaSeconds });
+  },
+
+  setCuePoint: (deckId, time) => updateDeck(set, deckId, { cuePoint: time }),
 }));
 
 /**
