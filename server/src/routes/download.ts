@@ -1,11 +1,16 @@
 import { Router } from 'express';
 import { getTrackByVideoId } from '../services/libraryService.js';
 import { enqueueDownload } from '../services/downloadService.js';
+import { isValidVideoId } from '../utils/validateVideoId.js';
 
 export const downloadRouter = Router();
 
 downloadRouter.post('/:videoId', async (req, res) => {
   const { videoId } = req.params;
+  if (!isValidVideoId(videoId)) {
+    res.status(400).json({ error: 'Invalid videoId' });
+    return;
+  }
   const { title = '', artist = '', duration = 0, thumbnailUrl = null } = req.body as {
     title?: string;
     artist?: string;
@@ -18,7 +23,12 @@ downloadRouter.post('/:videoId', async (req, res) => {
 });
 
 downloadRouter.get('/:videoId/status', (req, res) => {
-  const track = getTrackByVideoId(req.params.videoId);
+  const { videoId } = req.params;
+  if (!isValidVideoId(videoId)) {
+    res.status(400).json({ error: 'Invalid videoId' });
+    return;
+  }
+  const track = getTrackByVideoId(videoId);
   if (!track) {
     res.status(404).json({ error: 'Not found' });
     return;

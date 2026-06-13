@@ -10,7 +10,7 @@
  * YouTube tracks show the panel but effects are bypassed.
  */
 import { useCallback, useEffect, useRef } from 'react';
-import { useDeck, useDeckStore } from '../../store/deckStore';
+import { useDeckStore, useDeckActions } from '../../store/deckStore';
 import styles from './EffectsPanel.module.css';
 
 interface EffectsPanelProps {
@@ -85,19 +85,22 @@ function WetDryKnob({ value, onChange }: { value: number; onChange: (v: number) 
 }
 
 export function EffectsPanel({ deckId }: EffectsPanelProps) {
-  const deck = useDeck(deckId);
-  const store = useDeckStore();
+  const { setEffectType, setEffectEnabled, setEffectWetDry } = useDeckActions();
+  const effectType = useDeckStore((s) => s.decks[deckId].effectType);
+  const effectEnabled = useDeckStore((s) => s.decks[deckId].effectEnabled);
+  const effectWetDry = useDeckStore((s) => s.decks[deckId].effectWetDry);
+  const sourceType = useDeckStore((s) => s.decks[deckId].sourceType);
 
-  const isMp3 = deck.sourceType === 'mp3';
+  const isMp3 = sourceType === 'mp3';
 
   const handleTypeSelect = useCallback((type: 'none' | 'echo' | 'reverb') => {
-    store.setEffectType(deckId, type);
-    store.setEffectEnabled(deckId, type !== 'none');
-  }, [deckId, store]);
+    setEffectType(deckId, type);
+    setEffectEnabled(deckId, type !== 'none');
+  }, [deckId, setEffectType, setEffectEnabled]);
 
   const handleWetDry = useCallback((v: number) => {
-    store.setEffectWetDry(deckId, v);
-  }, [deckId, store]);
+    setEffectWetDry(deckId, v);
+  }, [deckId, setEffectWetDry]);
 
   return (
     <div className={`${styles.panel} ${!isMp3 ? styles.panelInactive : ''}`}>
@@ -116,17 +119,17 @@ export function EffectsPanel({ deckId }: EffectsPanelProps) {
             <button
               key={type}
               type="button"
-              className={`${styles.typeBtn} ${deck.effectType === type || (type === 'none' && !deck.effectEnabled) ? styles.typeBtnActive : ''}`}
+              className={`${styles.typeBtn} ${effectType === type || (type === 'none' && !effectEnabled) ? styles.typeBtnActive : ''}`}
               onClick={() => handleTypeSelect(type)}
               disabled={!isMp3}
-              aria-pressed={deck.effectType === type}
+              aria-pressed={effectType === type}
             >
               {label}
             </button>
           ))}
         </div>
         {/* Wet/Dry knob */}
-        <WetDryKnob value={deck.effectWetDry} onChange={handleWetDry} />
+        <WetDryKnob value={effectWetDry} onChange={handleWetDry} />
       </div>
     </div>
   );

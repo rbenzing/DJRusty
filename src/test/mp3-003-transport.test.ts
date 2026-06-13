@@ -20,7 +20,6 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useDeckStore } from '../store/deckStore';
 import { usePlaylistStore } from '../store/playlistStore';
-import { playerRegistry } from '../services/playerRegistry';
 
 // ---------------------------------------------------------------------------
 // Module mocks — declared before hook import (same pattern as useAudioEngine.test.ts)

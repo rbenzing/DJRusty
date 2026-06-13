@@ -1,17 +1,12 @@
 import { Router } from 'express';
 import { createReadStream, existsSync, statSync } from 'fs';
 import { join } from 'path';
-import { getAllTracks, deleteTrack } from '../services/libraryService.js';
 import { getDownloadsDir } from '../services/downloadService.js';
 import { isValidVideoId, isPathInside } from '../utils/validateVideoId.js';
 
-export const libraryRouter = Router();
+export const audioRouter = Router();
 
-libraryRouter.get('/', (_req, res) => {
-  res.json(getAllTracks());
-});
-
-libraryRouter.get('/:videoId/audio', (req, res) => {
+audioRouter.get('/:videoId', (req, res) => {
   const { videoId } = req.params;
   if (!isValidVideoId(videoId)) { res.status(400).json({ error: 'Invalid videoId' }); return; }
   const dir = getDownloadsDir();
@@ -49,14 +44,4 @@ libraryRouter.get('/:videoId/audio', (req, res) => {
   const stream = createReadStream(mp3Path);
   stream.on('error', () => { if (!res.headersSent) res.status(500).end(); else res.destroy(); });
   stream.pipe(res);
-});
-
-libraryRouter.delete('/:videoId', (req, res) => {
-  const { videoId } = req.params;
-  if (!isValidVideoId(videoId)) {
-    res.status(400).json({ error: 'Invalid videoId' });
-    return;
-  }
-  deleteTrack(videoId);
-  res.json({ success: true });
 });

@@ -2,7 +2,7 @@
  * mp3-007-waveform-display.test.tsx — WaveformDisplay canvas component.
  */
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render } from '@testing-library/react';
 import { useDeckStore } from '../store/deckStore';
 import { WaveformDisplay } from '../components/Deck/WaveformDisplay';
 

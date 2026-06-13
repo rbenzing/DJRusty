@@ -24,22 +24,11 @@
  */
 import { useEffect, useRef } from 'react';
 import { formatTime } from '../../utils/formatTime';
+import { HOT_CUE_COLORS } from '../../constants/hotCueColors';
 import styles from './HotCueButton.module.css';
 
 /** How long (ms) a pointer must be held to trigger "set" mode. */
 const LONG_PRESS_MS = 500;
-
-/** Per-index accent colours (0-based indices matching the 8 hot cues). */
-export const HOT_CUE_COLORS: readonly string[] = [
-  '#ff4444', // index 0 — red
-  '#ff9900', // index 1 — orange
-  '#44ff44', // index 2 — green
-  '#4488ff', // index 3 — blue
-  '#cc44ff', // index 4 — purple
-  '#ff44aa', // index 5 — pink
-  '#ffcc00', // index 6 — gold
-  '#cccccc', // index 7 — white
-];
 
 interface HotCueButtonProps {
   /** 0-based cue index (0–7). */

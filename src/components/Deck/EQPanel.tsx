@@ -12,7 +12,8 @@
  * Drag interaction: drag up = increase value, drag down = decrease.
  */
 import { useCallback, useEffect, useRef } from 'react';
-import { useDeck, useDeckStore } from '../../store/deckStore';
+import { useDeckStore, useDeckActions } from '../../store/deckStore';
+import { useShallow } from 'zustand/react/shallow';
 import styles from './EQPanel.module.css';
 
 interface EQPanelProps {
@@ -204,23 +205,42 @@ function FilterSweepKnob({ deckId, value, onChange }: FilterSweepProps) {
 // ── Main EQPanel ───────────────────────────────────────────────────────────
 
 export function EQPanel({ deckId }: EQPanelProps) {
-  const deck = useDeck(deckId);
-  const store = useDeckStore();
+  const { setEq, setEqKill, setFilterSweep } = useDeckActions();
+  const { eqLow, eqMid, eqHigh, eqKillLow, eqKillMid, eqKillHigh, filterSweep, sourceType } =
+    useDeckStore(
+      useShallow((s) => {
+        const d = s.decks[deckId];
+        return {
+          eqLow: d.eqLow,
+          eqMid: d.eqMid,
+          eqHigh: d.eqHigh,
+          eqKillLow: d.eqKillLow,
+          eqKillMid: d.eqKillMid,
+          eqKillHigh: d.eqKillHigh,
+          filterSweep: d.filterSweep,
+          sourceType: d.sourceType,
+        };
+      }),
+    );
+
+  const eqValues: Record<EqBand, number> = { eqLow, eqMid, eqHigh };
+  const eqKilled = { eqKillLow, eqKillMid, eqKillHigh };
 
   const handleChange = useCallback((band: EqBand, value: number) => {
-    store.setEq(deckId, band, value);
-  }, [deckId, store]);
+    setEq(deckId, band, value);
+  }, [deckId, setEq]);
 
   const handleKillToggle = useCallback((band: 'low' | 'mid' | 'high') => {
     const key = band === 'low' ? 'eqKillLow' : band === 'mid' ? 'eqKillMid' : 'eqKillHigh';
-    store.setEqKill(deckId, band, !deck[key]);
-  }, [deckId, store, deck]);
+    const current = useDeckStore.getState().decks[deckId][key];
+    setEqKill(deckId, band, !current);
+  }, [deckId, setEqKill]);
 
   const handleFilterSweep = useCallback((v: number) => {
-    store.setFilterSweep(deckId, v);
-  }, [deckId, store]);
+    setFilterSweep(deckId, v);
+  }, [deckId, setFilterSweep]);
 
-  const isMp3 = deck.sourceType === 'mp3';
+  const isMp3 = sourceType === 'mp3';
 
   return (
     <div className={styles.panel}>
@@ -245,15 +265,15 @@ export function EQPanel({ deckId }: EQPanelProps) {
             band={band}
             killBand={kill}
             label={label}
-            value={deck[band]}
-            killed={deck[kill === 'low' ? 'eqKillLow' : kill === 'mid' ? 'eqKillMid' : 'eqKillHigh']}
+            value={eqValues[band]}
+            killed={eqKilled[kill === 'low' ? 'eqKillLow' : kill === 'mid' ? 'eqKillMid' : 'eqKillHigh']}
             onChange={handleChange}
             onKillToggle={handleKillToggle}
           />
         ))}
         <FilterSweepKnob
           deckId={deckId}
-          value={deck.filterSweep}
+          value={filterSweep}
           onChange={handleFilterSweep}
         />
       </div>

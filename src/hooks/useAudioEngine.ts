@@ -47,7 +47,7 @@ export function useAudioEngine(deckId: 'A' | 'B'): void {
     isMountedRef.current = true;
     const engine = new AudioEngineImpl();
     engineRef.current = engine;
-    playerRegistry.register(deckId, engine);
+    playerRegistry.register(deckId, 'audio', engine);
 
     engine.onEnded(() => {
       if (!isMountedRef.current) return;
@@ -59,7 +59,7 @@ export function useAudioEngine(deckId: 'A' | 'B'): void {
     return () => {
       isMountedRef.current = false;
       if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
-      playerRegistry.unregister(deckId);
+      playerRegistry.unregister(deckId, 'audio');
       engine.destroy();
       engineRef.current = null;
     };
@@ -99,7 +99,6 @@ export function useAudioEngine(deckId: 'A' | 'B'): void {
     });
 
     return unsubscribe;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [deckId]);
 
   // ── 3. Transport — play / pause ───────────────────────────────────────────
@@ -131,6 +130,7 @@ export function useAudioEngine(deckId: 'A' | 'B'): void {
       unsubscribe();
       if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
     };
+    // startPoll is a stable local closure — safe to omit.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [deckId]);
 
@@ -154,6 +154,7 @@ export function useAudioEngine(deckId: 'A' | 'B'): void {
     });
 
     return unsubscribe;
+    // startPoll is a stable local closure — safe to omit.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [deckId]);
 
@@ -172,7 +173,6 @@ export function useAudioEngine(deckId: 'A' | 'B'): void {
     });
 
     return unsubscribe;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [deckId]);
 
   // ── 5. Volume ─────────────────────────────────────────────────────────────
@@ -188,7 +188,6 @@ export function useAudioEngine(deckId: 'A' | 'B'): void {
     });
 
     return unsubscribe;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [deckId]);
 
   // ── 6. EQ ─────────────────────────────────────────────────────────────────
@@ -207,7 +206,6 @@ export function useAudioEngine(deckId: 'A' | 'B'): void {
     });
 
     return unsubscribe;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [deckId]);
 
   // ── 6b. EQ Kill switches ──────────────────────────────────────────────────
@@ -226,7 +224,6 @@ export function useAudioEngine(deckId: 'A' | 'B'): void {
     });
 
     return unsubscribe;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [deckId]);
 
   // ── 6c. Filter sweep ──────────────────────────────────────────────────────
@@ -242,7 +239,6 @@ export function useAudioEngine(deckId: 'A' | 'B'): void {
     });
 
     return unsubscribe;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [deckId]);
 
   // ── 6d. Effects ───────────────────────────────────────────────────────────
@@ -254,14 +250,13 @@ export function useAudioEngine(deckId: 'A' | 'B'): void {
     const unsubscribe = useDeckStore.subscribe((state) => {
       const { effectType, effectEnabled, effectWetDry, sourceType, bpm } = state.decks[deckId];
       if (effectType === prevType && effectEnabled === prevEnabled && effectWetDry === prevWetDry) return;
-      prevType = effectType; prevEnabled = prevEnabled; prevWetDry = effectWetDry;
+      prevType = effectType; prevEnabled = effectEnabled; prevWetDry = effectWetDry;
       if (sourceType !== 'mp3' || !engineRef.current) return;
       const active = effectEnabled ? effectType : 'none';
       engineRef.current.setEffect(active, effectWetDry, bpm ?? 120);
     });
 
     return unsubscribe;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [deckId]);
 
   // ── 7. Pitch rate ─────────────────────────────────────────────────────────
@@ -282,7 +277,6 @@ export function useAudioEngine(deckId: 'A' | 'B'): void {
     });
 
     return unsubscribe;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [deckId]);
 }
 

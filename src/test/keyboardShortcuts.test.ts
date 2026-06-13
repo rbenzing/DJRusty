@@ -149,16 +149,16 @@ describe('useKeyboardShortcuts', () => {
     resetDecks();
     mockPlayerA = makeMockPlayer();
     mockPlayerB = makeMockPlayer();
-    playerRegistry.register('A', mockPlayerA);
-    playerRegistry.register('B', mockPlayerB);
+    playerRegistry.register('A', 'youtube', mockPlayerA);
+    playerRegistry.register('B', 'youtube', mockPlayerB);
     const rendered = renderHook(() => useKeyboardShortcuts());
     unmount = rendered.unmount;
   });
 
   afterEach(() => {
     unmount();
-    playerRegistry.unregister('A');
-    playerRegistry.unregister('B');
+    playerRegistry.unregister('A', 'youtube');
+    playerRegistry.unregister('B', 'youtube');
     vi.clearAllMocks();
   });
 

@@ -43,7 +43,6 @@ import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { FileImportZone } from '../components/FileImport/FileImportZone';
-import { usePlaylistStore } from '../store/playlistStore';
 
 // ── Mock playlistStore so addTrack calls are interceptable ────────────────────
 

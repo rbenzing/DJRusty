@@ -16,7 +16,7 @@
  * The active loop button is highlighted using loopBeatCount from the store.
  * Pressing EXIT sets loopActive = false, clearing the loop regardless of mode.
  */
-import { useDeck, useDeckStore } from '../../store/deckStore';
+import { useDeckStore, useDeckActions } from '../../store/deckStore';
 import styles from './LoopControls.module.css';
 
 /** Beat counts available as loop lengths. */
@@ -28,8 +28,12 @@ interface LoopControlsProps {
 }
 
 export function LoopControls({ deckId }: LoopControlsProps) {
-  const { bpm, loopActive, loopBeatCount, rollMode, playbackState } = useDeck(deckId);
-  const { activateLoopBeat, deactivateLoop, setRollMode, startRoll, endRoll } = useDeckStore();
+  const bpm = useDeckStore((s) => s.decks[deckId].bpm);
+  const loopActive = useDeckStore((s) => s.decks[deckId].loopActive);
+  const loopBeatCount = useDeckStore((s) => s.decks[deckId].loopBeatCount);
+  const rollMode = useDeckStore((s) => s.decks[deckId].rollMode);
+  const playbackState = useDeckStore((s) => s.decks[deckId].playbackState);
+  const { activateLoopBeat, deactivateLoop, setRollMode, startRoll, endRoll } = useDeckActions();
 
   const bpmIsSet = bpm !== null;
   const isPlaying = playbackState === 'playing';

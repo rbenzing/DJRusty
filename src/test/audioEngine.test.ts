@@ -7,6 +7,7 @@
 
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { AudioEngineImpl } from '../services/audioEngine';
+import * as audioContext from '../services/audioContext';
 
 // ── Mock Web Audio API ────────────────────────────────────────────────────
 
@@ -237,6 +238,24 @@ describe('AudioEngine', () => {
       engine.seekTo(200);
       expect(engine.getCurrentTime()).toBe(120);
     });
+
+    it('seekTo while playing swallows a rejected play() restart', async () => {
+      await engine.play();
+
+      // Force the next ensureAudioContextResumed call to reject, simulating a
+      // suspended/failed AudioContext during the seek-triggered play() restart.
+      vi.spyOn(audioContext, 'ensureAudioContextResumed').mockRejectedValueOnce(
+        new Error('ctx suspended')
+      );
+
+      // seekTo must not throw synchronously
+      expect(() => engine.seekTo(10)).not.toThrow();
+
+      // Flush microtasks so the rejected promise settles; no unhandled rejection
+      // should surface (Vitest treats unhandled rejections as test failures).
+      await Promise.resolve();
+      await Promise.resolve();
+    });
   });
 
   describe('position tracking', () => {
@@ -383,6 +402,59 @@ describe('AudioEngine', () => {
       expect(mockHighFilter.disconnect).toHaveBeenCalled();
       expect(mockAnalyser.disconnect).toHaveBeenCalled();
       expect(mockDryGain.disconnect).toHaveBeenCalled();
+    });
+  });
+
+  describe('effects', () => {
+    it('switching away from echo disconnects all echo nodes (no feedback-gain leak)', () => {
+      // Prepare mock nodes that setEffect('echo') will create: delay + feedbackGain
+      const mockDelay = { connect: vi.fn(), disconnect: vi.fn(), delayTime: { value: 0 } };
+      const mockFeedbackGain = makeMockGain();
+      mockContext.createDelay.mockReturnValueOnce(mockDelay);
+      mockContext.createGain.mockReturnValueOnce(mockFeedbackGain);
+
+      engine.setEffect('echo', 0.5, 120);
+
+      // Now switch away from echo — both nodes must be disconnected
+      engine.setEffect('none', 0, 120);
+
+      expect(mockDelay.disconnect).toHaveBeenCalled();
+      expect(mockFeedbackGain.disconnect).toHaveBeenCalled();
+    });
+
+    it('destroy() disconnects all echo effect nodes', () => {
+      const mockDelay = { connect: vi.fn(), disconnect: vi.fn(), delayTime: { value: 0 } };
+      const mockFeedbackGain = makeMockGain();
+      mockContext.createDelay.mockReturnValueOnce(mockDelay);
+      mockContext.createGain.mockReturnValueOnce(mockFeedbackGain);
+
+      engine.setEffect('echo', 0.5, 120);
+
+      engine.destroy();
+
+      expect(mockDelay.disconnect).toHaveBeenCalled();
+      expect(mockFeedbackGain.disconnect).toHaveBeenCalled();
+    });
+
+    it('switching echo to reverb disconnects echo nodes first', () => {
+      const mockDelay = { connect: vi.fn(), disconnect: vi.fn(), delayTime: { value: 0 } };
+      const mockFeedbackGain = makeMockGain();
+      mockContext.createDelay.mockReturnValueOnce(mockDelay);
+      mockContext.createGain.mockReturnValueOnce(mockFeedbackGain);
+
+      engine.setEffect('echo', 0.5, 120);
+
+      // Prepare reverb mock — createBuffer is needed for the impulse response
+      const mockConvolver = { connect: vi.fn(), disconnect: vi.fn(), buffer: null as AudioBuffer | null };
+      mockContext.createConvolver.mockReturnValueOnce(mockConvolver);
+      const mockImpulseBuffer = { getChannelData: vi.fn().mockReturnValue(new Float32Array(10)) };
+      mockContext.createBuffer = vi.fn().mockReturnValue(mockImpulseBuffer);
+
+      engine.setEffect('reverb', 0.5, 120);
+
+      // Echo nodes must have been disconnected when reverb was activated
+      expect(mockDelay.disconnect).toHaveBeenCalled();
+      expect(mockFeedbackGain.disconnect).toHaveBeenCalled();
     });
   });
 });
