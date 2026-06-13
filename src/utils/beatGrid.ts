@@ -37,3 +37,8 @@ export function phase(grid: BeatGrid, t: number, span: 'beat' | 'bar' = 'beat'):
   const raw = ((t - grid.anchor) % unit + unit) % unit;
   return raw / unit;
 }
+
+/** Provisional grid proposed from auto-detected BPM. anchor 0 until the DJ taps the downbeat. */
+export function proposeGrid(bpm: number): { bpm: number; anchor: number; confirmed: boolean } {
+  return { bpm, anchor: 0, confirmed: false };
+}

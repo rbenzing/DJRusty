@@ -12,6 +12,7 @@ import { useDeckStore } from '../store/deckStore';
 import { usePlaylistStore } from '../store/playlistStore';
 import { extractWaveformPeaks } from '../utils/extractWaveformPeaks';
 import { extractColoredPeaks } from '../utils/extractColoredPeaks';
+import { proposeGrid } from '../utils/beatGrid';
 
 const WAVEFORM_PEAKS = 1000;
 
@@ -414,7 +415,11 @@ function launchBpmWorker(
   worker.onmessage = (e: MessageEvent<{ bpm: number }>) => {
     worker.terminate();
     if (!isMountedRef.current) return;
-    useDeckStore.getState().setBpm(deckId, e.data.bpm);
+    const { bpm: dbpm, anchor } = proposeGrid(e.data.bpm);
+    useDeckStore.getState().setBpm(deckId, dbpm);
+    useDeckStore.setState((s) => ({
+      decks: { ...s.decks, [deckId]: { ...s.decks[deckId], anchor, gridConfirmed: false } },
+    }));
     useDeckStore.getState().setBpmDetecting(deckId, false);
   };
 
