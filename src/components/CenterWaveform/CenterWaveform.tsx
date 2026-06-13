@@ -14,6 +14,7 @@
  */
 import { useRef, useEffect, useCallback } from 'react';
 import { useDeck } from '../../store/deckStore';
+import { usePlayhead } from '../../hooks/usePlayhead';
 import type { ColoredPeak } from '../../utils/extractColoredPeaks';
 import styles from './CenterWaveform.module.css';
 
@@ -37,12 +38,15 @@ interface WaveformRowProps {
 /** Renders one deck's waveform row onto a canvas. */
 function WaveformRow({ deckId, mirrored = false }: WaveformRowProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const { waveformColoredPeaks, waveformPeaks, currentTime, duration, hotCues } = useDeck(deckId);
+  const { waveformColoredPeaks, waveformPeaks, duration, hotCues } = useDeck(deckId);
+  // Smooth playhead from rAF — read live each frame, never stored in Zustand
+  const playhead = usePlayhead(deckId);
 
   const deckColor = deckId === 'A' ? '#4af5ff' : '#ff8c42';
   const playedColor = deckId === 'A' ? 'rgba(74,245,255,0.3)' : 'rgba(255,140,66,0.3)';
 
-  const draw = useCallback(() => {
+  // Stable draw fn — reads playhead.current live each frame so it needn't be a dep
+  const drawFrame = useCallback((currentTime: number) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
@@ -155,11 +159,18 @@ function WaveformRow({ deckId, mirrored = false }: WaveformRowProps) {
     grd.addColorStop(1, 'rgba(255,255,255,0)');
     ctx.fillStyle = grd;
     ctx.fillRect(centerX - 20, 0, 40, height);
-  }, [waveformColoredPeaks, waveformPeaks, currentTime, duration, hotCues, mirrored, deckColor, playedColor]);
+  }, [waveformColoredPeaks, waveformPeaks, duration, hotCues, mirrored, deckColor, playedColor]);
 
+  // rAF loop — reads playhead.current live each frame for smooth scrolling
   useEffect(() => {
-    draw();
-  }, [draw]);
+    let rafId = 0;
+    const tick = () => {
+      drawFrame(playhead.current);
+      rafId = requestAnimationFrame(tick);
+    };
+    rafId = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(rafId);
+  }, [drawFrame, playhead]);
 
   return (
     <canvas

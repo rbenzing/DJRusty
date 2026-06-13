@@ -20,18 +20,15 @@ export function useAudioEngine(deckId: 'A' | 'B'): void {
   const engineRef = useRef<AudioEngineImpl | null>(null);
   const isMountedRef = useRef(true);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  // Prevents the poll's own setCurrentTime call from re-triggering the seek subscription
-  const skipSeekRef = useRef(false);
   // Prevents autoPlay's setPlaybackState('playing') from triggering a second engine.play()
   const suppressTransportRef = useRef(false);
 
-  /** Start the 250 ms currentTime poll. Idempotent — clears any existing poll first. */
+  /** Start the 100 ms coarse logic poll. Idempotent — clears any existing poll first. */
   function startPoll(): void {
     if (pollRef.current) clearInterval(pollRef.current);
     pollRef.current = setInterval(() => {
       if (!engineRef.current || !isMountedRef.current) return;
       const time = engineRef.current.getCurrentTime();
-      skipSeekRef.current = true;
       useDeckStore.getState().setCurrentTime(deckId, time);
       const deck = useDeckStore.getState().decks[deckId];
       if (deck.loopActive && deck.loopEnd !== null && time >= deck.loopEnd) {
@@ -40,7 +37,7 @@ export function useAudioEngine(deckId: 'A' | 'B'): void {
       if (deck.slipMode && deck.slipStartTime !== null && deck.loopActive) {
         useDeckStore.getState().updateSlipPosition(deckId);
       }
-    }, 250);
+    }, 100);
   }
 
   // ── 1. Create / Destroy ───────────────────────────────────────────────────
@@ -157,23 +154,6 @@ export function useAudioEngine(deckId: 'A' | 'B'): void {
     return unsubscribe;
     // startPoll is a stable local closure — safe to omit.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [deckId]);
-
-  // ── 4. Seek (external setCurrentTime → engine.seekTo) ────────────────────
-  useEffect(() => {
-    let prevTime = useDeckStore.getState().decks[deckId].currentTime;
-
-    const unsubscribe = useDeckStore.subscribe((state) => {
-      const { currentTime, sourceType, playerReady, duration } = state.decks[deckId];
-      if (currentTime === prevTime) return;
-      prevTime = currentTime;
-      // Skip updates that originated from the poll itself
-      if (skipSeekRef.current) { skipSeekRef.current = false; return; }
-      if (sourceType !== 'mp3' || !playerReady || !engineRef.current) return;
-      engineRef.current.seekTo(Math.max(0, Math.min(currentTime, duration)));
-    });
-
-    return unsubscribe;
   }, [deckId]);
 
   // ── 5. Volume ─────────────────────────────────────────────────────────────
