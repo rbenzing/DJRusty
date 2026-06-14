@@ -27,9 +27,13 @@ describe('DeckControls — seek routes to the active backend', () => {
     const store = useDeckStore.getState();
     store.loadTrack('A', 'vid123', { sourceType: 'youtube', title: 't', artist: 'a', duration: 180, thumbnailUrl: null });
     store.setPlayerReady('A', true);
-    store.setHotCue('A', 0, 42);
+    // Set the CDJ cue point and put the machine in PLAYING state.
+    // CUE_PRESS while PLAYING seeks back to the cue point on the active backend.
+    store.setCuePoint('A', 42);
+    store.dispatchTransport('A', { type: 'PLAY' }); // CUED → PLAYING
     render(<DeckControls deckId="A" />);
-    fireEvent.click(screen.getByLabelText('Jump to cue point on Deck A'));
+    // pointerDown on CUE button fires CUE_PRESS — from PLAYING state: seeks to cue & pauses
+    fireEvent.pointerDown(screen.getByLabelText('Cue Deck A'));
     expect(yt.seekTo).toHaveBeenCalledWith(42, true);
     expect(audio.seekTo).not.toHaveBeenCalled();
   });
