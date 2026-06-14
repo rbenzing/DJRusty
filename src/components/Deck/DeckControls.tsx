@@ -1,5 +1,5 @@
 /**
- * DeckControls.tsx — Transport controls: Play/Pause, Cue (CDJ-style), Restart.
+ * DeckControls.tsx — Transport controls: Restart, Cue (CDJ-style), Play/Pause, Sync, eject.
  *
  * CDJ transport behaviour (Phase 3 Task 3.3):
  * - PLAY button: dispatches PLAY event → toggles PLAYING / PAUSED via the transport machine.
@@ -7,8 +7,8 @@
  *     pointerDown  → CUE_PRESS  (while CUED: starts preview play; while PLAYING: jumps to cue & pauses; while PAUSED: sets cue)
  *     pointerUp / pointerLeave → CUE_RELEASE (ends preview, returns to cue)
  *
- * Restart button seeks to 0 (unchanged, Task 5.2 will handle skip buttons).
- * Skip ±15 s buttons are preserved unchanged.
+ * Restart button seeks to 0. Fixed ±15 s skip buttons removed in Task 5.2 — use the
+ * grid-snapped BeatJump controls instead.
  * Hot cue panel (indices 0–3, long-press, right-click) handled by HotCues.tsx (STORY-011).
  */
 import { useDeckStore, useDeckActions } from '../../store/deckStore';
@@ -41,25 +41,6 @@ export function DeckControls({ deckId }: DeckControlsProps) {
     }
   }
 
-  function handleSkipBack() {
-    if (!playerReady || !hasTrack) return;
-    const player = getActivePlayer(deckId, sourceType);
-    if (player) {
-      const currentTime = useDeckStore.getState().decks[deckId].currentTime;
-      const newTime = Math.max(0, currentTime - 15);
-      player.seekTo(newTime, true);
-    }
-  }
-
-  function handleSkipForward() {
-    if (!playerReady || !hasTrack) return;
-    const player = getActivePlayer(deckId, sourceType);
-    if (player) {
-      const currentTime = useDeckStore.getState().decks[deckId].currentTime;
-      player.seekTo(currentTime + 15, true);
-    }
-  }
-
   const playLabel = isPlaying ? `Pause Deck ${deckId}` : `Play Deck ${deckId}`;
   const playIcon = isPlaying ? '❚❚' : '▶';
 
@@ -75,18 +56,6 @@ export function DeckControls({ deckId }: DeckControlsProps) {
         title="Restart track from the beginning"
       >
         &#x21BA;
-      </button>
-
-      {/* Skip Back button — seeks back 15 seconds */}
-      <button
-        type="button"
-        className={`${styles.btn} ${styles.skipBackBtn}`}
-        onClick={handleSkipBack}
-        disabled={!hasTrack || !playerReady}
-        aria-label={`Skip back 15 seconds on Deck ${deckId}`}
-        title="Skip back 15 seconds"
-      >
-        &#x23EA;15
       </button>
 
       {/* CDJ CUE button — momentary: pointerDown starts preview/jump-to-cue/set-cue; pointerUp/Leave ends preview */}
@@ -113,18 +82,6 @@ export function DeckControls({ deckId }: DeckControlsProps) {
         aria-pressed={isPlaying}
       >
         {playIcon}
-      </button>
-
-      {/* Skip Forward button — seeks forward 15 seconds */}
-      <button
-        type="button"
-        className={`${styles.btn} ${styles.skipFwdBtn}`}
-        onClick={handleSkipForward}
-        disabled={!hasTrack || !playerReady}
-        aria-label={`Skip forward 15 seconds on Deck ${deckId}`}
-        title="Skip forward 15 seconds"
-      >
-        15&#x23E9;
       </button>
 
       {/* Beat sync button */}
