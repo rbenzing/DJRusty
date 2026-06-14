@@ -31,4 +31,17 @@ describe('HotCues — jump routes to the active backend', () => {
     expect(yt.seekTo).toHaveBeenCalledWith(88, true);
     expect(audio.seekTo).not.toHaveBeenCalled();
   });
+
+  it('clicking an UNSET hot cue sets it at the current playhead', () => {
+    const yt = makePlayer();
+    playerRegistry.register('A', 'youtube', yt);
+    const store = useDeckStore.getState();
+    store.loadTrack('A', 'vid456', { sourceType: 'youtube', title: 't', artist: 'a', duration: 180, thumbnailUrl: null });
+    store.setPlayerReady('A', true);
+    store.setCurrentTime('A', 33);
+    // cue at index 2 is unset — clicking it should set it at playhead (33s)
+    render(<HotCues deckId="A" />);
+    fireEvent.click(screen.getByRole('button', { name: /hot cue 3 on deck a.*not set/i }));
+    expect(useDeckStore.getState().decks.A.hotCues[2]).toBeCloseTo(33, 3);
+  });
 });

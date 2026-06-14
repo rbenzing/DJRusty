@@ -4,7 +4,7 @@
  * Interaction contract:
  *   - Normal click (< 500ms press):
  *       - If cue is SET   → jump to that timestamp via onJump()
- *       - If cue is UNSET → no-op (long-press or shift+click to set)
+ *       - If cue is UNSET → set the cue at current deck time via onSet() (DDJ-style)
  *   - Shift+click (any duration):
  *       - Sets the cue at the current deck time via onSet()
  *   - Long-press (pointer held ≥ 500ms):
@@ -114,8 +114,9 @@ export function HotCueButton({
 
     if (isSet) {
       onJump();
+    } else {
+      onSet(); // DDJ-style: plain click on an empty hot cue sets it at the playhead
     }
-    // Unset cue + normal click = no-op (user should shift+click or long-press to set).
   }
 
   // ---- Context menu (right-click) to clear -----------------------------------
@@ -135,11 +136,11 @@ export function HotCueButton({
 
   const ariaLabel = isSet
     ? `Hot cue ${index + 1} on Deck ${deckId}: jump to ${formatTime(timestamp)}. Right-click to clear, shift+click or hold to reset.`
-    : `Hot cue ${index + 1} on Deck ${deckId}: not set. Shift+click or hold to set at current position.`;
+    : `Hot cue ${index + 1} on Deck ${deckId}: not set. Click to set at current position.`;
 
   const title = isSet
     ? `Jump to ${formatTime(timestamp)} — right-click to clear, shift+click or hold to set new position`
-    : 'Hold 500ms or shift+click to set hot cue at current position';
+    : 'Click to set hot cue at current position';
 
   return (
     <button
