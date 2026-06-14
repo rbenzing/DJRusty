@@ -98,8 +98,12 @@ export interface DeckState {
   /** Current playback state, derived from YT.PlayerState events. */
   playbackState: PlaybackState;
 
-  /** Current playback rate. Must be one of the discrete PITCH_RATES values. */
-  pitchRate: PitchRate;
+  /**
+   * Current playback rate.
+   * MP3 backend supports any continuous positive number; YouTube backend snaps
+   * to discrete PITCH_RATES internally via setPlaybackRate().
+   */
+  pitchRate: number;
 
   /** User-defined BPM via tap-tempo, or null if not set. */
   bpm: number | null;

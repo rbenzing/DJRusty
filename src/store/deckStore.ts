@@ -2,7 +2,8 @@ import { create } from 'zustand';
 import { useShallow } from 'zustand/react/shallow';
 import type { DeckState, PlaybackState } from '../types/deck';
 import type { TrackSourceType } from '../types/playlist';
-import { DEFAULT_PITCH_RATE, type PitchRate } from '../constants/pitchRates';
+import { DEFAULT_PITCH_RATE } from '../constants/pitchRates';
+import { exactSyncRate, phaseDelta, findClosestPitchRate } from '../utils/beatSync';
 import { getHotCues } from '../utils/hotCues';
 import { DEFAULT_BEAT_JUMP_SIZE } from '../utils/beatJump';
 import { getActivePlayer } from '../services/playerRegistry';
@@ -128,8 +129,8 @@ interface DeckStoreActions {
   /** Update the current playback time (polled from IFrame API). */
   setCurrentTime: (deckId: 'A' | 'B', time: number) => void;
 
-  /** Set the pitch rate for the specified deck. */
-  setPitchRate: (deckId: 'A' | 'B', rate: PitchRate) => void;
+  /** Set the pitch rate for the specified deck. Accepts any positive number (MP3 supports continuous rates). */
+  setPitchRate: (deckId: 'A' | 'B', rate: number) => void;
 
   /** Set the BPM for the specified deck (from tap-tempo). */
   setBpm: (deckId: 'A' | 'B', bpm: number | null) => void;
@@ -217,6 +218,14 @@ interface DeckStoreActions {
    * set by intent side-effects).
    */
   dispatchTransport: (deckId: 'A' | 'B', event: TransportEvent) => void;
+
+  /**
+   * Hardware-accurate SYNC: sets this deck's pitch to the exact continuous ratio
+   * needed to match the other deck's effective tempo, then performs a one-shot
+   * downbeat phase alignment seek. No-op if either deck lacks a beat grid.
+   * MP3 only — the exact rate is stored in pitchRate (a continuous number).
+   */
+  syncToDeck: (deckId: 'A' | 'B', otherId: 'A' | 'B') => void;
 }
 
 interface DeckStoreState {
@@ -596,10 +605,33 @@ export const useDeckStore = create<DeckStore>((set, get) => ({
   nudgeGrid: (deckId, deltaSeconds) => {
     const deck = get().decks[deckId];
     if (deck.anchor === null) return;
-    updateDeck(set, deckId, { anchor: deck.anchor + deltaSeconds });
+    updateDeck(set, deckId, { anchor: deck.anchor + deltaSeconds, synced: false });
   },
 
   setCuePoint: (deckId, time) => updateDeck(set, deckId, { cuePoint: time }),
+
+  syncToDeck: (deckId, otherId) => {
+    const me = get().decks[deckId], other = get().decks[otherId];
+    if (!me.bpm || !other.bpm || me.anchor === null || other.anchor === null) return;
+    // Fix 5: exactSyncRate can return null — guard before the youtube snap.
+    let rate = exactSyncRate(me.bpm, other.bpm, other.pitchRate);
+    if (rate === null) return;
+    // Fix 3: YouTube only supports discrete rates; snap so store and player agree.
+    if (me.sourceType === 'youtube') rate = findClosestPitchRate(rate);
+    get().setPitchRate(deckId, rate);
+    const player = getActivePlayer(deckId, me.sourceType);
+    const myPos = player?.getCurrentTime() ?? me.currentTime;
+    // Fix 6: inline single-use otherPlayer binding.
+    const otherPos = getActivePlayer(otherId, other.sourceType)?.getCurrentTime() ?? other.currentTime;
+    const delta = phaseDelta({ bpm: me.bpm, anchor: me.anchor }, { bpm: other.bpm, anchor: other.anchor }, myPos, otherPos);
+    // Fix 1: clamp seek target to [0, duration] so phaseDelta can't push below 0.
+    const target = Math.max(0, Math.min(myPos + delta, me.duration || (myPos + delta)));
+    // Fix 2: only mark synced when the player exists and the seek actually dispatched.
+    if (player) {
+      player.seekTo(target, true);
+      updateDeck(set, deckId, { synced: true });
+    }
+  },
 
   dispatchTransport: (deckId, event) => {
     const deck = get().decks[deckId];
@@ -642,7 +674,7 @@ export function useDeckActions() {
       setBeatJumpSize: s.setBeatJumpSize, setSlipMode: s.setSlipMode, setSynced: s.setSynced,
       setRollMode: s.setRollMode, startRoll: s.startRoll, endRoll: s.endRoll,
       setGrid: s.setGrid, nudgeGrid: s.nudgeGrid,
-      dispatchTransport: s.dispatchTransport,
+      dispatchTransport: s.dispatchTransport, syncToDeck: s.syncToDeck,
     })),
   );
 }

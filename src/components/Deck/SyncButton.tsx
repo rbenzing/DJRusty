@@ -1,8 +1,10 @@
 /**
  * SyncButton.tsx — Beat-sync button for a single deck.
  *
- * When pressed, snaps this deck's pitch rate to the closest PITCH_RATES
- * value that makes this deck's effective BPM match the other deck's BPM.
+ * When pressed, performs hardware-accurate SYNC via syncToDeck:
+ *   1. Sets this deck's pitch to the exact continuous ratio matching the other
+ *      deck's effective tempo (not snapped to discrete PITCH_RATES).
+ *   2. Performs a one-shot downbeat phase alignment seek.
  * Shows a lit LED when synced. Disabled when either deck has no BPM.
  *
  * The existing useYouTubePlayer pitchRate subscription applies the rate
@@ -10,7 +12,6 @@
  * are needed here.
  */
 import { useDeckStore, useDeckActions } from '../../store/deckStore';
-import { calculateSyncRate } from '../../utils/beatSync';
 import styles from './SyncButton.module.css';
 
 interface SyncButtonProps {
@@ -19,7 +20,7 @@ interface SyncButtonProps {
 
 export function SyncButton({ deckId }: SyncButtonProps) {
   const otherDeckId = deckId === 'A' ? 'B' : 'A';
-  const { setPitchRate, setSynced } = useDeckActions();
+  const { syncToDeck } = useDeckActions();
 
   const thisBpm = useDeckStore((s) => s.decks[deckId].bpm);
   const otherBpm = useDeckStore((s) => s.decks[otherDeckId].bpm);
@@ -30,12 +31,7 @@ export function SyncButton({ deckId }: SyncButtonProps) {
 
   function handleSync() {
     if (isDisabled) return;
-
-    const rate = calculateSyncRate(thisBpm, otherBpm);
-    if (rate === null) return;
-
-    setPitchRate(deckId, rate);
-    setSynced(deckId, true);
+    syncToDeck(deckId, otherDeckId);
   }
 
   return (
