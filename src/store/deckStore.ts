@@ -5,7 +5,7 @@ import type { TrackSourceType } from '../types/playlist';
 import { DEFAULT_PITCH_RATE } from '../constants/pitchRates';
 import { exactSyncRate, phaseDelta, findClosestPitchRate } from '../utils/beatSync';
 import { getHotCues } from '../utils/hotCues';
-import { DEFAULT_BEAT_JUMP_SIZE } from '../utils/beatJump';
+import { DEFAULT_BEAT_JUMP_SIZE, gridJumpTarget } from '../utils/beatJump';
 import { getActivePlayer } from '../services/playerRegistry';
 import { snapLoopIn, loopOutFor } from '../utils/loopMath';
 import { transition, type TransportEvent } from '../utils/transport';
@@ -226,6 +226,13 @@ interface DeckStoreActions {
    * MP3 only — the exact rate is stored in pitchRate (a continuous number).
    */
   syncToDeck: (deckId: 'A' | 'B', otherId: 'A' | 'B') => void;
+
+  /**
+   * Grid-snapped beat jump: snap the playhead to the nearest beat, move N beats
+   * in the given direction, then seek the active player. No-op if bpm or anchor
+   * is not set (grid not confirmed).
+   */
+  beatJump: (deckId: 'A' | 'B', dir: 1 | -1) => void;
 }
 
 interface DeckStoreState {
@@ -648,6 +655,14 @@ export const useDeckStore = create<DeckStore>((set, get) => ({
     // setPlaybackState in the intent loop above (e.g. CUED beats PAUSED).
     updateDeck(set, deckId, { transportState: r.nextState, cuePoint: r.cuePoint });
   },
+
+  beatJump: (deckId, dir) => {
+    const deck = get().decks[deckId];
+    if (!deck.bpm || deck.anchor === null) return;
+    const grid = { bpm: deck.bpm, anchor: deck.anchor };
+    const target = gridJumpTarget(grid, deck.currentTime, deck.beatJumpSize, dir, deck.duration);
+    getActivePlayer(deckId, deck.sourceType)?.seekTo(target, true);
+  },
 }));
 
 /**
@@ -674,7 +689,7 @@ export function useDeckActions() {
       setBeatJumpSize: s.setBeatJumpSize, setSlipMode: s.setSlipMode, setSynced: s.setSynced,
       setRollMode: s.setRollMode, startRoll: s.startRoll, endRoll: s.endRoll,
       setGrid: s.setGrid, nudgeGrid: s.nudgeGrid,
-      dispatchTransport: s.dispatchTransport, syncToDeck: s.syncToDeck,
+      dispatchTransport: s.dispatchTransport, syncToDeck: s.syncToDeck, beatJump: s.beatJump,
     })),
   );
 }
