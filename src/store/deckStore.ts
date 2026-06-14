@@ -6,6 +6,7 @@ import { DEFAULT_PITCH_RATE, type PitchRate } from '../constants/pitchRates';
 import { getHotCues } from '../utils/hotCues';
 import { DEFAULT_BEAT_JUMP_SIZE } from '../utils/beatJump';
 import { getActivePlayer } from '../services/playerRegistry';
+import { snapLoopIn, loopOutFor } from '../utils/loopMath';
 
 /**
  * Initial state for a single deck.
@@ -361,19 +362,15 @@ export const useDeckStore = create<DeckStore>((set, get) => ({
 
   activateLoopBeat: (deckId, beatCount) => {
     const deck = get().decks[deckId];
-    if (!deck.bpm) return; // loop buttons are disabled when BPM is not set
-    const loopLengthSeconds = (beatCount / deck.bpm) * 60;
-    const loopStart = deck.currentTime;
+    if (!deck.bpm || deck.anchor === null) return; // needs a confirmed grid (bpm + anchor)
+    const grid = { bpm: deck.bpm, anchor: deck.anchor };
+    const loopStart = snapLoopIn(grid, deck.currentTime);
+    const rawEnd = loopOutFor(loopStart, beatCount, deck.bpm);
     // Clamp loopEnd to the track duration so the 250ms poll can always trigger.
     // When duration is unknown (0), no clamping — the track may still be loading.
-    const rawLoopEnd = loopStart + loopLengthSeconds;
-    const loopEnd = deck.duration > 0 ? Math.min(rawLoopEnd, deck.duration) : rawLoopEnd;
-    updateDeck(set, deckId, {
-      loopActive: true,
-      loopStart,
-      loopEnd,
-      loopBeatCount: beatCount,
-    });
+    const loopEnd = deck.duration > 0 ? Math.min(rawEnd, deck.duration) : rawEnd;
+    getActivePlayer(deckId, deck.sourceType)?.setLoop?.(loopStart, loopEnd);
+    updateDeck(set, deckId, { loopActive: true, loopStart, loopEnd, loopBeatCount: beatCount });
   },
 
   deactivateLoop: (deckId) => {
@@ -383,6 +380,8 @@ export const useDeckStore = create<DeckStore>((set, get) => ({
     if (deck.slipMode && deck.slipPosition !== null) {
       getActivePlayer(deckId, deck.sourceType)?.seekTo(deck.slipPosition, true);
     }
+    // Clear the native engine loop (no-op via optional chaining on YouTube).
+    getActivePlayer(deckId, deck.sourceType)?.clearLoop?.();
     updateDeck(set, deckId, {
       loopActive: false,
       loopStart: null,
@@ -527,10 +526,14 @@ export const useDeckStore = create<DeckStore>((set, get) => ({
   startRoll: (deckId, beatCount) => {
     const deck = get().decks[deckId];
     if (!deck.bpm) return; // roll requires BPM just like activateLoopBeat
-    const loopLengthSeconds = (beatCount / deck.bpm) * 60;
-    const loopStart = deck.currentTime;
-    const rawLoopEnd = loopStart + loopLengthSeconds;
+    // Snap in-point to the grid when a confirmed grid is available; otherwise fall back to currentTime.
+    const loopStart = deck.anchor !== null
+      ? snapLoopIn({ bpm: deck.bpm, anchor: deck.anchor }, deck.currentTime)
+      : deck.currentTime;
+    const rawLoopEnd = loopOutFor(loopStart, beatCount, deck.bpm);
     const loopEnd = deck.duration > 0 ? Math.min(rawLoopEnd, deck.duration) : rawLoopEnd;
+    // Arm the native engine loop (no-op via optional chaining on YouTube).
+    getActivePlayer(deckId, deck.sourceType)?.setLoop?.(loopStart, loopEnd);
     updateDeck(set, deckId, {
       rollStartWallClock: Date.now(),
       rollStartPosition: deck.currentTime,
@@ -555,6 +558,8 @@ export const useDeckStore = create<DeckStore>((set, get) => ({
     } else {
       seekTarget = Math.max(0, seekTarget);
     }
+    // Clear the native engine loop before seeking back (no-op via optional chaining on YouTube).
+    getActivePlayer(deckId, deck.sourceType)?.clearLoop?.();
     getActivePlayer(deckId, deck.sourceType)?.seekTo(seekTarget, true);
     updateDeck(set, deckId, {
       rollStartWallClock: null,

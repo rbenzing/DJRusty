@@ -42,6 +42,12 @@ export interface DeckPlayer {
   getCurrentTime(): number;
   /** Return the total duration of the loaded track in seconds. */
   getDuration(): number;
+  /** Arm a native engine loop between startSec and endSec (MP3 only; optional on YouTube). */
+  setLoop?(startSec: number, endSec: number): void;
+  /** Clear the native engine loop (MP3 only; optional on YouTube). */
+  clearLoop?(): void;
+  /** Return whether the engine loop is currently active (MP3 only; optional on YouTube). */
+  isLooping?(): boolean;
 }
 
 /**

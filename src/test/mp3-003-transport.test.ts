@@ -84,6 +84,9 @@ vi.mock('../services/playerRegistry', () => ({
     unregister: vi.fn(),
     get: vi.fn(),
   },
+  // getActivePlayer is imported directly by deckStore — return undefined so optional-chained
+  // calls (?.setLoop, ?.clearLoop) are no-ops in tests that only exercise store-level logic.
+  getActivePlayer: vi.fn().mockReturnValue(undefined),
 }));
 
 const fakeAudioBuffer: AudioBuffer = {
