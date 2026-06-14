@@ -1,25 +1,19 @@
 /**
- * DeckControls.tsx — Transport controls: Play/Pause, Cue (jump), Set Cue.
+ * DeckControls.tsx — Transport controls: Restart, Cue (CDJ-style), Play/Pause, Sync, eject.
  *
- * Play/Pause: toggles playbackState by dispatching to deckStore.
- * Cue (Jump to Cue): seeks to hotCues[0] via getActivePlayer().
- * Set Cue: stores the current time as hotCues[0] and persists to localStorage.
+ * CDJ transport behaviour (Phase 3 Task 3.3):
+ * - PLAY button: dispatches PLAY event → toggles PLAYING / PAUSED via the transport machine.
+ * - CUE button (momentary):
+ *     pointerDown  → CUE_PRESS  (while CUED: starts preview play; while PLAYING: jumps to cue & pauses; while PAUSED: sets cue)
+ *     pointerUp / pointerLeave → CUE_RELEASE (ends preview, returns to cue)
  *
- * The Cue button uses hot cue index 0 as the "main cue point" per the spec.
- * Full hot cue interactions (indices 0–3, long-press, right-click) are handled
- * by the HotCues component (STORY-011).
- *
- * Note: Actual player seek/play/pause commands are handled by useYouTubePlayer
- * which subscribes to deckStore.playbackState changes and issues IFrame API calls.
- * Seek is issued directly via getActivePlayer to keep Zustand state clean.
+ * Restart button seeks to 0. Fixed ±15 s skip buttons removed in Task 5.2 — use the
+ * grid-snapped BeatJump controls instead.
+ * Hot cue panel (indices 0–3, long-press, right-click) handled by HotCues.tsx (STORY-011).
  */
 import { useDeckStore, useDeckActions } from '../../store/deckStore';
 import { usePlaylistStore } from '../../store/playlistStore';
 import { getActivePlayer } from '../../services/playerRegistry';
-import {
-  setHotCue as persistSetHotCue,
-} from '../../utils/hotCues';
-import { formatTime } from '../../utils/formatTime';
 import { SyncButton } from './SyncButton';
 import { SkipButton } from './SkipButton';
 import styles from './DeckControls.module.css';
@@ -29,50 +23,15 @@ interface DeckControlsProps {
 }
 
 export function DeckControls({ deckId }: DeckControlsProps) {
-  const { setPlaybackState, setHotCue, clearTrack } = useDeckActions();
+  const { setPlaybackState, clearTrack, dispatchTransport } = useDeckActions();
   const clearPlaylist = usePlaylistStore((s) => s.clearPlaylist);
 
-  const playbackState = useDeckStore((s) => s.decks[deckId].playbackState);
+  const transportState = useDeckStore((s) => s.decks[deckId].transportState);
   const trackId = useDeckStore((s) => s.decks[deckId].trackId);
-  const hotCues = useDeckStore((s) => s.decks[deckId].hotCues);
   const playerReady = useDeckStore((s) => s.decks[deckId].playerReady);
   const sourceType = useDeckStore((s) => s.decks[deckId].sourceType);
-  const isPlaying = playbackState === 'playing';
+  const isPlaying = transportState === 'PLAYING' || transportState === 'PREVIEW';
   const hasTrack = trackId !== null;
-
-  // Cue point is stored at index 0 of hotCues (the "main cue" per spec).
-  // The full 4-button hot cue panel is handled by HotCues.tsx (STORY-011).
-  const cuePoint: number | undefined = hotCues[0];
-  const hasCue = cuePoint !== undefined;
-
-  function handlePlayPause() {
-    if (!hasTrack) return;
-    if (isPlaying) {
-      setPlaybackState(deckId, 'paused');
-    } else {
-      setPlaybackState(deckId, 'playing');
-    }
-  }
-
-  function handleSetCue() {
-    if (!hasTrack) return;
-    // Persist to localStorage and update in-memory store.
-    const currentTime = useDeckStore.getState().decks[deckId].currentTime;
-    if (trackId) {
-      persistSetHotCue(trackId, 0, currentTime);
-    }
-    setHotCue(deckId, 0, currentTime);
-  }
-
-  function handleJumpToCue() {
-    if (!hasCue || cuePoint === undefined) return;
-    if (!playerReady) return;
-    // Seek via the player registry — direct imperative call to the YT.Player.
-    const player = getActivePlayer(deckId, sourceType);
-    if (player) {
-      player.seekTo(cuePoint, true);
-    }
-  }
 
   function handleRestart() {
     if (!playerReady || !hasTrack) return;
@@ -82,27 +41,8 @@ export function DeckControls({ deckId }: DeckControlsProps) {
     }
   }
 
-  function handleSkipBack() {
-    if (!playerReady || !hasTrack) return;
-    const player = getActivePlayer(deckId, sourceType);
-    if (player) {
-      const currentTime = useDeckStore.getState().decks[deckId].currentTime;
-      const newTime = Math.max(0, currentTime - 15);
-      player.seekTo(newTime, true);
-    }
-  }
-
-  function handleSkipForward() {
-    if (!playerReady || !hasTrack) return;
-    const player = getActivePlayer(deckId, sourceType);
-    if (player) {
-      const currentTime = useDeckStore.getState().decks[deckId].currentTime;
-      player.seekTo(currentTime + 15, true);
-    }
-  }
-
-  const playLabel = isPlaying ? 'Pause' : 'Play';
-  const playIcon = isPlaying ? '\u275a\u275a' : '\u25b6';
+  const playLabel = isPlaying ? `Pause Deck ${deckId}` : `Play Deck ${deckId}`;
+  const playIcon = isPlaying ? '❚❚' : '▶';
 
   return (
     <div className={styles.controls}>
@@ -118,63 +58,30 @@ export function DeckControls({ deckId }: DeckControlsProps) {
         &#x21BA;
       </button>
 
-      {/* Skip Back button — seeks back 15 seconds */}
-      <button
-        type="button"
-        className={`${styles.btn} ${styles.skipBackBtn}`}
-        onClick={handleSkipBack}
-        disabled={!hasTrack || !playerReady}
-        aria-label={`Skip back 15 seconds on Deck ${deckId}`}
-        title="Skip back 15 seconds"
-      >
-        &#x23EA;15
-      </button>
-
-      {/* Jump to Cue button */}
+      {/* CDJ CUE button — momentary: pointerDown starts preview/jump-to-cue/set-cue; pointerUp/Leave ends preview */}
       <button
         type="button"
         className={`${styles.btn} ${styles.cueBtn}`}
-        onClick={handleJumpToCue}
-        disabled={!hasCue}
-        aria-label={`Jump to cue point on Deck ${deckId}`}
-        title={hasCue && cuePoint !== undefined ? `Jump to ${formatTime(cuePoint)}` : 'No cue set'}
+        onPointerDown={() => { if (hasTrack) dispatchTransport(deckId, { type: 'CUE_PRESS' }); }}
+        onPointerUp={() => { if (hasTrack) dispatchTransport(deckId, { type: 'CUE_RELEASE' }); }}
+        onPointerLeave={() => { if (hasTrack) dispatchTransport(deckId, { type: 'CUE_RELEASE' }); }}
+        disabled={!hasTrack}
+        aria-label={`Cue Deck ${deckId}`}
+        title="CDJ Cue — hold to preview, release to return to cue"
       >
-        &#x23EE; CUE
+        CUE
       </button>
 
-      {/* Play/Pause button */}
+      {/* Play/Pause button — dispatches PLAY event through the transport machine */}
       <button
         type="button"
         className={`${styles.btn} ${styles.playBtn} ${isPlaying ? styles.playBtnActive : ''}`}
-        onClick={handlePlayPause}
+        onClick={() => { if (hasTrack) dispatchTransport(deckId, { type: 'PLAY' }); }}
         disabled={!hasTrack}
-        aria-label={`${playLabel} Deck ${deckId}`}
+        aria-label={playLabel}
         aria-pressed={isPlaying}
       >
         {playIcon}
-      </button>
-
-      {/* Set Cue button */}
-      <button
-        type="button"
-        className={`${styles.btn} ${styles.setCueBtn}`}
-        onClick={handleSetCue}
-        disabled={!hasTrack}
-        aria-label={`Set cue point on Deck ${deckId}`}
-      >
-        SET CUE
-      </button>
-
-      {/* Skip Forward button — seeks forward 15 seconds */}
-      <button
-        type="button"
-        className={`${styles.btn} ${styles.skipFwdBtn}`}
-        onClick={handleSkipForward}
-        disabled={!hasTrack || !playerReady}
-        aria-label={`Skip forward 15 seconds on Deck ${deckId}`}
-        title="Skip forward 15 seconds"
-      >
-        15&#x23E9;
       </button>
 
       {/* Beat sync button */}

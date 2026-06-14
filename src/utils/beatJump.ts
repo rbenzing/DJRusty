@@ -39,3 +39,21 @@ export function calculateJumpSeconds(beats: number, bpm: number): number {
 export function clampTime(time: number, duration: number): number {
   return Math.max(0, Math.min(time, duration));
 }
+
+import { type BeatGrid, nearestBeat, secondsPerBeat } from './beatGrid';
+
+/**
+ * Grid-snapped jump target: snap playhead to the nearest beat, move N beats
+ * in the given direction, then clamp to [0, duration].
+ *
+ * @param grid     - The beat grid (bpm + anchor).
+ * @param playhead - Current playback position in seconds.
+ * @param beats    - Number of beats to jump (the deck's beatJumpSize).
+ * @param dir      - Direction: 1 = forward, -1 = backward.
+ * @param duration - Track duration in seconds (for clamping).
+ * @returns Grid-aligned target position in seconds.
+ */
+export function gridJumpTarget(grid: BeatGrid, playhead: number, beats: number, dir: 1 | -1, duration: number): number {
+  const target = nearestBeat(grid, playhead) + dir * beats * secondsPerBeat(grid.bpm);
+  return clampTime(target, duration);
+}

@@ -21,6 +21,7 @@ beforeEach(() => {
         title: '',
         artist: '',
         waveformPeaks: null,
+        waveformColoredPeaks: null,
         decoding: false,
         bpmDetecting: false,
         duration: 0,
@@ -39,6 +40,13 @@ beforeEach(() => {
         eqLow: 0,
         eqMid: 0,
         eqHigh: 0,
+        eqKillLow: false,
+        eqKillMid: false,
+        eqKillHigh: false,
+        filterSweep: 0,
+        effectType: 'none' as const,
+        effectEnabled: false,
+        effectWetDry: 0.5,
         error: null,
         pitchRateLocked: false,
         beatJumpSize: 4,
@@ -51,6 +59,10 @@ beforeEach(() => {
         rollStartWallClock: null,
         rollStartPosition: null,
         autoPlayOnLoad: false,
+        anchor: null,
+        gridConfirmed: false,
+        cuePoint: null,
+        transportState: 'CUED' as const,
       },
       B: {
         deckId: 'B',
@@ -59,6 +71,7 @@ beforeEach(() => {
         title: '',
         artist: '',
         waveformPeaks: null,
+        waveformColoredPeaks: null,
         decoding: false,
         bpmDetecting: false,
         duration: 0,
@@ -77,6 +90,13 @@ beforeEach(() => {
         eqLow: 0,
         eqMid: 0,
         eqHigh: 0,
+        eqKillLow: false,
+        eqKillMid: false,
+        eqKillHigh: false,
+        filterSweep: 0,
+        effectType: 'none' as const,
+        effectEnabled: false,
+        effectWetDry: 0.5,
         error: null,
         pitchRateLocked: false,
         beatJumpSize: 4,
@@ -89,6 +109,10 @@ beforeEach(() => {
         rollStartWallClock: null,
         rollStartPosition: null,
         autoPlayOnLoad: false,
+        anchor: null,
+        gridConfirmed: false,
+        cuePoint: null,
+        transportState: 'CUED' as const,
       },
     },
   });
@@ -234,11 +258,12 @@ describe('deckStore', () => {
     expect(deckA.loopBeatCount).toBeNull();
   });
 
-  // STORY-014: activateLoopBeat store-level test
+  // STORY-014: activateLoopBeat store-level test (updated for grid-snapped in-point)
   it('activateLoopBeat sets loop state from bpm and currentTime', () => {
     act(() => {
-      // Set up the deck with a BPM and a current time so the formula can run.
-      useDeckStore.getState().setBpm('A', 120);
+      // Set up the deck with a confirmed grid (bpm + anchor) and a current time.
+      // anchor=10.0 so snapLoopIn returns exactly 10.0 for currentTime=10.0.
+      useDeckStore.getState().setGrid('A', 120, 10.0);
       useDeckStore.getState().setCurrentTime('A', 10.0);
     });
     act(() => {
@@ -246,9 +271,9 @@ describe('deckStore', () => {
     });
 
     const deckA = useDeckStore.getState().decks['A'];
-    // 4 beats at 120 BPM = (4 / 120) * 60 = 2 seconds
+    // 4 beats at 120 BPM = (4 / 120) * 60 = 2 seconds; in-point snaps to 10.0
     expect(deckA.loopActive).toBe(true);
-    expect(deckA.loopStart).toBe(10.0);
+    expect(deckA.loopStart).toBeCloseTo(10.0, 5);
     expect(deckA.loopEnd).toBeCloseTo(12.0, 5);
     expect(deckA.loopBeatCount).toBe(4);
   });
@@ -270,6 +295,7 @@ describe('deckStore', () => {
     // Track is 12 s long; currentTime is at 11 s; 8-beat loop at 120 BPM = 4 s
     // Without clamping: loopEnd would be 11 + 4 = 15 (past duration 12) → poll never fires.
     // With clamping:    loopEnd must be 12.
+    // anchor=11.0 so snapLoopIn returns exactly 11.0 for currentTime=11.0.
     act(() => {
       useDeckStore.getState().loadTrack('A', 'test-vid', {
         sourceType: 'youtube',
@@ -278,7 +304,7 @@ describe('deckStore', () => {
         duration: 12,
         thumbnailUrl: null,
       });
-      useDeckStore.getState().setBpm('A', 120);
+      useDeckStore.getState().setGrid('A', 120, 11.0);
       useDeckStore.getState().setCurrentTime('A', 11.0);
     });
     act(() => {
@@ -287,12 +313,13 @@ describe('deckStore', () => {
 
     const deckA = useDeckStore.getState().decks['A'];
     expect(deckA.loopActive).toBe(true);
-    expect(deckA.loopStart).toBe(11.0);
+    expect(deckA.loopStart).toBeCloseTo(11.0, 5);
     expect(deckA.loopEnd).toBe(12.0); // Clamped to duration
     expect(deckA.loopBeatCount).toBe(8);
   });
 
   it('activateLoopBeat does not clamp when the loop fits within the track duration', () => {
+    // anchor=10.0 so snapLoopIn returns exactly 10.0 for currentTime=10.0.
     act(() => {
       useDeckStore.getState().loadTrack('A', 'test-vid', {
         sourceType: 'youtube',
@@ -301,7 +328,7 @@ describe('deckStore', () => {
         duration: 30,
         thumbnailUrl: null,
       });
-      useDeckStore.getState().setBpm('A', 120);
+      useDeckStore.getState().setGrid('A', 120, 10.0);
       useDeckStore.getState().setCurrentTime('A', 10.0);
     });
     act(() => {
@@ -314,8 +341,9 @@ describe('deckStore', () => {
 
   it('activateLoopBeat does not clamp when duration is unknown (0)', () => {
     // When duration is 0 (not yet known), no clamping should occur.
+    // anchor=5.0 so snapLoopIn returns exactly 5.0 for currentTime=5.0.
     act(() => {
-      useDeckStore.getState().setBpm('A', 120);
+      useDeckStore.getState().setGrid('A', 120, 5.0);
       useDeckStore.getState().setCurrentTime('A', 5.0);
     });
     act(() => {

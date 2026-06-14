@@ -4,10 +4,14 @@
  * calculateSyncRate computes the pitch rate needed to match this deck's BPM
  * to the other deck's BPM, returning the closest discrete PITCH_RATES value.
  *
+ * exactSyncRate / phaseDelta provide continuous (hardware-accurate) sync math
+ * for the MP3 backend, which supports arbitrary playback rates.
+ *
  * These functions are pure (no side effects, no store dependency) so they
  * can be unit-tested without any React or Zustand context.
  */
 import { PITCH_RATES, type PitchRate } from '../constants/pitchRates';
+import { type BeatGrid, phase, secondsPerBeat } from './beatGrid';
 
 /**
  * Find the PITCH_RATES value closest to the given ratio.
@@ -58,4 +62,18 @@ export function calculateSyncRate(
 
   const ratio = otherBpm / thisBpm;
   return findClosestPitchRate(ratio, pitchRates);
+}
+
+/** Exact continuous rate to match this deck's tempo to the other deck's effective tempo. */
+export function exactSyncRate(thisBpm: number | null, otherBpm: number | null, otherPitch: number): number | null {
+  if (!thisBpm || !otherBpm) return null;
+  return (otherBpm * otherPitch) / thisBpm;
+}
+
+/** Seconds to add to thisPos so this deck's beat phase matches the other deck's (nearest, within ±half-beat). */
+export function phaseDelta(thisGrid: BeatGrid, otherGrid: BeatGrid, thisPos: number, otherPos: number): number {
+  const spb = secondsPerBeat(thisGrid.bpm);
+  const diff = (phase(otherGrid, otherPos, 'beat') - phase(thisGrid, thisPos, 'beat')) * spb;
+  // wrap into [-spb/2, spb/2]
+  return ((diff + spb / 2 + spb) % spb) - spb / 2;
 }

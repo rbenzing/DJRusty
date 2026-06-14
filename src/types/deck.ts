@@ -1,7 +1,9 @@
 import type { PitchRate } from '../constants/pitchRates';
 import type { TrackSourceType } from './playlist';
 import type { ColoredPeak } from '../utils/extractColoredPeaks';
+import type { TransportState } from '../utils/transport';
 export type { ColoredPeak };
+export type { TransportState };
 
 export type { PitchRate };
 
@@ -96,8 +98,12 @@ export interface DeckState {
   /** Current playback state, derived from YT.PlayerState events. */
   playbackState: PlaybackState;
 
-  /** Current playback rate. Must be one of the discrete PITCH_RATES values. */
-  pitchRate: PitchRate;
+  /**
+   * Current playback rate.
+   * MP3 backend supports any continuous positive number; YouTube backend snaps
+   * to discrete PITCH_RATES internally via setPlaybackRate().
+   */
+  pitchRate: number;
 
   /** User-defined BPM via tap-tempo, or null if not set. */
   bpm: number | null;
@@ -174,5 +180,29 @@ export interface DeckState {
    * immediately after the player issues the load command.
    */
   autoPlayOnLoad: boolean;
+
+  /**
+   * Beat-grid anchor: the position (seconds) of beat zero within the track.
+   * Null until a grid is set via setGrid or tap-tempo analysis.
+   */
+  anchor: number | null;
+
+  /**
+   * Whether the beat grid has been confirmed by the user or analysis.
+   * False until setGrid is called.
+   */
+  gridConfirmed: boolean;
+
+  /**
+   * The hardware CUE point position in seconds, or null if not set.
+   * Mirrors Pioneer CDJ cue behaviour: pressing CUE without a set cue sets this.
+   */
+  cuePoint: number | null;
+
+  /**
+   * Current transport state, following Pioneer CDJ conventions.
+   * Resets to 'CUED' on track load/clear.
+   */
+  transportState: TransportState;
 
 }

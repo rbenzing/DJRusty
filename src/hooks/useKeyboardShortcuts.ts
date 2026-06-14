@@ -18,7 +18,6 @@ import { useDeckStore } from '../store/deckStore';
 import { getActivePlayer } from '../services/playerRegistry';
 import { TapTempoCalculator } from '../utils/tapTempo';
 import { setHotCue as persistSetHotCue } from '../utils/hotCues';
-import { calculateJumpSeconds, clampTime } from '../utils/beatJump';
 
 /** Elements that should suppress all keyboard shortcuts (user is typing). */
 const FOCUSABLE_TAGS = new Set(['INPUT', 'TEXTAREA']);
@@ -32,20 +31,6 @@ export function useKeyboardShortcuts(): void {
   const tapTempoBRef = useRef(new TapTempoCalculator());
 
   useEffect(() => {
-    /**
-     * Perform a beat jump for the given deck in the given direction.
-     * Reads the deck's beatJumpSize and bpm at call time.
-     * No-op if bpm is null or no track is loaded.
-     */
-    function beatJump(deckId: 'A' | 'B', direction: 1 | -1): void {
-      const deck = useDeckStore.getState().decks[deckId];
-      if (deck.bpm === null || !deck.trackId) return;
-      const jumpSeconds = calculateJumpSeconds(deck.beatJumpSize, deck.bpm);
-      const newTime = deck.currentTime + direction * jumpSeconds;
-      const clamped = clampTime(newTime, deck.duration);
-      getActivePlayer(deckId, useDeckStore.getState().decks[deckId].sourceType)?.seekTo(clamped, true);
-    }
-
     function handleKeyDown(e: KeyboardEvent): void {
       // Guard: ignore shortcuts when the user is typing in a text field.
       const target = e.target as Element;
@@ -117,13 +102,13 @@ export function useKeyboardShortcuts(): void {
         // -----------------------------------------------------------------------
         case 'ArrowLeft': {
           e.preventDefault();
-          beatJump('A', -1);
+          useDeckStore.getState().beatJump('A', -1);
           break;
         }
 
         case 'ArrowRight': {
           e.preventDefault();
-          beatJump('A', 1);
+          useDeckStore.getState().beatJump('A', 1);
           break;
         }
 
@@ -131,12 +116,12 @@ export function useKeyboardShortcuts(): void {
         // Beat Jump — Deck B
         // -----------------------------------------------------------------------
         case ',': {
-          beatJump('B', -1);
+          useDeckStore.getState().beatJump('B', -1);
           break;
         }
 
         case '.': {
-          beatJump('B', 1);
+          useDeckStore.getState().beatJump('B', 1);
           break;
         }
 

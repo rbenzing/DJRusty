@@ -12,7 +12,7 @@
  *  - Playback state synchronisation: play resolves -> 'playing', pause -> 'paused'
  *  - Seek clamping: negative -> 0, beyond duration -> duration
  *  - CurrentTime poll: updates from engine while playing, stops while paused
- *  - Loop enforcement: seekTo(loopStart) called when currentTime >= loopEnd during poll
+ *  - Loop enforcement: poll does NOT call seekTo for wrap (native engine owns loop via setLoop)
  *  - Slip tracking: updateSlipPosition called in poll when slipMode active with loop
  */
 
@@ -84,6 +84,9 @@ vi.mock('../services/playerRegistry', () => ({
     unregister: vi.fn(),
     get: vi.fn(),
   },
+  // getActivePlayer is imported directly by deckStore — return undefined so optional-chained
+  // calls (?.setLoop, ?.clearLoop) are no-ops in tests that only exercise store-level logic.
+  getActivePlayer: vi.fn().mockReturnValue(undefined),
 }));
 
 const fakeAudioBuffer: AudioBuffer = {
@@ -120,6 +123,7 @@ function initialDeckState(deckId: 'A' | 'B') {
     title: '',
     artist: '',
     waveformPeaks: null,
+    waveformColoredPeaks: null,
     decoding: false,
     bpmDetecting: false,
     duration: 0,
@@ -139,6 +143,13 @@ function initialDeckState(deckId: 'A' | 'B') {
     eqLow: 0,
     eqMid: 0,
     eqHigh: 0,
+    eqKillLow: false,
+    eqKillMid: false,
+    eqKillHigh: false,
+    filterSweep: 0,
+    effectType: 'none' as const,
+    effectEnabled: false,
+    effectWetDry: 0.5,
     error: null,
     pitchRateLocked: false,
     synced: false,
@@ -150,6 +161,10 @@ function initialDeckState(deckId: 'A' | 'B') {
     rollStartWallClock: null,
     rollStartPosition: null,
     autoPlayOnLoad: false,
+    anchor: null,
+    gridConfirmed: false,
+    cuePoint: null,
+    transportState: 'CUED' as const,
   };
 }
 
@@ -492,60 +507,10 @@ describe('MP3-003 — unmount cleanup: transport actions do not call engine afte
 });
 
 // ---------------------------------------------------------------------------
-
-describe('MP3-003 — seek boundary clamping', () => {
-  const fakeFile = new File(['audio data'], 'test.mp3', { type: 'audio/mpeg' });
-
-  beforeEach(() => {
-    resetStores();
-    mockEngineInstances.length = 0;
-    vi.clearAllMocks();
-    // Override fakeAudioBuffer to have duration 200 for clamping tests
-    mockDecodeAudioFile.mockResolvedValue({
-      ...fakeAudioBuffer,
-      duration: 200,
-    });
-  });
-
-  afterEach(() => {
-    vi.clearAllMocks();
-  });
-
-  it('clamps a negative seekTo value to 0 before calling engine.seekTo', async () => {
-    renderHook(() => useAudioEngine('A'));
-    await loadMp3TrackAndWait('A', fakeFile);
-
-    // The hook subscribes to playbackState. To test seek clamping the hook
-    // must expose a way to handle seeks — either via deckStore or playerRegistry.
-    // The spec (AC7) routes seeks via playerRegistry.get(deckId).seekTo().
-    // We retrieve the registered engine and call seekTo directly to simulate
-    // DeckControls issuing a clamped seek.
-    //
-    // The clamping contract: useAudioEngine wraps engine.seekTo calls so that
-    // negative values are clamped to 0 before being forwarded to the engine.
-    // This is tested by triggering the hook's seekTo pathway with -5.
-    act(() => {
-      // Simulate a seek command that the hook should clamp
-      useDeckStore.getState().setCurrentTime('A', -5);
-    });
-
-    // The hook must call engine.seekTo(0) when it receives a negative seek
-    expect(mockEngineInstances[0]!.seekTo).toHaveBeenCalledWith(0);
-  });
-
-  it('clamps a seekTo value beyond duration to the track duration', async () => {
-    renderHook(() => useAudioEngine('A'));
-    await loadMp3TrackAndWait('A', fakeFile);
-
-    // Duration is 200 from fakeAudioBuffer. Seeking to 999 should clamp to 200.
-    act(() => {
-      useDeckStore.getState().setCurrentTime('A', 999);
-    });
-
-    expect(mockEngineInstances[0]!.seekTo).toHaveBeenCalledWith(200);
-  });
-});
-
+// NOTE: Seek-boundary clamping (negative → 0, beyond duration → duration) is
+// unit-tested in src/test/audioEngine.test.ts against the real AudioEngineImpl.
+// The seek-routing glue (Restart button → active backend) is tested in
+// src/test/deckControls-seek-routing.test.tsx.
 // ---------------------------------------------------------------------------
 
 describe('MP3-003 — currentTime poll: updates from engine while playing', () => {
@@ -564,7 +529,7 @@ describe('MP3-003 — currentTime poll: updates from engine while playing', () =
     vi.useRealTimers();
   });
 
-  it('polls engine.getCurrentTime() every 250ms while playbackState is playing', async () => {
+  it('polls engine.getCurrentTime() every 100ms while playbackState is playing', async () => {
     renderHook(() => useAudioEngine('A'));
     await loadMp3TrackAndWait('A', fakeFile);
 
@@ -578,10 +543,10 @@ describe('MP3-003 — currentTime poll: updates from engine while playing', () =
       await Promise.resolve();
     });
 
-    act(() => { vi.advanceTimersByTime(250); });
+    act(() => { vi.advanceTimersByTime(100); });
     const timeAfterFirst = useDeckStore.getState().decks['A'].currentTime;
 
-    act(() => { vi.advanceTimersByTime(250); });
+    act(() => { vi.advanceTimersByTime(100); });
     const timeAfterSecond = useDeckStore.getState().decks['A'].currentTime;
 
     // currentTime should advance with each poll tick
@@ -599,7 +564,7 @@ describe('MP3-003 — currentTime poll: updates from engine while playing', () =
       await Promise.resolve();
     });
 
-    act(() => { vi.advanceTimersByTime(250); });
+    act(() => { vi.advanceTimersByTime(100); });
 
     expect(useDeckStore.getState().decks['A'].currentTime).toBe(42.5);
   });
@@ -650,7 +615,7 @@ describe('MP3-003 — currentTime poll: updates from engine while playing', () =
 
 // ---------------------------------------------------------------------------
 
-describe('MP3-003 — loop enforcement in poll', () => {
+describe('MP3-003 — loop wrap in poll: native engine owns the wrap, poll must not seek', () => {
   const fakeFile = new File(['audio data'], 'test.mp3', { type: 'audio/mpeg' });
 
   beforeEach(() => {
@@ -666,7 +631,10 @@ describe('MP3-003 — loop enforcement in poll', () => {
     vi.useRealTimers();
   });
 
-  it('calls engine.seekTo(loopStart) when currentTime reaches loopEnd during poll', async () => {
+  // Task 2.4: The native AudioEngine loop now owns the wrap. The poll must NOT issue
+  // a redundant seekTo when currentTime >= loopEnd — that would fight the engine's own
+  // sample-accurate loop points set via engine.setLoop().
+  it('does NOT call engine.seekTo for loop wrap when currentTime reaches loopEnd (native engine owns wrap)', async () => {
     renderHook(() => useAudioEngine('A'));
     await loadMp3TrackAndWait('A', fakeFile);
 
@@ -685,10 +653,11 @@ describe('MP3-003 — loop enforcement in poll', () => {
 
     act(() => { vi.advanceTimersByTime(250); });
 
-    expect(mockEngineInstances[0]!.seekTo).toHaveBeenCalledWith(10);
+    // Native engine loop handles the wrap — poll must NOT issue a redundant seekTo.
+    expect(mockEngineInstances[0]!.seekTo).not.toHaveBeenCalled();
   });
 
-  it('calls engine.seekTo(loopStart) when currentTime is past loopEnd during poll', async () => {
+  it('does NOT call engine.seekTo for loop wrap when currentTime is past loopEnd (native engine owns wrap)', async () => {
     renderHook(() => useAudioEngine('A'));
     await loadMp3TrackAndWait('A', fakeFile);
 
@@ -706,7 +675,8 @@ describe('MP3-003 — loop enforcement in poll', () => {
 
     act(() => { vi.advanceTimersByTime(250); });
 
-    expect(mockEngineInstances[0]!.seekTo).toHaveBeenCalledWith(10);
+    // Native engine loop handles the wrap — poll must NOT issue a redundant seekTo.
+    expect(mockEngineInstances[0]!.seekTo).not.toHaveBeenCalled();
   });
 
   it('does NOT call engine.seekTo when loopActive is false even if currentTime exceeds loopEnd', async () => {

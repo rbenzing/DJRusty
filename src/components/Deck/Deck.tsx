@@ -36,6 +36,7 @@ import { LoopControls } from './LoopControls';
 import { SlipButton } from './SlipButton';
 import { PitchSlider } from './PitchSlider';
 import { TapTempo } from './TapTempo';
+import { GridControl } from './GridControl';
 import { VinylPlatter } from './VinylPlatter';
 import { WaveformDisplay } from './WaveformDisplay';
 import { FileImportZone } from '../FileImport/FileImportZone';
@@ -165,6 +166,9 @@ export function Deck({ deckId }: DeckProps) {
 
       {/* Tap BPM */}
       <TapTempo deckId={deckId} />
+
+      {/* Beat grid: tap downbeat + nudge */}
+      <GridControl deckId={deckId} />
 
       {/* Pitch slider */}
       <PitchSlider deckId={deckId} />

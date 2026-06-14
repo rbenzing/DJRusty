@@ -2,15 +2,15 @@
  * BeatJump.tsx — Beat jump controls for a single deck.
  *
  * Renders a row of beat-size selector buttons (1/2, 1, 2, 4, 8, 16) and
- * directional jump buttons (back / forward). Jumping seeks the player by
- * (selectedBeats / bpm) * 60 seconds, clamped to [0, duration].
+ * directional jump buttons (back / forward). Jumping uses the grid-snapped
+ * beatJump store action (snaps to nearest beat, moves N beats, clamps to
+ * [0, duration]).
  *
- * Buttons are disabled when BPM has not been set via tap-tempo or when
- * no track is loaded.
+ * Buttons are disabled when the beat grid has not been set or when no track
+ * is loaded.
  */
 import { useDeckStore, useDeckActions } from '../../store/deckStore';
-import { getActivePlayer } from '../../services/playerRegistry';
-import { BEAT_JUMP_SIZES, calculateJumpSeconds, clampTime } from '../../utils/beatJump';
+import { BEAT_JUMP_SIZES } from '../../utils/beatJump';
 import styles from './BeatJump.module.css';
 
 interface BeatJumpProps {
@@ -27,27 +27,23 @@ function getSizeLabel(size: number): string {
 
 export function BeatJump({ deckId }: BeatJumpProps) {
   const bpm = useDeckStore((s) => s.decks[deckId].bpm);
+  const anchor = useDeckStore((s) => s.decks[deckId].anchor);
   const beatJumpSize = useDeckStore((s) => s.decks[deckId].beatJumpSize);
   const trackId = useDeckStore((s) => s.decks[deckId].trackId);
   const playerReady = useDeckStore((s) => s.decks[deckId].playerReady);
-  const { setBeatJumpSize } = useDeckActions();
+  const { setBeatJumpSize, beatJump } = useDeckActions();
 
-  const isDisabled = !trackId || !bpm || bpm === 0 || !playerReady;
+  // Disabled when: no track, no BPM, or grid not confirmed (anchor not set)
+  const isDisabled = !trackId || !bpm || bpm === 0 || anchor === null || !playerReady;
 
   function handleBackJump() {
-    if (isDisabled || bpm === null || bpm === 0) return;
-    const { currentTime, duration, sourceType } = useDeckStore.getState().decks[deckId];
-    const jumpSec = calculateJumpSeconds(beatJumpSize, bpm);
-    const newTime = clampTime(currentTime - jumpSec, duration);
-    getActivePlayer(deckId, sourceType)?.seekTo(newTime, true);
+    if (isDisabled) return;
+    beatJump(deckId, -1);
   }
 
   function handleForwardJump() {
-    if (isDisabled || bpm === null || bpm === 0) return;
-    const { currentTime, duration, sourceType } = useDeckStore.getState().decks[deckId];
-    const jumpSec = calculateJumpSeconds(beatJumpSize, bpm);
-    const newTime = clampTime(currentTime + jumpSec, duration);
-    getActivePlayer(deckId, sourceType)?.seekTo(newTime, true);
+    if (isDisabled) return;
+    beatJump(deckId, 1);
   }
 
   return (

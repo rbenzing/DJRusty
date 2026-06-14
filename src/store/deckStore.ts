@@ -2,10 +2,13 @@ import { create } from 'zustand';
 import { useShallow } from 'zustand/react/shallow';
 import type { DeckState, PlaybackState } from '../types/deck';
 import type { TrackSourceType } from '../types/playlist';
-import { DEFAULT_PITCH_RATE, type PitchRate } from '../constants/pitchRates';
+import { DEFAULT_PITCH_RATE } from '../constants/pitchRates';
+import { exactSyncRate, phaseDelta, findClosestPitchRate } from '../utils/beatSync';
 import { getHotCues } from '../utils/hotCues';
-import { DEFAULT_BEAT_JUMP_SIZE } from '../utils/beatJump';
+import { DEFAULT_BEAT_JUMP_SIZE, gridJumpTarget } from '../utils/beatJump';
 import { getActivePlayer } from '../services/playerRegistry';
+import { snapLoopIn, loopOutFor } from '../utils/loopMath';
+import { transition, type TransportEvent } from '../utils/transport';
 
 /**
  * Initial state for a single deck.
@@ -56,6 +59,10 @@ function createInitialDeckState(deckId: 'A' | 'B'): DeckState {
     rollStartWallClock: null,
     rollStartPosition: null,
     autoPlayOnLoad: false,
+    anchor: null,
+    gridConfirmed: false,
+    cuePoint: null,
+    transportState: 'CUED',
   };
 }
 
@@ -122,8 +129,8 @@ interface DeckStoreActions {
   /** Update the current playback time (polled from IFrame API). */
   setCurrentTime: (deckId: 'A' | 'B', time: number) => void;
 
-  /** Set the pitch rate for the specified deck. */
-  setPitchRate: (deckId: 'A' | 'B', rate: PitchRate) => void;
+  /** Set the pitch rate for the specified deck. Accepts any positive number (MP3 supports continuous rates). */
+  setPitchRate: (deckId: 'A' | 'B', rate: number) => void;
 
   /** Set the BPM for the specified deck (from tap-tempo). */
   setBpm: (deckId: 'A' | 'B', bpm: number | null) => void;
@@ -194,6 +201,38 @@ interface DeckStoreActions {
 
   /** End a loop roll: seek to the computed target position and deactivate the loop. */
   endRoll: (deckId: 'A' | 'B') => void;
+
+  /** Set the beat grid: bpm, anchor position, and mark grid as confirmed. */
+  setGrid: (deckId: 'A' | 'B', bpm: number, anchor: number) => void;
+
+  /** Shift the beat-grid anchor by deltaSeconds. No-op if anchor is null. */
+  nudgeGrid: (deckId: 'A' | 'B', deltaSeconds: number) => void;
+
+  /** Set the hardware CUE point for the specified deck. */
+  setCuePoint: (deckId: 'A' | 'B', time: number) => void;
+
+  /**
+   * Dispatch a CDJ transport event through the transport state machine.
+   * Applies all resulting intents (play/pause/seek/setCue) to the deck and player,
+   * then sets transportState to the machine's nextState (wins over any interim state
+   * set by intent side-effects).
+   */
+  dispatchTransport: (deckId: 'A' | 'B', event: TransportEvent) => void;
+
+  /**
+   * Hardware-accurate SYNC: sets this deck's pitch to the exact continuous ratio
+   * needed to match the other deck's effective tempo, then performs a one-shot
+   * downbeat phase alignment seek. No-op if either deck lacks a beat grid.
+   * MP3 only — the exact rate is stored in pitchRate (a continuous number).
+   */
+  syncToDeck: (deckId: 'A' | 'B', otherId: 'A' | 'B') => void;
+
+  /**
+   * Grid-snapped beat jump: snap the playhead to the nearest beat, move N beats
+   * in the given direction, then seek the active player. No-op if bpm or anchor
+   * is not set (grid not confirmed).
+   */
+  beatJump: (deckId: 'A' | 'B', dir: 1 | -1) => void;
 }
 
 interface DeckStoreState {
@@ -263,6 +302,10 @@ export const useDeckStore = create<DeckStore>((set, get) => ({
       rollStartWallClock: null,
       rollStartPosition: null,
       autoPlayOnLoad: autoPlay,
+      anchor: null,
+      gridConfirmed: false,
+      cuePoint: null,
+      transportState: 'CUED',
     });
   },
 
@@ -312,7 +355,15 @@ export const useDeckStore = create<DeckStore>((set, get) => ({
   },
 
   setPlaybackState: (deckId, state) => {
-    updateDeck(set, deckId, { playbackState: state });
+    // Keep transportState in sync for externally-driven play/pause events
+    // (autoplay, track-end, YouTube state changes). Only map the two unambiguous
+    // cases; other playbackStates (unstarted/ended/buffering) leave transportState
+    // alone so the machine's last resolved state (e.g. CUED, PREVIEW) is preserved.
+    const transportUpdates: Partial<import('../types/deck').DeckState> =
+      state === 'playing' ? { transportState: 'PLAYING' }
+      : state === 'paused' ? { transportState: 'PAUSED' }
+      : {};
+    updateDeck(set, deckId, { playbackState: state, ...transportUpdates });
   },
 
   setCurrentTime: (deckId, time) => {
@@ -344,19 +395,15 @@ export const useDeckStore = create<DeckStore>((set, get) => ({
 
   activateLoopBeat: (deckId, beatCount) => {
     const deck = get().decks[deckId];
-    if (!deck.bpm) return; // loop buttons are disabled when BPM is not set
-    const loopLengthSeconds = (beatCount / deck.bpm) * 60;
-    const loopStart = deck.currentTime;
+    if (!deck.bpm || deck.anchor === null) return; // needs a confirmed grid (bpm + anchor)
+    const grid = { bpm: deck.bpm, anchor: deck.anchor };
+    const loopStart = snapLoopIn(grid, deck.currentTime);
+    const rawEnd = loopOutFor(loopStart, beatCount, deck.bpm);
     // Clamp loopEnd to the track duration so the 250ms poll can always trigger.
     // When duration is unknown (0), no clamping — the track may still be loading.
-    const rawLoopEnd = loopStart + loopLengthSeconds;
-    const loopEnd = deck.duration > 0 ? Math.min(rawLoopEnd, deck.duration) : rawLoopEnd;
-    updateDeck(set, deckId, {
-      loopActive: true,
-      loopStart,
-      loopEnd,
-      loopBeatCount: beatCount,
-    });
+    const loopEnd = deck.duration > 0 ? Math.min(rawEnd, deck.duration) : rawEnd;
+    getActivePlayer(deckId, deck.sourceType)?.setLoop?.(loopStart, loopEnd);
+    updateDeck(set, deckId, { loopActive: true, loopStart, loopEnd, loopBeatCount: beatCount });
   },
 
   deactivateLoop: (deckId) => {
@@ -366,6 +413,8 @@ export const useDeckStore = create<DeckStore>((set, get) => ({
     if (deck.slipMode && deck.slipPosition !== null) {
       getActivePlayer(deckId, deck.sourceType)?.seekTo(deck.slipPosition, true);
     }
+    // Clear the native engine loop (no-op via optional chaining on YouTube).
+    getActivePlayer(deckId, deck.sourceType)?.clearLoop?.();
     updateDeck(set, deckId, {
       loopActive: false,
       loopStart: null,
@@ -448,6 +497,10 @@ export const useDeckStore = create<DeckStore>((set, get) => ({
       rollStartWallClock: null,
       rollStartPosition: null,
       autoPlayOnLoad: false,
+      anchor: null,
+      gridConfirmed: false,
+      cuePoint: null,
+      transportState: 'CUED',
     });
   },
 
@@ -506,10 +559,14 @@ export const useDeckStore = create<DeckStore>((set, get) => ({
   startRoll: (deckId, beatCount) => {
     const deck = get().decks[deckId];
     if (!deck.bpm) return; // roll requires BPM just like activateLoopBeat
-    const loopLengthSeconds = (beatCount / deck.bpm) * 60;
-    const loopStart = deck.currentTime;
-    const rawLoopEnd = loopStart + loopLengthSeconds;
+    // Snap in-point to the grid when a confirmed grid is available; otherwise fall back to currentTime.
+    const loopStart = deck.anchor !== null
+      ? snapLoopIn({ bpm: deck.bpm, anchor: deck.anchor }, deck.currentTime)
+      : deck.currentTime;
+    const rawLoopEnd = loopOutFor(loopStart, beatCount, deck.bpm);
     const loopEnd = deck.duration > 0 ? Math.min(rawLoopEnd, deck.duration) : rawLoopEnd;
+    // Arm the native engine loop (no-op via optional chaining on YouTube).
+    getActivePlayer(deckId, deck.sourceType)?.setLoop?.(loopStart, loopEnd);
     updateDeck(set, deckId, {
       rollStartWallClock: Date.now(),
       rollStartPosition: deck.currentTime,
@@ -534,6 +591,8 @@ export const useDeckStore = create<DeckStore>((set, get) => ({
     } else {
       seekTarget = Math.max(0, seekTarget);
     }
+    // Clear the native engine loop before seeking back (no-op via optional chaining on YouTube).
+    getActivePlayer(deckId, deck.sourceType)?.clearLoop?.();
     getActivePlayer(deckId, deck.sourceType)?.seekTo(seekTarget, true);
     updateDeck(set, deckId, {
       rollStartWallClock: null,
@@ -546,6 +605,63 @@ export const useDeckStore = create<DeckStore>((set, get) => ({
       slipStartTime: null,
       slipStartPosition: null,
     });
+  },
+
+  setGrid: (deckId, bpm, anchor) => updateDeck(set, deckId, { bpm, anchor, gridConfirmed: true }),
+
+  nudgeGrid: (deckId, deltaSeconds) => {
+    const deck = get().decks[deckId];
+    if (deck.anchor === null) return;
+    updateDeck(set, deckId, { anchor: deck.anchor + deltaSeconds, synced: false });
+  },
+
+  setCuePoint: (deckId, time) => updateDeck(set, deckId, { cuePoint: time }),
+
+  syncToDeck: (deckId, otherId) => {
+    const me = get().decks[deckId], other = get().decks[otherId];
+    if (!me.bpm || !other.bpm || me.anchor === null || other.anchor === null) return;
+    // Fix 5: exactSyncRate can return null — guard before the youtube snap.
+    let rate = exactSyncRate(me.bpm, other.bpm, other.pitchRate);
+    if (rate === null) return;
+    // Fix 3: YouTube only supports discrete rates; snap so store and player agree.
+    if (me.sourceType === 'youtube') rate = findClosestPitchRate(rate);
+    get().setPitchRate(deckId, rate);
+    const player = getActivePlayer(deckId, me.sourceType);
+    const myPos = player?.getCurrentTime() ?? me.currentTime;
+    // Fix 6: inline single-use otherPlayer binding.
+    const otherPos = getActivePlayer(otherId, other.sourceType)?.getCurrentTime() ?? other.currentTime;
+    const delta = phaseDelta({ bpm: me.bpm, anchor: me.anchor }, { bpm: other.bpm, anchor: other.anchor }, myPos, otherPos);
+    // Fix 1: clamp seek target to [0, duration] so phaseDelta can't push below 0.
+    const target = Math.max(0, Math.min(myPos + delta, me.duration || (myPos + delta)));
+    // Fix 2: only mark synced when the player exists and the seek actually dispatched.
+    if (player) {
+      player.seekTo(target, true);
+      updateDeck(set, deckId, { synced: true });
+    }
+  },
+
+  dispatchTransport: (deckId, event) => {
+    const deck = get().decks[deckId];
+    const player = getActivePlayer(deckId, deck.sourceType);
+    const pos = player?.getCurrentTime() ?? deck.currentTime;
+    const r = transition(deck.transportState, event, { position: pos, cuePoint: deck.cuePoint });
+    for (const intent of r.intents) {
+      if (intent.kind === 'play') get().setPlaybackState(deckId, 'playing');
+      else if (intent.kind === 'pause') get().setPlaybackState(deckId, 'paused');
+      else if (intent.kind === 'seek') player?.seekTo(intent.to, true);
+      else if (intent.kind === 'setCue') updateDeck(set, deckId, { cuePoint: intent.at });
+    }
+    // Set the resolved transport state LAST so it wins over any state implied by
+    // setPlaybackState in the intent loop above (e.g. CUED beats PAUSED).
+    updateDeck(set, deckId, { transportState: r.nextState, cuePoint: r.cuePoint });
+  },
+
+  beatJump: (deckId, dir) => {
+    const deck = get().decks[deckId];
+    if (!deck.bpm || deck.anchor === null) return;
+    const grid = { bpm: deck.bpm, anchor: deck.anchor };
+    const target = gridJumpTarget(grid, deck.currentTime, deck.beatJumpSize, dir, deck.duration);
+    getActivePlayer(deckId, deck.sourceType)?.seekTo(target, true);
   },
 }));
 
@@ -572,6 +688,8 @@ export function useDeckActions() {
       activateLoop: s.activateLoop, activateLoopBeat: s.activateLoopBeat, deactivateLoop: s.deactivateLoop,
       setBeatJumpSize: s.setBeatJumpSize, setSlipMode: s.setSlipMode, setSynced: s.setSynced,
       setRollMode: s.setRollMode, startRoll: s.startRoll, endRoll: s.endRoll,
+      setGrid: s.setGrid, nudgeGrid: s.nudgeGrid,
+      dispatchTransport: s.dispatchTransport, syncToDeck: s.syncToDeck, beatJump: s.beatJump,
     })),
   );
 }

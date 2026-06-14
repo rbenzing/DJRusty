@@ -16,6 +16,7 @@ import { renderHook, act } from '@testing-library/react';
 import { useDeckStore } from '../store/deckStore';
 import { playerRegistry } from '../services/playerRegistry';
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
+import type { DeckState } from '../types/deck';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -52,86 +53,66 @@ function makeMockPlayer(): YT.Player {
   } as unknown as YT.Player;
 }
 
+/** Build a full deck reset object with all required DeckState fields. */
+function makeDeck(deckId: 'A' | 'B'): DeckState {
+  return {
+    deckId,
+    trackId: null,
+    sourceType: null,
+    title: '',
+    artist: '',
+    waveformPeaks: null,
+    waveformColoredPeaks: null,
+    decoding: false,
+    bpmDetecting: false,
+    duration: 0,
+    currentTime: 0,
+    thumbnailUrl: null,
+    playbackState: 'unstarted',
+    pitchRate: 1,
+    bpm: null,
+    volume: 80,
+    loopActive: false,
+    loopStart: null,
+    loopEnd: null,
+    loopBeatCount: null,
+    beatJumpSize: 4,
+    playerReady: false,
+    hotCues: {},
+    eqLow: 0,
+    eqMid: 0,
+    eqHigh: 0,
+    eqKillLow: false,
+    eqKillMid: false,
+    eqKillHigh: false,
+    filterSweep: 0,
+    effectType: 'none',
+    effectEnabled: false,
+    effectWetDry: 0.5,
+    error: null,
+    pitchRateLocked: false,
+    synced: false,
+    slipMode: false,
+    slipPosition: null,
+    slipStartTime: null,
+    slipStartPosition: null,
+    rollMode: false,
+    rollStartWallClock: null,
+    rollStartPosition: null,
+    autoPlayOnLoad: false,
+    anchor: null,
+    gridConfirmed: false,
+    cuePoint: null,
+    transportState: 'CUED',
+  };
+}
+
 /** Reset both decks to initial state via setState. */
 function resetDecks(): void {
   useDeckStore.setState({
     decks: {
-      A: {
-        deckId: 'A',
-        trackId: null,
-        sourceType: null,
-        title: '',
-        artist: '',
-        waveformPeaks: null,
-        decoding: false,
-        bpmDetecting: false,
-        duration: 0,
-        currentTime: 0,
-        thumbnailUrl: null,
-        playbackState: 'unstarted',
-        pitchRate: 1,
-        bpm: null,
-        volume: 80,
-        loopActive: false,
-        loopStart: null,
-        loopEnd: null,
-        loopBeatCount: null,
-        beatJumpSize: 4,
-        playerReady: false,
-        hotCues: {},
-        eqLow: 0,
-        eqMid: 0,
-        eqHigh: 0,
-        error: null,
-        pitchRateLocked: false,
-        synced: false,
-        slipMode: false,
-        slipPosition: null,
-        slipStartTime: null,
-        slipStartPosition: null,
-        rollMode: false,
-        rollStartWallClock: null,
-        rollStartPosition: null,
-        autoPlayOnLoad: false,
-      },
-      B: {
-        deckId: 'B',
-        trackId: null,
-        sourceType: null,
-        title: '',
-        artist: '',
-        waveformPeaks: null,
-        decoding: false,
-        bpmDetecting: false,
-        duration: 0,
-        currentTime: 0,
-        thumbnailUrl: null,
-        playbackState: 'unstarted',
-        pitchRate: 1,
-        bpm: null,
-        volume: 80,
-        loopActive: false,
-        loopStart: null,
-        loopEnd: null,
-        loopBeatCount: null,
-        beatJumpSize: 4,
-        playerReady: false,
-        hotCues: {},
-        eqLow: 0,
-        eqMid: 0,
-        eqHigh: 0,
-        error: null,
-        pitchRateLocked: false,
-        synced: false,
-        slipMode: false,
-        slipPosition: null,
-        slipStartTime: null,
-        slipStartPosition: null,
-        rollMode: false,
-        rollStartWallClock: null,
-        rollStartPosition: null,
-        autoPlayOnLoad: false,
-      },
+      A: makeDeck('A'),
+      B: makeDeck('B'),
     },
   });
 }
@@ -358,19 +339,23 @@ describe('useKeyboardShortcuts', () => {
           duration: 300,
           thumbnailUrl: null,
         });
+        // Set a confirmed beat grid: bpm=120 (spb=0.5s), anchor=0.
+        // With anchor=0, beat positions are 0, 0.5, 1.0, 1.5, ..., 60.0, 60.5, ...
+        // currentTime=60.0 is exactly on a beat, so nearestBeat snaps to 60.0 (no-op).
+        // ±4 beats at 120bpm = ±2s, giving 58.0 / 62.0 — same as the old relative math.
+        useDeckStore.getState().setGrid('A', 120, 0);
         useDeckStore.getState().setCurrentTime('A', 60.0);
-        useDeckStore.getState().setBpm('A', 120);
       });
     });
 
-    it('ArrowLeft triggers beat jump backward on Deck A', () => {
-      // (4 / 120) * 60 = 2 seconds backward; 60 - 2 = 58
+    it('ArrowLeft triggers grid-snapped beat jump backward on Deck A', () => {
+      // nearestBeat(60.0)=60.0; backward 4 beats (2s) = 58.0
       act(() => { pressKey('ArrowLeft'); });
       expect(mockPlayerA.seekTo).toHaveBeenCalledWith(58.0, true);
     });
 
-    it('ArrowRight triggers beat jump forward on Deck A', () => {
-      // 60 + 2 = 62
+    it('ArrowRight triggers grid-snapped beat jump forward on Deck A', () => {
+      // nearestBeat(60.0)=60.0; forward 4 beats (2s) = 62.0
       act(() => { pressKey('ArrowRight'); });
       expect(mockPlayerA.seekTo).toHaveBeenCalledWith(62.0, true);
     });
@@ -385,8 +370,9 @@ describe('useKeyboardShortcuts', () => {
       expect(event.defaultPrevented).toBe(true);
     });
 
-    it('beat jump is no-op when BPM is null', () => {
+    it('beat jump is no-op when grid is not set (bpm null, anchor null)', () => {
       act(() => {
+        // clearTrack resets bpm and anchor to null
         useDeckStore.getState().setBpm('A', null);
       });
       act(() => { pressKey('ArrowLeft'); });
@@ -395,18 +381,19 @@ describe('useKeyboardShortcuts', () => {
 
     it('beat jump clamps to 0 when result would be negative', () => {
       act(() => {
+        // currentTime=1.0 is on a beat (anchor=0, spb=0.5, beatIndex=2 → exact)
+        // nearestBeat(1.0)=1.0; backward 4 beats (2s) = -1.0, clamped to 0
         useDeckStore.getState().setCurrentTime('A', 1.0);
       });
-      // 1.0 - 2.0 = -1.0, clamped to 0
       act(() => { pressKey('ArrowLeft'); });
       expect(mockPlayerA.seekTo).toHaveBeenCalledWith(0, true);
     });
 
     it('beat jump clamps to duration when result would exceed track length', () => {
       act(() => {
+        // currentTime=299.0 is on a beat (beatIndex=598 exact); forward 4 beats (2s) = 301.0, clamped to 300
         useDeckStore.getState().setCurrentTime('A', 299.0);
       });
-      // 299.0 + 2.0 = 301.0, clamped to 300 (duration)
       act(() => { pressKey('ArrowRight'); });
       expect(mockPlayerA.seekTo).toHaveBeenCalledWith(300, true);
     });

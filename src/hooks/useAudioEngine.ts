@@ -12,6 +12,7 @@ import { useDeckStore } from '../store/deckStore';
 import { usePlaylistStore } from '../store/playlistStore';
 import { extractWaveformPeaks } from '../utils/extractWaveformPeaks';
 import { extractColoredPeaks } from '../utils/extractColoredPeaks';
+import { proposeGrid } from '../utils/beatGrid';
 
 const WAVEFORM_PEAKS = 1000;
 
@@ -19,27 +20,23 @@ export function useAudioEngine(deckId: 'A' | 'B'): void {
   const engineRef = useRef<AudioEngineImpl | null>(null);
   const isMountedRef = useRef(true);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  // Prevents the poll's own setCurrentTime call from re-triggering the seek subscription
-  const skipSeekRef = useRef(false);
   // Prevents autoPlay's setPlaybackState('playing') from triggering a second engine.play()
   const suppressTransportRef = useRef(false);
 
-  /** Start the 250 ms currentTime poll. Idempotent — clears any existing poll first. */
+  /** Start the 100 ms coarse logic poll. Idempotent — clears any existing poll first. */
   function startPoll(): void {
     if (pollRef.current) clearInterval(pollRef.current);
     pollRef.current = setInterval(() => {
       if (!engineRef.current || !isMountedRef.current) return;
       const time = engineRef.current.getCurrentTime();
-      skipSeekRef.current = true;
       useDeckStore.getState().setCurrentTime(deckId, time);
+      // Loop wrap is handled sample-accurately by the native engine loop points
+      // (set via engine.setLoop in Task 2.2/2.3). The poll must not fight that.
       const deck = useDeckStore.getState().decks[deckId];
-      if (deck.loopActive && deck.loopEnd !== null && time >= deck.loopEnd) {
-        engineRef.current.seekTo(deck.loopStart ?? 0);
-      }
       if (deck.slipMode && deck.slipStartTime !== null && deck.loopActive) {
         useDeckStore.getState().updateSlipPosition(deckId);
       }
-    }, 250);
+    }, 100);
   }
 
   // ── 1. Create / Destroy ───────────────────────────────────────────────────
@@ -156,23 +153,6 @@ export function useAudioEngine(deckId: 'A' | 'B'): void {
     return unsubscribe;
     // startPoll is a stable local closure — safe to omit.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [deckId]);
-
-  // ── 4. Seek (external setCurrentTime → engine.seekTo) ────────────────────
-  useEffect(() => {
-    let prevTime = useDeckStore.getState().decks[deckId].currentTime;
-
-    const unsubscribe = useDeckStore.subscribe((state) => {
-      const { currentTime, sourceType, playerReady, duration } = state.decks[deckId];
-      if (currentTime === prevTime) return;
-      prevTime = currentTime;
-      // Skip updates that originated from the poll itself
-      if (skipSeekRef.current) { skipSeekRef.current = false; return; }
-      if (sourceType !== 'mp3' || !playerReady || !engineRef.current) return;
-      engineRef.current.seekTo(Math.max(0, Math.min(currentTime, duration)));
-    });
-
-    return unsubscribe;
   }, [deckId]);
 
   // ── 5. Volume ─────────────────────────────────────────────────────────────
@@ -414,7 +394,11 @@ function launchBpmWorker(
   worker.onmessage = (e: MessageEvent<{ bpm: number }>) => {
     worker.terminate();
     if (!isMountedRef.current) return;
-    useDeckStore.getState().setBpm(deckId, e.data.bpm);
+    const { bpm: dbpm, anchor } = proposeGrid(e.data.bpm);
+    useDeckStore.getState().setBpm(deckId, dbpm);
+    useDeckStore.setState((s) => ({
+      decks: { ...s.decks, [deckId]: { ...s.decks[deckId], anchor, gridConfirmed: false } },
+    }));
     useDeckStore.getState().setBpmDetecting(deckId, false);
   };
 
