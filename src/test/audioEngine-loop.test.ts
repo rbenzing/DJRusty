@@ -177,3 +177,66 @@ describe('AudioEngineImpl loop points', () => {
     expect(lastSourceNode.loopEnd).toBe(3);
   });
 });
+
+describe('AudioEngineImpl — playing state across seek-restart (ghost-player regression)', () => {
+  let engine: AudioEngineImpl;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockContext.currentTime = 0;
+    setupConstructorMocks();
+    engine = new AudioEngineImpl();
+  });
+
+  afterEach(() => engine.destroy());
+
+  it('a superseded source ending does NOT clobber the live playing state, and pause() still stops it', async () => {
+    engine.loadBuffer({ duration: 120 } as AudioBuffer);
+
+    await engine.play(0);
+    const sourceA = lastSourceNode; // source from the first play()
+
+    // Seek while playing — what CUE / loops / beat-jump / SYNC all do — re-triggers
+    // play() internally, creating a NEW source B and stopping source A.
+    engine.seekTo(10);
+    await new Promise((r) => setTimeout(r, 0)); // let the async play() settle
+    const sourceB = lastSourceNode;
+    expect(sourceB).not.toBe(sourceA);
+
+    // The browser now delivers the OLD (superseded) source's ended event, asynchronously.
+    sourceA.onended?.();
+
+    // The engine must still know it is playing (source B is live) — else it's a ghost.
+    expect(engine.isPlaying()).toBe(true);
+
+    // pause() must actually stop the live source.
+    engine.pause();
+    expect(engine.isPlaying()).toBe(false);
+    expect(sourceB.stop).toHaveBeenCalled();
+  });
+
+  it('natural end of the current source fires onEnded and clears the playing state', async () => {
+    engine.loadBuffer({ duration: 120 } as AudioBuffer);
+    const onEnded = vi.fn();
+    engine.onEnded(onEnded);
+
+    await engine.play(0);
+    const source = lastSourceNode;
+
+    // The current source reaches its natural end (no intervening seek/pause/stop).
+    source.onended?.();
+
+    expect(onEnded).toHaveBeenCalledTimes(1);
+    expect(engine.isPlaying()).toBe(false);
+  });
+
+  it('pause() clears the playing state deterministically (not via the source onended)', async () => {
+    engine.loadBuffer({ duration: 120 } as AudioBuffer);
+    await engine.play(0);
+    expect(engine.isPlaying()).toBe(true);
+
+    engine.pause();
+    // isPlaying must be false immediately — without relying on the mock to fire onended.
+    expect(engine.isPlaying()).toBe(false);
+  });
+});
