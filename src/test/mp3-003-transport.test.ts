@@ -12,7 +12,7 @@
  *  - Playback state synchronisation: play resolves -> 'playing', pause -> 'paused'
  *  - Seek clamping: negative -> 0, beyond duration -> duration
  *  - CurrentTime poll: updates from engine while playing, stops while paused
- *  - Loop enforcement: seekTo(loopStart) called when currentTime >= loopEnd during poll
+ *  - Loop enforcement: poll does NOT call seekTo for wrap (native engine owns loop via setLoop)
  *  - Slip tracking: updateSlipPosition called in poll when slipMode active with loop
  */
 
@@ -615,7 +615,7 @@ describe('MP3-003 — currentTime poll: updates from engine while playing', () =
 
 // ---------------------------------------------------------------------------
 
-describe('MP3-003 — loop enforcement in poll', () => {
+describe('MP3-003 — loop wrap in poll: native engine owns the wrap, poll must not seek', () => {
   const fakeFile = new File(['audio data'], 'test.mp3', { type: 'audio/mpeg' });
 
   beforeEach(() => {
@@ -631,7 +631,10 @@ describe('MP3-003 — loop enforcement in poll', () => {
     vi.useRealTimers();
   });
 
-  it('calls engine.seekTo(loopStart) when currentTime reaches loopEnd during poll', async () => {
+  // Task 2.4: The native AudioEngine loop now owns the wrap. The poll must NOT issue
+  // a redundant seekTo when currentTime >= loopEnd — that would fight the engine's own
+  // sample-accurate loop points set via engine.setLoop().
+  it('does NOT call engine.seekTo for loop wrap when currentTime reaches loopEnd (native engine owns wrap)', async () => {
     renderHook(() => useAudioEngine('A'));
     await loadMp3TrackAndWait('A', fakeFile);
 
@@ -650,10 +653,11 @@ describe('MP3-003 — loop enforcement in poll', () => {
 
     act(() => { vi.advanceTimersByTime(250); });
 
-    expect(mockEngineInstances[0]!.seekTo).toHaveBeenCalledWith(10);
+    // Native engine loop handles the wrap — poll must NOT issue a redundant seekTo.
+    expect(mockEngineInstances[0]!.seekTo).not.toHaveBeenCalled();
   });
 
-  it('calls engine.seekTo(loopStart) when currentTime is past loopEnd during poll', async () => {
+  it('does NOT call engine.seekTo for loop wrap when currentTime is past loopEnd (native engine owns wrap)', async () => {
     renderHook(() => useAudioEngine('A'));
     await loadMp3TrackAndWait('A', fakeFile);
 
@@ -671,7 +675,8 @@ describe('MP3-003 — loop enforcement in poll', () => {
 
     act(() => { vi.advanceTimersByTime(250); });
 
-    expect(mockEngineInstances[0]!.seekTo).toHaveBeenCalledWith(10);
+    // Native engine loop handles the wrap — poll must NOT issue a redundant seekTo.
+    expect(mockEngineInstances[0]!.seekTo).not.toHaveBeenCalled();
   });
 
   it('does NOT call engine.seekTo when loopActive is false even if currentTime exceeds loopEnd', async () => {

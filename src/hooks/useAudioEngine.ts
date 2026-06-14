@@ -30,10 +30,9 @@ export function useAudioEngine(deckId: 'A' | 'B'): void {
       if (!engineRef.current || !isMountedRef.current) return;
       const time = engineRef.current.getCurrentTime();
       useDeckStore.getState().setCurrentTime(deckId, time);
+      // Loop wrap is handled sample-accurately by the native engine loop points
+      // (set via engine.setLoop in Task 2.2/2.3). The poll must not fight that.
       const deck = useDeckStore.getState().decks[deckId];
-      if (deck.loopActive && deck.loopEnd !== null && time >= deck.loopEnd) {
-        engineRef.current.seekTo(deck.loopStart ?? 0);
-      }
       if (deck.slipMode && deck.slipStartTime !== null && deck.loopActive) {
         useDeckStore.getState().updateSlipPosition(deckId);
       }
