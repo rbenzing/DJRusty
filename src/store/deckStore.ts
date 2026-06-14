@@ -7,6 +7,7 @@ import { getHotCues } from '../utils/hotCues';
 import { DEFAULT_BEAT_JUMP_SIZE } from '../utils/beatJump';
 import { getActivePlayer } from '../services/playerRegistry';
 import { snapLoopIn, loopOutFor } from '../utils/loopMath';
+import { transition, type TransportEvent } from '../utils/transport';
 
 /**
  * Initial state for a single deck.
@@ -208,6 +209,14 @@ interface DeckStoreActions {
 
   /** Set the hardware CUE point for the specified deck. */
   setCuePoint: (deckId: 'A' | 'B', time: number) => void;
+
+  /**
+   * Dispatch a CDJ transport event through the transport state machine.
+   * Applies all resulting intents (play/pause/seek/setCue) to the deck and player,
+   * then sets transportState to the machine's nextState (wins over any interim state
+   * set by intent side-effects).
+   */
+  dispatchTransport: (deckId: 'A' | 'B', event: TransportEvent) => void;
 }
 
 interface DeckStoreState {
@@ -330,7 +339,15 @@ export const useDeckStore = create<DeckStore>((set, get) => ({
   },
 
   setPlaybackState: (deckId, state) => {
-    updateDeck(set, deckId, { playbackState: state });
+    // Keep transportState in sync for externally-driven play/pause events
+    // (autoplay, track-end, YouTube state changes). Only map the two unambiguous
+    // cases; other playbackStates (unstarted/ended/buffering) leave transportState
+    // alone so the machine's last resolved state (e.g. CUED, PREVIEW) is preserved.
+    const transportUpdates: Partial<import('../types/deck').DeckState> =
+      state === 'playing' ? { transportState: 'PLAYING' }
+      : state === 'paused' ? { transportState: 'PAUSED' }
+      : {};
+    updateDeck(set, deckId, { playbackState: state, ...transportUpdates });
   },
 
   setCurrentTime: (deckId, time) => {
@@ -583,6 +600,22 @@ export const useDeckStore = create<DeckStore>((set, get) => ({
   },
 
   setCuePoint: (deckId, time) => updateDeck(set, deckId, { cuePoint: time }),
+
+  dispatchTransport: (deckId, event) => {
+    const deck = get().decks[deckId];
+    const player = getActivePlayer(deckId, deck.sourceType);
+    const pos = player?.getCurrentTime() ?? deck.currentTime;
+    const r = transition(deck.transportState, event, { position: pos, cuePoint: deck.cuePoint });
+    for (const intent of r.intents) {
+      if (intent.kind === 'play') get().setPlaybackState(deckId, 'playing');
+      else if (intent.kind === 'pause') get().setPlaybackState(deckId, 'paused');
+      else if (intent.kind === 'seek') player?.seekTo(intent.to, true);
+      else if (intent.kind === 'setCue') updateDeck(set, deckId, { cuePoint: intent.at });
+    }
+    // Set the resolved transport state LAST so it wins over any state implied by
+    // setPlaybackState in the intent loop above (e.g. CUED beats PAUSED).
+    updateDeck(set, deckId, { transportState: r.nextState, cuePoint: r.cuePoint });
+  },
 }));
 
 /**
