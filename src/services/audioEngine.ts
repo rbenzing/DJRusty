@@ -430,6 +430,7 @@ export class AudioEngineImpl implements AudioEngine {
   }
 
   destroy(): void {
+    this.isPlayingFlag = false;
     this.stopSource();
     for (const node of this.effectNodes) {
       try { node.disconnect(); } catch { /* ok */ }
@@ -442,6 +443,8 @@ export class AudioEngineImpl implements AudioEngine {
     ].forEach((n) => { try { n.disconnect(); } catch { /* ok */ } });
   }
 
+  /** Stop & detach the current source node only. Playing state is owned by the callers
+   *  (play sets it true; pause/stop/destroy set it false) — stopSource must not touch it. */
   private stopSource(): void {
     if (this.sourceNode) {
       try {
@@ -452,6 +455,5 @@ export class AudioEngineImpl implements AudioEngine {
       this.sourceNode.disconnect();
       this.sourceNode = null;
     }
-    this.isPlayingFlag = false;
   }
 }
