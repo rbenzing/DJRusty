@@ -58,6 +58,15 @@ export interface AudioEngine extends DeckPlayer {
   /** Check if audio is currently playing. */
   isPlaying(): boolean;
 
+  /** Arm native sample-accurate looping between startSec and endSec. No-op if end <= start. */
+  setLoop(startSec: number, endSec: number): void;
+
+  /** Disarm looping (the current source node will no longer loop). */
+  clearLoop(): void;
+
+  /** Returns true if a loop is currently armed. */
+  isLooping(): boolean;
+
   /** Register a callback for when playback naturally ends. */
   onEnded(callback: () => void): void;
 
@@ -98,6 +107,9 @@ export class AudioEngineImpl implements AudioEngine {
   private playbackRate = 1.0;
   private generation = 0; // incremented on every intentional stop; onended ignores stale generations
   private endedCallback: (() => void) | null = null;
+  // Loop state — null means no loop armed
+  private loopStart: number | null = null;
+  private loopEnd: number | null = null;
 
   constructor() {
     this.context = getAudioContext();
@@ -184,6 +196,13 @@ export class AudioEngineImpl implements AudioEngine {
       }
     };
 
+    // Re-apply an active loop to the newly-created source node
+    if (this.loopStart !== null && this.loopEnd !== null) {
+      this.sourceNode.loopStart = this.loopStart;
+      this.sourceNode.loopEnd = this.loopEnd;
+      this.sourceNode.loop = true;
+    }
+
     this.sourceNode.start(0, startOffset);
     this.startedAt = this.context.currentTime;
     this.isPlayingFlag = true;
@@ -206,24 +225,64 @@ export class AudioEngineImpl implements AudioEngine {
     // Clamp to valid range
     const clampedSeconds = Math.max(0, Math.min(seconds, this.getDuration()));
 
+    // When a loop is armed, trap the seek inside the loop window
+    let target = clampedSeconds;
+    if (this.loopStart !== null && this.loopEnd !== null) {
+      target = Math.max(this.loopStart, Math.min(target, this.loopEnd));
+    }
+
     if (this.isPlayingFlag) {
       // Seek while playing: stop current source and start new one
-      this.seekOffset = clampedSeconds;
-      void this.play(clampedSeconds).catch((err) => {
+      this.seekOffset = target;
+      void this.play(target).catch((err) => {
         console.error('[audioEngine] seek-restart play() failed:', err);
       });
     } else {
       // Seek while paused: just update offset
-      this.seekOffset = clampedSeconds;
+      this.seekOffset = target;
     }
   }
 
   getCurrentTime(): number {
-    if (!this.isPlayingFlag) {
-      return this.seekOffset;
+    const base = this.isPlayingFlag
+      ? this.seekOffset + (this.context.currentTime - this.startedAt) * this.playbackRate
+      : this.seekOffset;
+
+    if (this.loopStart !== null && this.loopEnd !== null && base >= this.loopStart) {
+      const len = this.loopEnd - this.loopStart;
+      return this.loopStart + ((base - this.loopStart) % len);
     }
 
-    return this.seekOffset + (this.context.currentTime - this.startedAt) * this.playbackRate;
+    return base;
+  }
+
+  setLoop(startSec: number, endSec: number): void {
+    if (endSec <= startSec) return;
+    this.loopStart = startSec;
+    this.loopEnd = endSec;
+    if (this.sourceNode) {
+      this.sourceNode.loopStart = startSec;
+      this.sourceNode.loopEnd = endSec;
+      this.sourceNode.loop = true;
+    }
+    // CDJ-like behavior: if we're playing but outside the new window, re-seek into it.
+    // seekTo → play() re-arms the loop on the new source node but does not re-enter setLoop.
+    if (this.isPlayingFlag) {
+      const rawPos = this.seekOffset + (this.context.currentTime - this.startedAt) * this.playbackRate;
+      if (rawPos < startSec || rawPos >= endSec) this.seekTo(startSec);
+    }
+  }
+
+  clearLoop(): void {
+    this.loopStart = null;
+    this.loopEnd = null;
+    if (this.sourceNode) {
+      this.sourceNode.loop = false;
+    }
+  }
+
+  isLooping(): boolean {
+    return this.loopStart !== null && this.loopEnd !== null;
   }
 
   getDuration(): number {
