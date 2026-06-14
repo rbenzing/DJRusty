@@ -188,12 +188,14 @@ export class AudioEngineImpl implements AudioEngine {
     this.sourceNode.playbackRate.value = this.playbackRate;
     this.sourceNode.connect(this.gainNode);
 
-    // onended only fires the callback when this source is still the current generation
+    // A superseded source (replaced by a seek-restart or a pause that bumped the
+    // generation) must be ignored entirely — otherwise its async `ended` event would
+    // clobber the live source's playing state, leaving a "ghost" the engine can't stop.
+    // Only the current generation's natural end clears the flag and fires the callback.
     this.sourceNode.onended = () => {
+      if (this.generation !== myGeneration) return;
       this.isPlayingFlag = false;
-      if (this.generation === myGeneration && this.endedCallback) {
-        this.endedCallback();
-      }
+      this.endedCallback?.();
     };
 
     // Re-apply an active loop to the newly-created source node
@@ -210,14 +212,16 @@ export class AudioEngineImpl implements AudioEngine {
 
   pause(): void {
     if (!this.isPlayingFlag || !this.sourceNode) return;
-    ++this.generation; // invalidate pending onended
-    this.seekOffset = this.getCurrentTime();
+    ++this.generation; // invalidate the pending onended of the source we're stopping
+    this.seekOffset = this.getCurrentTime(); // snapshot position while still "playing"
+    this.isPlayingFlag = false; // clear directly — the stopped source's onended is now stale
     this.stopSource();
   }
 
   stop(): void {
-    ++this.generation; // invalidate pending onended
+    ++this.generation; // invalidate the pending onended of the source we're stopping
     this.seekOffset = 0;
+    this.isPlayingFlag = false; // clear directly — the stopped source's onended is now stale
     this.stopSource();
   }
 
