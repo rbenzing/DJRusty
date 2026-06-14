@@ -603,6 +603,7 @@ export function useDeckActions() {
       activateLoop: s.activateLoop, activateLoopBeat: s.activateLoopBeat, deactivateLoop: s.deactivateLoop,
       setBeatJumpSize: s.setBeatJumpSize, setSlipMode: s.setSlipMode, setSynced: s.setSynced,
       setRollMode: s.setRollMode, startRoll: s.startRoll, endRoll: s.endRoll,
+      setGrid: s.setGrid, nudgeGrid: s.nudgeGrid,
     })),
   );
 }
