@@ -6,12 +6,9 @@ import { YouTubePlayer } from './components/Deck/YouTubePlayer';
 import { Mixer } from './components/Mixer/Mixer';
 import { SearchPanel } from './components/Search/SearchPanel';
 import { loadYouTubeIframeApi } from './services/youtubeIframeApi';
-import { useDeckStore } from './store/deckStore';
 import { useMixerStore } from './store/mixerStore';
 import { useSettingsStore } from './store/settingsStore';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
-import { addRecentTrack } from './utils/recentlyPlayed';
-import type { TrackSummary } from './types/search';
 
 /**
  * App.tsx — Root application shell.
@@ -26,14 +23,6 @@ import type { TrackSummary } from './types/search';
  * STORY-008: Listens for 'dj-rusty:load-track' CustomEvents dispatched by
  * SearchPanel and routes them to the deck store loadTrack action.
  */
-
-/**
- * Detail payload shape dispatched by SearchPanel when user clicks LOAD A/B.
- */
-interface LoadTrackEventDetail {
-  deckId: 'A' | 'B';
-  result: TrackSummary;
-}
 
 function App() {
   const openSettings = useSettingsStore((s) => s.openSettings);
@@ -66,39 +55,6 @@ function App() {
     // but mixer computes 71 at crossfader centre — this reconciles them).
     const mixer = useMixerStore.getState();
     mixer.setCrossfaderPosition(mixer.crossfaderPosition);
-  }, []);
-
-  // STORY-008: Bridge CustomEvent from SearchPanel to deck store loadTrack action.
-  // SearchPanel dispatches 'dj-rusty:load-track' with { deckId, result } to keep
-  // the search components decoupled from the deck store.
-  //
-  // STORY-012: Also persists the loaded track to the recently-played localStorage list.
-  useEffect(() => {
-    function handleLoadTrack(event: Event) {
-      const { deckId, result } = (event as CustomEvent<LoadTrackEventDetail>).detail;
-      const { sourceType, videoId, title, artist, duration, thumbnailUrl } = result;
-      useDeckStore.getState().loadTrack(deckId, videoId!, {
-        sourceType,
-        title,
-        artist,
-        duration,
-        thumbnailUrl,
-      });
-      // STORY-012: Record this track in the recently-played list.
-      addRecentTrack({
-        videoId: videoId!,
-        title,
-        channelTitle: artist,
-        duration,
-        thumbnailUrl,
-        loadedAt: Date.now(),
-      });
-    }
-
-    window.addEventListener('dj-rusty:load-track', handleLoadTrack);
-    return () => {
-      window.removeEventListener('dj-rusty:load-track', handleLoadTrack);
-    };
   }, []);
 
   // STORY-DJ-004: Global keyboard shortcuts for deck transport, cue, beat jump, hot cues, tap tempo.
