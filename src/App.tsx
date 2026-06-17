@@ -2,10 +2,8 @@ import { useCallback, useEffect, useState } from 'react';
 import { SettingsModal } from './components/Auth/SettingsModal';
 import { CenterWaveform } from './components/CenterWaveform/CenterWaveform';
 import { Deck } from './components/Deck/Deck';
-import { YouTubePlayer } from './components/Deck/YouTubePlayer';
 import { Mixer } from './components/Mixer/Mixer';
 import { SearchPanel } from './components/Search/SearchPanel';
-import { loadYouTubeIframeApi } from './services/youtubeIframeApi';
 import { useMixerStore } from './store/mixerStore';
 import { useSettingsStore } from './store/settingsStore';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
@@ -37,11 +35,6 @@ function App() {
   }, [toggleSearch]);
 
   useEffect(() => {
-    // Load the YouTube IFrame API script once on app mount.
-    // The singleton loader ensures subsequent calls return the same promise.
-    loadYouTubeIframeApi().catch((err: unknown) => {
-      console.error('[App] Failed to load YouTube IFrame API:', err);
-    });
     // Sync mixer computed volumes into deckStore on startup so both stores
     // agree from the first render (BUG-002: deckStore initialises volume at 80
     // but mixer computes 71 at crossfader centre — this reconciles them).
@@ -54,14 +47,6 @@ function App() {
 
   return (
     <div className={`app${searchOpen ? ' search-open' : ''}`}>
-      {/*
-        Hidden YouTube IFrame players — must be present in the DOM at all times.
-        They are positioned absolute at opacity 0.01 so they do not affect layout
-        but satisfy the YouTube Terms of Service requirement to render the player.
-      */}
-      <YouTubePlayer deckId="A" />
-      <YouTubePlayer deckId="B" />
-
       {/* Settings Modal — rendered via React portal, mounted here so it is
           always available regardless of the current view state. */}
       <SettingsModal />

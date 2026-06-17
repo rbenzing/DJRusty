@@ -206,7 +206,7 @@ function FilterSweepKnob({ deckId, value, onChange }: FilterSweepProps) {
 
 export function EQPanel({ deckId }: EQPanelProps) {
   const { setEq, setEqKill, setFilterSweep } = useDeckActions();
-  const { eqLow, eqMid, eqHigh, eqKillLow, eqKillMid, eqKillHigh, filterSweep, sourceType } =
+  const { eqLow, eqMid, eqHigh, eqKillLow, eqKillMid, eqKillHigh, filterSweep } =
     useDeckStore(
       useShallow((s) => {
         const d = s.decks[deckId];
@@ -218,7 +218,6 @@ export function EQPanel({ deckId }: EQPanelProps) {
           eqKillMid: d.eqKillMid,
           eqKillHigh: d.eqKillHigh,
           filterSweep: d.filterSweep,
-          sourceType: d.sourceType,
         };
       }),
     );
@@ -240,22 +239,10 @@ export function EQPanel({ deckId }: EQPanelProps) {
     setFilterSweep(deckId, v);
   }, [deckId, setFilterSweep]);
 
-  const isMp3 = sourceType === 'mp3';
-
   return (
     <div className={styles.panel}>
       <div className={styles.headerRow}>
         <span className={styles.panelLabel}>EQ</span>
-        <span
-          className={styles.statusBadge}
-          data-active={isMp3}
-          title={isMp3
-            ? 'EQ active — driving Web Audio BiquadFilter nodes'
-            : 'Visual only — YouTube audio runs in a cross-origin iframe'
-          }
-        >
-          {isMp3 ? 'LIVE' : 'Visual Only'}
-        </span>
       </div>
       <div className={styles.knobsRow}>
         {EQ_BANDS.map(({ band, label, kill }) => (
