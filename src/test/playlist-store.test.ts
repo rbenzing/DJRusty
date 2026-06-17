@@ -73,7 +73,8 @@ describe('playlistStore — addTrack', () => {
     expect(currentIndex.A).toBe(0);
     expect(loadTrack).toHaveBeenCalledTimes(1);
     expect(loadTrack.mock.calls[0]![3]).toBe(false); // autoPlay=false
-    expect(loadTrack.mock.calls[0]![1]).toBe('v1');  // videoId
+    const expectedIdAdd = usePlaylistStore.getState().playlists.A[0]!.id;
+    expect(loadTrack.mock.calls[0]![1]).toBe(expectedIdAdd); // entry.id (UUID)
   });
 
   it('second track queues without changing currentIndex', () => {
@@ -199,7 +200,8 @@ describe('playlistStore — skipToNext', () => {
 
     expect(usePlaylistStore.getState().currentIndex.A).toBe(1);
     expect(loadTrack).toHaveBeenCalledTimes(1);
-    expect(loadTrack.mock.calls[0]![1]).toBe('v2');
+    const expectedIdNext = usePlaylistStore.getState().playlists.A[1]!.id;
+    expect(loadTrack.mock.calls[0]![1]).toBe(expectedIdNext); // entry.id (UUID)
     expect(loadTrack.mock.calls[0]![3]).toBe(true); // autoPlay=true
   });
 
@@ -234,7 +236,8 @@ describe('playlistStore — skipToPrev', () => {
 
     expect(usePlaylistStore.getState().currentIndex.A).toBe(0);
     expect(loadTrack).toHaveBeenCalledTimes(1);
-    expect(loadTrack.mock.calls[0]![1]).toBe('v1');
+    const expectedIdPrev = usePlaylistStore.getState().playlists.A[0]!.id;
+    expect(loadTrack.mock.calls[0]![1]).toBe(expectedIdPrev); // entry.id (UUID)
     expect(loadTrack.mock.calls[0]![3]).toBe(true);
   });
 
@@ -262,7 +265,8 @@ describe('playlistStore — jumpToTrack', () => {
     usePlaylistStore.getState().jumpToTrack('A', 2);
 
     expect(usePlaylistStore.getState().currentIndex.A).toBe(2);
-    expect(loadTrack.mock.calls[0]![1]).toBe('v3');
+    const expectedIdJump = usePlaylistStore.getState().playlists.A[2]!.id;
+    expect(loadTrack.mock.calls[0]![1]).toBe(expectedIdJump); // entry.id (UUID)
     expect(loadTrack.mock.calls[0]![3]).toBe(true);
   });
 

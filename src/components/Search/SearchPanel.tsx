@@ -27,9 +27,6 @@ import { SearchResultList } from './SearchResultList';
 import { SearchResult } from './SearchResult';
 import { PlaylistPanel } from '../Playlist/PlaylistPanel';
 import { getRecentTracks, type RecentTrack } from '../../utils/recentlyPlayed';
-import { useDownloadManager } from '../../hooks/useDownloadManager';
-import { DownloadLibrary } from '../Library/DownloadLibrary';
-import { ChannelPanel } from '../Library/ChannelPanel';
 import type { TrackSummary } from '../../types/search';
 import styles from './SearchPanel.module.css';
 
@@ -64,8 +61,6 @@ export function SearchPanel({ isOpen, onToggle }: SearchPanelProps) {
   const { query, results, nextPageToken, loading, error, setQuery, setResults,
     appendResults, setLoading, setError } = useSearchStore();
   const { accessToken, signedIn } = useAuthStore();
-  const { requestDownload, removeFromLibrary } = useDownloadManager();
-  const [showChannel, setShowChannel] = useState(false);
 
   // Track whether the user has submitted at least one search this session.
   const [hasSearched, setHasSearched] = useState(false);
@@ -228,15 +223,6 @@ export function SearchPanel({ isOpen, onToggle }: SearchPanelProps) {
             onSearch={handleSearch}
             onClear={handleClear}
           />
-          <button
-            type="button"
-            className={`${styles.channelToggleBtn} ${showChannel ? styles.channelToggleBtnActive : ''}`}
-            onClick={() => setShowChannel((v) => !v)}
-            title="Browse My Channel"
-            aria-pressed={showChannel}
-          >
-            📺
-          </button>
         </div>
 
       {/* STORY-012: Tab switcher — STORY-014: full ARIA tabs pattern */}
@@ -294,10 +280,6 @@ export function SearchPanel({ isOpen, onToggle }: SearchPanelProps) {
         aria-labelledby="search-tab"
         hidden={activeTab !== 'search'}
       >
-        {showChannel ? (
-          <ChannelPanel />
-        ) : (
-          <>
         {error && (
           <div className={styles.errorBanner} role="alert">
             <span className={styles.errorIcon}>!</span>
@@ -311,13 +293,6 @@ export function SearchPanel({ isOpen, onToggle }: SearchPanelProps) {
           hasSearched={hasSearched}
           onLoadToDeck={handleLoadToDeck}
           onQueueToDeck={handleQueueToDeck}
-          onDownload={(result) => void requestDownload({
-            videoId: result.videoId!,
-            title: result.title,
-            artist: result.artist,
-            duration: result.duration,
-            thumbnailUrl: result.thumbnailUrl,
-          })}
         />
 
         {nextPageToken && !loading && (
@@ -332,8 +307,6 @@ export function SearchPanel({ isOpen, onToggle }: SearchPanelProps) {
               {loadingMore ? 'Loading...' : 'Load Next Page'}
             </button>
           </div>
-        )}
-          </>
         )}
       </div>
 
@@ -374,13 +347,8 @@ export function SearchPanel({ isOpen, onToggle }: SearchPanelProps) {
         <PlaylistPanel />
       </div>
 
-      <div
-        role="tabpanel"
-        id="library-tab-panel"
-        aria-labelledby="library-tab"
-        hidden={activeTab !== 'library'}
-      >
-        <DownloadLibrary onRemove={removeFromLibrary} />
+      <div role="tabpanel" id="library-tab-panel" aria-labelledby="library-tab" hidden={activeTab !== 'library'}>
+        <p className={styles.placeholder}>Library coming soon.</p>
       </div>
 
       </div>{/* end .content */}

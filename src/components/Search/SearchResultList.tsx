@@ -22,7 +22,6 @@ interface SearchResultListProps {
   hasSearched: boolean;
   onLoadToDeck: (deckId: 'A' | 'B', result: TrackSummary) => void;
   onQueueToDeck: (deckId: 'A' | 'B', result: TrackSummary) => void;
-  onDownload?: (result: TrackSummary) => void;
 }
 
 /** Skeleton row displayed while results are loading. */
@@ -44,7 +43,6 @@ export function SearchResultList({
   hasSearched,
   onLoadToDeck,
   onQueueToDeck,
-  onDownload,
 }: SearchResultListProps) {
   // STORY-012: Track the keyboard-highlighted result index (-1 = none).
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
@@ -106,7 +104,6 @@ export function SearchResultList({
           result={result}
           onLoadToDeck={onLoadToDeck}
           onQueueToDeck={onQueueToDeck}
-          {...(onDownload ? { onDownload } : {})}
           highlighted={index === highlightedIndex}
         />
       ))}
