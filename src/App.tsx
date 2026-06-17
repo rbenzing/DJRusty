@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useState } from 'react';
-import { AuthButton } from './components/Auth/AuthButton';
 import { SettingsModal } from './components/Auth/SettingsModal';
 import { CenterWaveform } from './components/CenterWaveform/CenterWaveform';
 import { Deck } from './components/Deck/Deck';
@@ -10,7 +9,6 @@ import { loadYouTubeIframeApi } from './services/youtubeIframeApi';
 import { useDeckStore } from './store/deckStore';
 import { useMixerStore } from './store/mixerStore';
 import { useSettingsStore } from './store/settingsStore';
-import { useSearchPreload } from './hooks/useSearchPreload';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { addRecentTrack } from './utils/recentlyPlayed';
 import type { TrackSummary } from './types/search';
@@ -103,9 +101,6 @@ function App() {
     };
   }, []);
 
-  // STORY-SEARCH-001: Pre-load genre search results into cache on sign-in.
-  useSearchPreload();
-
   // STORY-DJ-004: Global keyboard shortcuts for deck transport, cue, beat jump, hot cues, tap tempo.
   useKeyboardShortcuts();
 
@@ -152,8 +147,6 @@ function App() {
               <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
             </svg>
           </button>
-          {/* AuthButton: clicking authenticated state also opens settings */}
-          <AuthButton onAuthenticatedClick={openSettings} />
         </div>
       </header>
 

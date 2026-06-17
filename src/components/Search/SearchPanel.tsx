@@ -18,7 +18,6 @@
  */
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchStore } from '../../store/searchStore';
-import { useAuthStore } from '../../store/authStore';
 import { usePlaylistStore } from '../../store/playlistStore';
 import { searchVideos } from '../../services/youtubeDataApi';
 import { getCached, setCached } from '../../utils/searchCache';
@@ -29,14 +28,6 @@ import { PlaylistPanel } from '../Playlist/PlaylistPanel';
 import { getRecentTracks, type RecentTrack } from '../../utils/recentlyPlayed';
 import type { TrackSummary } from '../../types/search';
 import styles from './SearchPanel.module.css';
-
-/** Returns true when the user has credentials to perform searches. */
-function hasCredentials(accessToken: string | null): boolean {
-  if (accessToken) return true;
-  const apiKey = (import.meta as unknown as { env: Record<string, string | undefined> })
-    .env.VITE_YOUTUBE_API_KEY;
-  return Boolean(apiKey);
-}
 
 /** Convert a RecentTrack to the TrackSummary shape used by SearchResult. */
 function recentTrackToSummary(track: RecentTrack): TrackSummary {
@@ -60,7 +51,6 @@ interface SearchPanelProps {
 export function SearchPanel({ isOpen, onToggle }: SearchPanelProps) {
   const { query, results, nextPageToken, loading, error, setQuery, setResults,
     appendResults, setLoading, setError } = useSearchStore();
-  const { accessToken, signedIn } = useAuthStore();
 
   // Track whether the user has submitted at least one search this session.
   const [hasSearched, setHasSearched] = useState(false);
@@ -96,9 +86,6 @@ export function SearchPanel({ isOpen, onToggle }: SearchPanelProps) {
     }
   }, [activeTab, refreshRecentTracks]);
 
-  const credentialsAvailable = hasCredentials(accessToken);
-  const panelDisabled = !credentialsAvailable;
-
   async function performSearch(searchQuery: string, pageToken?: string) {
     setQuery(searchQuery);
 
@@ -117,7 +104,7 @@ export function SearchPanel({ isOpen, onToggle }: SearchPanelProps) {
 
     try {
       const { results: newResults, nextPageToken: newPageToken } =
-        await searchVideos(searchQuery, accessToken, pageToken);
+        await searchVideos(searchQuery, null, pageToken);
 
       if (pageToken) {
         appendResults(newResults, newPageToken);
@@ -170,12 +157,6 @@ export function SearchPanel({ isOpen, onToggle }: SearchPanelProps) {
     });
   }
 
-  const disabledReason = !signedIn
-    ? 'Sign in with Google to search YouTube'
-    : !credentialsAvailable
-      ? 'Configure VITE_YOUTUBE_API_KEY to enable search'
-      : undefined;
-
   // Label shown in the collapsed handle bar.
   const handleQueryLabel = query
     ? `"${query}"`
@@ -186,7 +167,6 @@ export function SearchPanel({ isOpen, onToggle }: SearchPanelProps) {
       className={[
         styles.panel,
         isOpen ? styles.panelOpen : '',
-        panelDisabled ? styles.panelDisabled : '',
       ].filter(Boolean).join(' ')}
       aria-label="Track browser"
     >
@@ -209,17 +189,11 @@ export function SearchPanel({ isOpen, onToggle }: SearchPanelProps) {
 
       {/* ── Drawer content — hidden when collapsed ── */}
       <div id="search-drawer-content" className={styles.content} aria-hidden={!isOpen}>
-        {panelDisabled && (
-          <div className={styles.disabledOverlay} aria-hidden="true">
-            <span>{disabledReason}</span>
-          </div>
-        )}
-
         <div className={styles.searchRow}>
           <SearchBar
             initialQuery={query}
             loading={loading}
-            disabled={panelDisabled}
+            disabled={false}
             onSearch={handleSearch}
             onClear={handleClear}
           />

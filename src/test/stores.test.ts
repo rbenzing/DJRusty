@@ -4,7 +4,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { act } from '@testing-library/react';
 import { useDeckStore } from '../store/deckStore';
-import { useAuthStore } from '../store/authStore';
 import { useMixerStore } from '../store/mixerStore';
 
 /**
@@ -115,13 +114,6 @@ beforeEach(() => {
         transportState: 'CUED' as const,
       },
     },
-  });
-
-  useAuthStore.setState({
-    accessToken: null,
-    expiresAt: null,
-    userInfo: null,
-    signedIn: false,
   });
 
   useMixerStore.setState({
@@ -463,85 +455,6 @@ describe('deckStore', () => {
     expect(deckA.title).toBe('');
     expect(deckA.playbackState).toBe('unstarted');
     expect(deckA.bpm).toBeNull();
-  });
-});
-
-describe('authStore', () => {
-  it('initialises with signed out state', () => {
-    const state = useAuthStore.getState();
-    expect(state.accessToken).toBeNull();
-    expect(state.expiresAt).toBeNull();
-    expect(state.userInfo).toBeNull();
-    expect(state.signedIn).toBe(false);
-  });
-
-  it('setToken stores token and marks signed in', () => {
-    act(() => {
-      useAuthStore.getState().setToken('ya29.test_token', 3600);
-    });
-
-    const state = useAuthStore.getState();
-    expect(state.accessToken).toBe('ya29.test_token');
-    expect(state.signedIn).toBe(true);
-    expect(state.expiresAt).toBeGreaterThan(Date.now());
-  });
-
-  it('setToken sets expiresAt approximately 1 hour from now', () => {
-    const beforeCall = Date.now();
-    act(() => {
-      useAuthStore.getState().setToken('ya29.test', 3600);
-    });
-    const afterCall = Date.now();
-
-    const { expiresAt } = useAuthStore.getState();
-    expect(expiresAt).toBeGreaterThanOrEqual(beforeCall + 3600 * 1000);
-    expect(expiresAt).toBeLessThanOrEqual(afterCall + 3600 * 1000);
-  });
-
-  it('setUserInfo stores user profile', () => {
-    act(() => {
-      useAuthStore.getState().setUserInfo({
-        sub: '12345',
-        name: 'DJ Rusty',
-        email: 'rusty@example.com',
-        picture: 'https://example.com/avatar.jpg',
-      });
-    });
-
-    const { userInfo } = useAuthStore.getState();
-    expect(userInfo?.name).toBe('DJ Rusty');
-    expect(userInfo?.email).toBe('rusty@example.com');
-  });
-
-  it('clearAuth resets all state to initial values', () => {
-    act(() => {
-      useAuthStore.getState().setToken('ya29.test', 3600);
-      useAuthStore.getState().setUserInfo({
-        sub: '12345',
-        name: 'DJ Rusty',
-        email: 'rusty@example.com',
-        picture: 'https://example.com/avatar.jpg',
-      });
-    });
-    act(() => {
-      useAuthStore.getState().clearAuth();
-    });
-
-    const state = useAuthStore.getState();
-    expect(state.accessToken).toBeNull();
-    expect(state.expiresAt).toBeNull();
-    expect(state.userInfo).toBeNull();
-    expect(state.signedIn).toBe(false);
-  });
-
-  it('clearAuth does not retain any token data', () => {
-    act(() => {
-      useAuthStore.getState().setToken('ya29.secret_token', 3600);
-      useAuthStore.getState().clearAuth();
-    });
-
-    // Token must not be recoverable after sign-out
-    expect(useAuthStore.getState().accessToken).toBeNull();
   });
 });
 
