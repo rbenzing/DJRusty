@@ -13,15 +13,7 @@ import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 /**
  * App.tsx — Root application shell.
  *
- * Initialises the YouTube IFrame API singleton on mount (STORY-003).
- * Renders hidden YT.Player containers for Deck A and Deck B so that players
- * are always present in the DOM regardless of layout state (YouTube ToS requirement).
- *
  * Layout: 3-column flex row (Deck A | Mixer | Deck B) + Track Browser at bottom.
- * Search browser implemented in STORY-007.
- *
- * STORY-008: Listens for 'dj-rusty:load-track' CustomEvents dispatched by
- * SearchPanel and routes them to the deck store loadTrack action.
  */
 
 function App() {
