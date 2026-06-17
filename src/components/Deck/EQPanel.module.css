@@ -23,23 +23,6 @@
   font-weight: 600;
 }
 
-.statusBadge {
-  font-size: 9px;
-  color: #555;
-  background: #1a1a1a;
-  border: 1px solid #333;
-  border-radius: 2px;
-  padding: 1px 4px;
-  letter-spacing: 0.04em;
-  cursor: help;
-}
-
-.statusBadge[data-active='true'] {
-  color: #44ff88;
-  background: #0a2015;
-  border-color: #226633;
-}
-
 .knobsRow {
   display: flex;
   align-items: flex-end;

@@ -29,13 +29,12 @@ export function DeckControls({ deckId }: DeckControlsProps) {
   const transportState = useDeckStore((s) => s.decks[deckId].transportState);
   const trackId = useDeckStore((s) => s.decks[deckId].trackId);
   const playerReady = useDeckStore((s) => s.decks[deckId].playerReady);
-  const sourceType = useDeckStore((s) => s.decks[deckId].sourceType);
   const isPlaying = transportState === 'PLAYING' || transportState === 'PREVIEW';
   const hasTrack = trackId !== null;
 
   function handleRestart() {
     if (!playerReady || !hasTrack) return;
-    const player = getActivePlayer(deckId, sourceType);
+    const player = getActivePlayer(deckId);
     if (player) {
       player.seekTo(0, true);
     }

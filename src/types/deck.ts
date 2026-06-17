@@ -1,5 +1,4 @@
 import type { PitchRate } from '../constants/pitchRates';
-import type { TrackSourceType } from './playlist';
 import type { ColoredPeak } from '../utils/extractColoredPeaks';
 import type { TransportState } from '../utils/transport';
 export type { ColoredPeak };
@@ -20,18 +19,10 @@ export interface DeckState {
   deckId: 'A' | 'B';
 
   /**
-   * Source-agnostic track identifier currently loaded into the deck, or null if empty.
-   * For YouTube entries this equals the YouTube video ID.
-   * For MP3 entries this equals the PlaylistEntry.id.
-   * Renamed from `videoId` to support both source types.
+   * Track identifier currently loaded into the deck, or null if empty.
+   * Equals the PlaylistEntry.id.
    */
   trackId: string | null;
-
-  /**
-   * Source type of the currently loaded track, or null when no track is loaded.
-   * Used to select the correct playback engine (YouTube IFrame vs Web Audio API).
-   */
-  sourceType: TrackSourceType | null;
 
   /** Track title. */
   title: string;
@@ -143,12 +134,6 @@ export interface DeckState {
   /** Error message if the deck is in an error state, or null if healthy. */
   error: string | null;
 
-  /**
-   * Whether the pitch slider is locked because the loaded video only supports
-   * playback at 1× speed (getAvailablePlaybackRates() returned [1] only).
-   */
-  pitchRateLocked: boolean;
-
   /** Whether this deck's pitch rate is currently beat-synced to the other deck. */
   synced: boolean;
 
@@ -174,10 +159,9 @@ export interface DeckState {
   rollStartPosition: number | null;
 
   /**
-   * When true, useYouTubePlayer will call loadVideoById (auto-plays immediately)
-   * instead of cueVideoById the next time the videoId changes. Set by playlist
-   * auto-advance actions (skipToNext, skipToPrev, jumpToTrack) and cleared
-   * immediately after the player issues the load command.
+   * When true, the player will auto-play immediately on the next track load.
+   * Set by playlist auto-advance actions (skipToNext, skipToPrev, jumpToTrack)
+   * and cleared immediately after the player issues the load command.
    */
   autoPlayOnLoad: boolean;
 

@@ -72,7 +72,6 @@ function loadDeckTrack(deckId: 'A' | 'B', entry: PlaylistEntry, autoPlay: boolea
     deckId,
     entry.id,
     {
-      sourceType: entry.sourceType,
       title: entry.title,
       artist: entry.artist,
       duration: entry.duration,

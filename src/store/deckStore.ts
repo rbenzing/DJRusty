@@ -1,9 +1,8 @@
 import { create } from 'zustand';
 import { useShallow } from 'zustand/react/shallow';
 import type { DeckState, PlaybackState } from '../types/deck';
-import type { TrackSourceType } from '../types/playlist';
 import { DEFAULT_PITCH_RATE } from '../constants/pitchRates';
-import { exactSyncRate, phaseDelta, findClosestPitchRate } from '../utils/beatSync';
+import { exactSyncRate, phaseDelta } from '../utils/beatSync';
 import { getHotCues } from '../utils/hotCues';
 import { DEFAULT_BEAT_JUMP_SIZE, gridJumpTarget } from '../utils/beatJump';
 import { getActivePlayer } from '../services/playerRegistry';
@@ -17,7 +16,6 @@ function createInitialDeckState(deckId: 'A' | 'B'): DeckState {
   return {
     deckId,
     trackId: null,
-    sourceType: null,
     title: '',
     artist: '',
     waveformPeaks: null,
@@ -49,7 +47,6 @@ function createInitialDeckState(deckId: 'A' | 'B'): DeckState {
     effectEnabled: false,
     effectWetDry: 0.5,
     error: null,
-    pitchRateLocked: false,
     synced: false,
     slipMode: false,
     slipPosition: null,
@@ -73,20 +70,15 @@ interface DeckStoreActions {
   /** Load a track into the specified deck. */
   loadTrack: (
     deckId: 'A' | 'B',
-    /**
-     * Source-agnostic track identifier.
-     * For YouTube entries: the YouTube video ID.
-     * For MP3 entries: the PlaylistEntry.id.
-     */
+    /** Track identifier — the PlaylistEntry.id. */
     trackId: string,
     metadata: {
-      sourceType: TrackSourceType;
       title: string;
       artist: string;
       duration: number;
       thumbnailUrl: string | null;
     },
-    /** When true, the player will call loadVideoById (auto-plays) instead of cueVideoById. */
+    /** When true, the player will auto-play immediately after load. */
     autoPlay?: boolean,
   ) => void;
 
@@ -168,12 +160,6 @@ interface DeckStoreActions {
 
   /** Set an error state for the specified deck. */
   setError: (deckId: 'A' | 'B', error: string | null) => void;
-
-  /**
-   * Lock or unlock the pitch slider for the specified deck.
-   * Locked when the loaded video only supports playback at 1× speed.
-   */
-  setPitchRateLocked: (deckId: 'A' | 'B', locked: boolean) => void;
 
   /** Set the selected beat jump size for the specified deck. */
   setBeatJumpSize: (deckId: 'A' | 'B', size: number) => void;
@@ -267,10 +253,9 @@ export const useDeckStore = create<DeckStore>((set, get) => ({
     B: createInitialDeckState('B'),
   },
 
-  loadTrack: (deckId, trackId, { sourceType, title, artist, duration, thumbnailUrl }, autoPlay = false) => {
+  loadTrack: (deckId, trackId, { title, artist, duration, thumbnailUrl }, autoPlay = false) => {
     updateDeck(set, deckId, {
       trackId,
-      sourceType,
       title,
       artist,
       duration,
@@ -291,8 +276,6 @@ export const useDeckStore = create<DeckStore>((set, get) => ({
       waveformColoredPeaks: null,
       decoding: false,
       bpmDetecting: false,
-      // Reset pitch lock — will be re-evaluated by the player's onReady / onPlaybackRateChange.
-      pitchRateLocked: false,
       synced: false,
       slipMode: false,
       slipPosition: null,
@@ -402,7 +385,7 @@ export const useDeckStore = create<DeckStore>((set, get) => ({
     // Clamp loopEnd to the track duration so the 250ms poll can always trigger.
     // When duration is unknown (0), no clamping — the track may still be loading.
     const loopEnd = deck.duration > 0 ? Math.min(rawEnd, deck.duration) : rawEnd;
-    getActivePlayer(deckId, deck.sourceType)?.setLoop?.(loopStart, loopEnd);
+    getActivePlayer(deckId)?.setLoop?.(loopStart, loopEnd);
     updateDeck(set, deckId, { loopActive: true, loopStart, loopEnd, loopBeatCount: beatCount });
   },
 
@@ -411,10 +394,10 @@ export const useDeckStore = create<DeckStore>((set, get) => ({
     // Slip-aware exit: if slip mode is on and a shadow position is tracked,
     // seek to the shadow position before deactivating the loop.
     if (deck.slipMode && deck.slipPosition !== null) {
-      getActivePlayer(deckId, deck.sourceType)?.seekTo(deck.slipPosition, true);
+      getActivePlayer(deckId)?.seekTo(deck.slipPosition, true);
     }
     // Clear the native engine loop (no-op via optional chaining on YouTube).
-    getActivePlayer(deckId, deck.sourceType)?.clearLoop?.();
+    getActivePlayer(deckId)?.clearLoop?.();
     updateDeck(set, deckId, {
       loopActive: false,
       loopStart: null,
@@ -456,10 +439,6 @@ export const useDeckStore = create<DeckStore>((set, get) => ({
     updateDeck(set, deckId, { error });
   },
 
-  setPitchRateLocked: (deckId, locked) => {
-    updateDeck(set, deckId, { pitchRateLocked: locked });
-  },
-
   setBeatJumpSize: (deckId, size) => {
     updateDeck(set, deckId, { beatJumpSize: size });
   },
@@ -467,7 +446,6 @@ export const useDeckStore = create<DeckStore>((set, get) => ({
   clearTrack: (deckId) => {
     updateDeck(set, deckId, {
       trackId: null,
-      sourceType: null,
       title: '',
       artist: '',
       waveformPeaks: null,
@@ -487,7 +465,6 @@ export const useDeckStore = create<DeckStore>((set, get) => ({
       beatJumpSize: DEFAULT_BEAT_JUMP_SIZE,
       hotCues: {},
       error: null,
-      pitchRateLocked: false,
       synced: false,
       slipMode: false,
       slipPosition: null,
@@ -566,7 +543,7 @@ export const useDeckStore = create<DeckStore>((set, get) => ({
     const rawLoopEnd = loopOutFor(loopStart, beatCount, deck.bpm);
     const loopEnd = deck.duration > 0 ? Math.min(rawLoopEnd, deck.duration) : rawLoopEnd;
     // Arm the native engine loop (no-op via optional chaining on YouTube).
-    getActivePlayer(deckId, deck.sourceType)?.setLoop?.(loopStart, loopEnd);
+    getActivePlayer(deckId)?.setLoop?.(loopStart, loopEnd);
     updateDeck(set, deckId, {
       rollStartWallClock: Date.now(),
       rollStartPosition: deck.currentTime,
@@ -592,8 +569,8 @@ export const useDeckStore = create<DeckStore>((set, get) => ({
       seekTarget = Math.max(0, seekTarget);
     }
     // Clear the native engine loop before seeking back (no-op via optional chaining on YouTube).
-    getActivePlayer(deckId, deck.sourceType)?.clearLoop?.();
-    getActivePlayer(deckId, deck.sourceType)?.seekTo(seekTarget, true);
+    getActivePlayer(deckId)?.clearLoop?.();
+    getActivePlayer(deckId)?.seekTo(seekTarget, true);
     updateDeck(set, deckId, {
       rollStartWallClock: null,
       rollStartPosition: null,
@@ -620,16 +597,13 @@ export const useDeckStore = create<DeckStore>((set, get) => ({
   syncToDeck: (deckId, otherId) => {
     const me = get().decks[deckId], other = get().decks[otherId];
     if (!me.bpm || !other.bpm || me.anchor === null || other.anchor === null) return;
-    // Fix 5: exactSyncRate can return null — guard before the youtube snap.
-    let rate = exactSyncRate(me.bpm, other.bpm, other.pitchRate);
+    // exactSyncRate can return null — guard before use.
+    const rate = exactSyncRate(me.bpm, other.bpm, other.pitchRate);
     if (rate === null) return;
-    // Fix 3: YouTube only supports discrete rates; snap so store and player agree.
-    if (me.sourceType === 'youtube') rate = findClosestPitchRate(rate);
     get().setPitchRate(deckId, rate);
-    const player = getActivePlayer(deckId, me.sourceType);
+    const player = getActivePlayer(deckId);
     const myPos = player?.getCurrentTime() ?? me.currentTime;
-    // Fix 6: inline single-use otherPlayer binding.
-    const otherPos = getActivePlayer(otherId, other.sourceType)?.getCurrentTime() ?? other.currentTime;
+    const otherPos = getActivePlayer(otherId)?.getCurrentTime() ?? other.currentTime;
     const delta = phaseDelta({ bpm: me.bpm, anchor: me.anchor }, { bpm: other.bpm, anchor: other.anchor }, myPos, otherPos);
     // Fix 1: clamp seek target to [0, duration] so phaseDelta can't push below 0.
     const target = Math.max(0, Math.min(myPos + delta, me.duration || (myPos + delta)));
@@ -642,7 +616,7 @@ export const useDeckStore = create<DeckStore>((set, get) => ({
 
   dispatchTransport: (deckId, event) => {
     const deck = get().decks[deckId];
-    const player = getActivePlayer(deckId, deck.sourceType);
+    const player = getActivePlayer(deckId);
     const pos = player?.getCurrentTime() ?? deck.currentTime;
     const r = transition(deck.transportState, event, { position: pos, cuePoint: deck.cuePoint });
     for (const intent of r.intents) {
@@ -661,7 +635,7 @@ export const useDeckStore = create<DeckStore>((set, get) => ({
     if (!deck.bpm || deck.anchor === null) return;
     const grid = { bpm: deck.bpm, anchor: deck.anchor };
     const target = gridJumpTarget(grid, deck.currentTime, deck.beatJumpSize, dir, deck.duration);
-    getActivePlayer(deckId, deck.sourceType)?.seekTo(target, true);
+    getActivePlayer(deckId)?.seekTo(target, true);
   },
 }));
 

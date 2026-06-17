@@ -5,10 +5,6 @@
   border-bottom: 1px solid var(--color-border-subtle);
 }
 
-.panelInactive {
-  opacity: 0.5;
-}
-
 .headerRow {
   display: flex;
   align-items: center;
@@ -23,15 +19,6 @@
   text-transform: uppercase;
   font-weight: 600;
   font-family: var(--font-primary);
-}
-
-.inactiveNote {
-  font-size: 9px;
-  color: #555;
-  background: #1a1a1a;
-  border: 1px solid #333;
-  border-radius: 2px;
-  padding: 1px 4px;
 }
 
 .controls {

@@ -93,7 +93,7 @@ export function Deck({ deckId }: DeckProps) {
       const audioUrl = URL.createObjectURL(file);
       const title = file.name.replace(/\.[^/.]+$/, '');
       const entry: Omit<PlaylistEntry, 'id'> = {
-        sourceType: 'mp3', title, artist: 'Local File',
+        title, artist: 'Local File',
         duration: 0, thumbnailUrl: null, file, audioUrl,
       };
       addTrack(deckId, entry);
@@ -176,7 +176,7 @@ export function Deck({ deckId }: DeckProps) {
       {/* EQ knobs with kill switches and filter sweep */}
       <EQPanel deckId={deckId} />
 
-      {/* Effects — Echo / Reverb (MP3 only) */}
+      {/* Effects — Echo / Reverb */}
       <EffectsPanel deckId={deckId} />
 
       {/* Volume fader */}

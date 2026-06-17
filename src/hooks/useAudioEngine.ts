@@ -281,7 +281,6 @@ async function loadAudioFile(
     useDeckStore.getState().setDecoding(deckId, false);
     useDeckStore.getState().setPlayerReady(deckId, true);
     useDeckStore.getState().setCurrentTime(deckId, 0);
-    useDeckStore.getState().setPitchRateLocked(deckId, false);
 
     // Waveform peaks (synchronous — runs on decoded buffer)
     const peaks = extractWaveformPeaks(buffer, WAVEFORM_PEAKS);
@@ -340,7 +339,6 @@ async function loadAudioUrl(
     useDeckStore.getState().setDecoding(deckId, false);
     useDeckStore.getState().setPlayerReady(deckId, true);
     useDeckStore.getState().setCurrentTime(deckId, 0);
-    useDeckStore.getState().setPitchRateLocked(deckId, false);
 
     const peaks = extractWaveformPeaks(buffer, WAVEFORM_PEAKS);
     if (isMountedRef.current) useDeckStore.getState().setWaveformPeaks(deckId, peaks);

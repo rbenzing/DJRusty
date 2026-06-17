@@ -82,7 +82,6 @@ export function FileImportZone({ deckId, onFileAccepted }: FileImportZoneProps) 
     // Add track immediately — duration starts at 0 and is updated by
     // useAudioEngine after the AudioBuffer is decoded.
     const entry: Omit<PlaylistEntry, 'id'> = {
-      sourceType: 'mp3',
       title,
       artist: 'Local File',
       duration: 0,

@@ -43,7 +43,6 @@ export function HotCues({ deckId }: HotCuesProps) {
   const trackId = useDeckStore((s) => s.decks[deckId].trackId);
   const hotCues = useDeckStore((s) => s.decks[deckId].hotCues);
   const playerReady = useDeckStore((s) => s.decks[deckId].playerReady);
-  const sourceType = useDeckStore((s) => s.decks[deckId].sourceType);
   const hasTrack = trackId !== null;
 
   /**
@@ -65,7 +64,7 @@ export function HotCues({ deckId }: HotCuesProps) {
     if (timestamp === undefined) return;
     if (!playerReady) return;
 
-    const player = getActivePlayer(deckId, sourceType);
+    const player = getActivePlayer(deckId);
     if (player) {
       player.seekTo(timestamp, true);
     }
