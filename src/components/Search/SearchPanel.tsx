@@ -9,7 +9,6 @@
  *   - Loading skeleton while a request is in flight
  *   - Error state with descriptive message
  *   - "Load Next Page" pagination button
- *   - Greyed-out overlay when unauthenticated AND no API key configured
  *
  * STORY-012 additions:
  *   - Tab switcher: "Search" tab and "Recent" tab.
