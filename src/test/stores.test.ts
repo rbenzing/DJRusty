@@ -16,7 +16,6 @@ beforeEach(() => {
       A: {
         deckId: 'A',
         trackId: null,
-        sourceType: null,
         title: '',
         artist: '',
         waveformPeaks: null,
@@ -47,7 +46,6 @@ beforeEach(() => {
         effectEnabled: false,
         effectWetDry: 0.5,
         error: null,
-        pitchRateLocked: false,
         beatJumpSize: 4,
         synced: false,
         slipMode: false,
@@ -66,7 +64,6 @@ beforeEach(() => {
       B: {
         deckId: 'B',
         trackId: null,
-        sourceType: null,
         title: '',
         artist: '',
         waveformPeaks: null,
@@ -97,7 +94,6 @@ beforeEach(() => {
         effectEnabled: false,
         effectWetDry: 0.5,
         error: null,
-        pitchRateLocked: false,
         beatJumpSize: 4,
         synced: false,
         slipMode: false,
@@ -152,7 +148,6 @@ describe('deckStore', () => {
   it('loadTrack updates deck state correctly', () => {
     act(() => {
       useDeckStore.getState().loadTrack('A', 'dQw4w9WgXcQ', {
-        sourceType: 'youtube',
         title: 'Test Track',
         artist: 'Test Channel',
         duration: 212,
@@ -290,7 +285,6 @@ describe('deckStore', () => {
     // anchor=11.0 so snapLoopIn returns exactly 11.0 for currentTime=11.0.
     act(() => {
       useDeckStore.getState().loadTrack('A', 'test-vid', {
-        sourceType: 'youtube',
         title: 'T',
         artist: 'C',
         duration: 12,
@@ -314,7 +308,6 @@ describe('deckStore', () => {
     // anchor=10.0 so snapLoopIn returns exactly 10.0 for currentTime=10.0.
     act(() => {
       useDeckStore.getState().loadTrack('A', 'test-vid', {
-        sourceType: 'youtube',
         title: 'T',
         artist: 'C',
         duration: 30,
@@ -344,34 +337,6 @@ describe('deckStore', () => {
 
     const deckA = useDeckStore.getState().decks['A'];
     expect(deckA.loopEnd).toBeCloseTo(7.0, 5); // Not clamped
-  });
-
-  // STORY-014: setPitchRateLocked unit test
-  it('setPitchRateLocked sets pitchRateLocked to true', () => {
-    act(() => {
-      useDeckStore.getState().setPitchRateLocked('A', true);
-    });
-
-    expect(useDeckStore.getState().decks['A'].pitchRateLocked).toBe(true);
-  });
-
-  it('setPitchRateLocked sets pitchRateLocked to false', () => {
-    act(() => {
-      useDeckStore.getState().setPitchRateLocked('A', true);
-    });
-    act(() => {
-      useDeckStore.getState().setPitchRateLocked('A', false);
-    });
-
-    expect(useDeckStore.getState().decks['A'].pitchRateLocked).toBe(false);
-  });
-
-  it('setPitchRateLocked does not affect the other deck', () => {
-    act(() => {
-      useDeckStore.getState().setPitchRateLocked('A', true);
-    });
-
-    expect(useDeckStore.getState().decks['B'].pitchRateLocked).toBe(false);
   });
 
   it('setHotCue stores the timestamp at the given index', () => {
@@ -437,7 +402,6 @@ describe('deckStore', () => {
   it('clearTrack resets all deck state', () => {
     act(() => {
       useDeckStore.getState().loadTrack('A', 'dQw4w9WgXcQ', {
-        sourceType: 'youtube',
         title: 'Test',
         artist: 'Channel',
         duration: 100,

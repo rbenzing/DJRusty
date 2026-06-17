@@ -9,7 +9,7 @@ describe('DeckControls does not re-render on currentTime ticks', () => {
 
   it('stays put across 10 playhead ticks', () => {
     const store = useDeckStore.getState();
-    store.loadTrack('A', 'vid12345678', { sourceType: 'youtube', title: 't', artist: 'a', duration: 180, thumbnailUrl: null });
+    store.loadTrack('A', 'vid12345678', { title: 't', artist: 'a', duration: 180, thumbnailUrl: null });
     let commits = 0;
     render(
       <Profiler id="deck-controls" onRender={() => { commits++; }}>

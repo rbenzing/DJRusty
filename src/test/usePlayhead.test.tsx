@@ -7,7 +7,7 @@ import { useDeckStore } from '../store/deckStore';
 describe('usePlayhead', () => {
   beforeEach(() => {
     useDeckStore.getState().clearTrack('A');
-    playerRegistry.unregister('A', 'youtube'); playerRegistry.unregister('A', 'audio');
+    playerRegistry.unregister('A');
     vi.stubGlobal('requestAnimationFrame', (cb: FrameRequestCallback) => setTimeout(() => cb(0), 0) as unknown as number);
     vi.stubGlobal('cancelAnimationFrame', (id: number) => clearTimeout(id));
   });
@@ -15,8 +15,8 @@ describe('usePlayhead', () => {
 
   it('reads the active player clock into the ref without touching the store', async () => {
     let t = 0;
-    playerRegistry.register('A', 'audio', { seekTo: vi.fn(), getCurrentTime: () => t, getDuration: () => 180 });
-    useDeckStore.getState().loadTrack('A', 'x', { sourceType: 'mp3', title: '', artist: '', duration: 180, thumbnailUrl: null });
+    playerRegistry.register('A', { seekTo: vi.fn(), getCurrentTime: () => t, getDuration: () => 180 });
+    useDeckStore.getState().loadTrack('A', 'x', { title: '', artist: '', duration: 180, thumbnailUrl: null });
     const spy = vi.spyOn(useDeckStore.getState(), 'setCurrentTime');
     const { result } = renderHook(() => usePlayhead('A'));
     t = 12.34;

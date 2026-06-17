@@ -357,7 +357,7 @@ describe('FileImportZone — accepted MIME types', () => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe('FileImportZone — PlaylistEntry contract', () => {
-  it('calls addTrack with sourceType "mp3" for an MP3 file', () => {
+  it('calls addTrack for an MP3 file with the correct title', () => {
     render(<FileImportZone deckId="A" />);
     const zone = screen.getByRole('button', { name: /deck a/i });
     const file = makeFile('my-song.mp3', 'audio/mpeg');
@@ -366,11 +366,11 @@ describe('FileImportZone — PlaylistEntry contract', () => {
 
     expect(mockAddTrack).toHaveBeenCalledWith(
       'A',
-      expect.objectContaining({ sourceType: 'mp3' }),
+      expect.objectContaining({ title: 'my-song' }),
     );
   });
 
-  it('calls addTrack with sourceType "mp3" for a WAV file', () => {
+  it('calls addTrack for a WAV file with the correct title', () => {
     render(<FileImportZone deckId="A" />);
     const zone = screen.getByRole('button', { name: /deck a/i });
     const file = makeFile('loop.wav', 'audio/wav');
@@ -379,11 +379,11 @@ describe('FileImportZone — PlaylistEntry contract', () => {
 
     expect(mockAddTrack).toHaveBeenCalledWith(
       'A',
-      expect.objectContaining({ sourceType: 'mp3' }),
+      expect.objectContaining({ title: 'loop' }),
     );
   });
 
-  it('calls addTrack with sourceType "mp3" for an OGG file', () => {
+  it('calls addTrack for an OGG file with the correct title', () => {
     render(<FileImportZone deckId="A" />);
     const zone = screen.getByRole('button', { name: /deck a/i });
     const file = makeFile('bass.ogg', 'audio/ogg');
@@ -392,11 +392,11 @@ describe('FileImportZone — PlaylistEntry contract', () => {
 
     expect(mockAddTrack).toHaveBeenCalledWith(
       'A',
-      expect.objectContaining({ sourceType: 'mp3' }),
+      expect.objectContaining({ title: 'bass' }),
     );
   });
 
-  it('calls addTrack with sourceType "mp3" for a FLAC file', () => {
+  it('calls addTrack for a FLAC file with the correct title', () => {
     render(<FileImportZone deckId="A" />);
     const zone = screen.getByRole('button', { name: /deck a/i });
     const file = makeFile('master.flac', 'audio/flac');
@@ -405,7 +405,7 @@ describe('FileImportZone — PlaylistEntry contract', () => {
 
     expect(mockAddTrack).toHaveBeenCalledWith(
       'A',
-      expect.objectContaining({ sourceType: 'mp3' }),
+      expect.objectContaining({ title: 'master' }),
     );
   });
 
@@ -656,7 +656,6 @@ describe('FileImportZone — file picker (Browse Files button)', () => {
     expect(mockAddTrack).toHaveBeenCalledWith(
       'A',
       expect.objectContaining({
-        sourceType: 'mp3',
         title: 'picked-track',
         artist: 'Local File',
         thumbnailUrl: null,

@@ -15,7 +15,7 @@ import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { act } from '@testing-library/react';
 import { useDeckStore } from '../store/deckStore';
 import { getHotCues, setHotCue, clearHotCue } from '../utils/hotCues';
-import { playerRegistry } from '../services/playerRegistry';
+import { playerRegistry, getActivePlayer } from '../services/playerRegistry';
 
 // ---------------------------------------------------------------------------
 // Helpers / setup
@@ -29,7 +29,6 @@ function resetDeckStore() {
       A: {
         deckId: 'A',
         trackId: null,
-        sourceType: null,
         title: '',
         artist: '',
         waveformPeaks: null,
@@ -60,7 +59,6 @@ function resetDeckStore() {
         effectEnabled: false,
         effectWetDry: 0.5,
         error: null,
-        pitchRateLocked: false,
         beatJumpSize: 4,
         synced: false,
         slipMode: false,
@@ -79,7 +77,6 @@ function resetDeckStore() {
       B: {
         deckId: 'B',
         trackId: null,
-        sourceType: null,
         title: '',
         artist: '',
         waveformPeaks: null,
@@ -110,7 +107,6 @@ function resetDeckStore() {
         effectEnabled: false,
         effectWetDry: 0.5,
         error: null,
-        pitchRateLocked: false,
         beatJumpSize: 4,
         synced: false,
         slipMode: false,
@@ -201,7 +197,7 @@ describe('STORY-011: setting a hot cue', () => {
 
 describe('STORY-011: jumping to a hot cue', () => {
   it('calls player.seekTo(timestamp, true) on the registered player', () => {
-    const mockPlayer = { seekTo: vi.fn() } as unknown as YT.Player;
+    const mockPlayer = { seekTo: vi.fn(), getCurrentTime: () => 0, getDuration: () => 180 };
     playerRegistry.register('A', mockPlayer);
 
     // Simulate the jump action as performed by HotCues component.
@@ -216,17 +212,17 @@ describe('STORY-011: jumping to a hot cue', () => {
   it('does not throw when no player is registered (player not yet ready)', () => {
     // No player registered for deck B.
     expect(() => {
-      const player = playerRegistry.get('B');
+      const player = getActivePlayer('B');
       player?.seekTo(10, true); // Optional chaining prevents throw.
     }).not.toThrow();
   });
 
   it('playerRegistry.get returns undefined after unregister', () => {
-    const mockPlayer = { seekTo: vi.fn() } as unknown as YT.Player;
+    const mockPlayer = { seekTo: vi.fn(), getCurrentTime: () => 0, getDuration: () => 180 };
     playerRegistry.register('A', mockPlayer);
     playerRegistry.unregister('A');
 
-    expect(playerRegistry.get('A')).toBeUndefined();
+    expect(getActivePlayer('A')).toBeUndefined();
   });
 });
 
@@ -286,7 +282,6 @@ describe('STORY-011: hot cue persistence across reload', () => {
     // Simulate loading the same video (triggers getHotCues inside loadTrack).
     act(() => {
       useDeckStore.getState().loadTrack('A', 'dQw4w9WgXcQ', {
-        sourceType: 'youtube',
         title: 'Test Track',
         artist: 'Test Channel',
         duration: 212,
@@ -302,7 +297,6 @@ describe('STORY-011: hot cue persistence across reload', () => {
   it('deck has empty hotCues after loadTrack when no cues are stored for that video', () => {
     act(() => {
       useDeckStore.getState().loadTrack('A', 'newVideoId', {
-        sourceType: 'youtube',
         title: 'New Track',
         artist: 'Channel',
         duration: 180,
@@ -319,7 +313,6 @@ describe('STORY-011: hot cue persistence across reload', () => {
 
     act(() => {
       useDeckStore.getState().loadTrack('A', 'videoOld', {
-        sourceType: 'youtube',
         title: 'Old',
         artist: 'Ch',
         duration: 100,
@@ -330,7 +323,6 @@ describe('STORY-011: hot cue persistence across reload', () => {
 
     act(() => {
       useDeckStore.getState().loadTrack('A', 'videoNew', {
-        sourceType: 'youtube',
         title: 'New',
         artist: 'Ch',
         duration: 200,
@@ -436,43 +428,43 @@ describe('STORY-011: playerRegistry', () => {
   });
 
   it('returns undefined for an unregistered deck', () => {
-    expect(playerRegistry.get('A')).toBeUndefined();
+    expect(getActivePlayer('A')).toBeUndefined();
   });
 
   it('returns the registered player after register()', () => {
-    const mockPlayer = { seekTo: vi.fn() } as unknown as YT.Player;
+    const mockPlayer = { seekTo: vi.fn(), getCurrentTime: () => 0, getDuration: () => 180 };
     playerRegistry.register('A', mockPlayer);
 
-    expect(playerRegistry.get('A')).toBe(mockPlayer);
+    expect(getActivePlayer('A')).toBe(mockPlayer);
   });
 
   it('unregister() removes the player from the registry', () => {
-    const mockPlayer = { seekTo: vi.fn() } as unknown as YT.Player;
+    const mockPlayer = { seekTo: vi.fn(), getCurrentTime: () => 0, getDuration: () => 180 };
     playerRegistry.register('B', mockPlayer);
     playerRegistry.unregister('B');
 
-    expect(playerRegistry.get('B')).toBeUndefined();
+    expect(getActivePlayer('B')).toBeUndefined();
   });
 
   it('supports independent registration for Deck A and Deck B', () => {
-    const playerA = { seekTo: vi.fn(), id: 'A' } as unknown as YT.Player;
-    const playerB = { seekTo: vi.fn(), id: 'B' } as unknown as YT.Player;
+    const playerA = { seekTo: vi.fn(), getCurrentTime: () => 0, getDuration: () => 180, id: 'A' };
+    const playerB = { seekTo: vi.fn(), getCurrentTime: () => 0, getDuration: () => 180, id: 'B' };
 
     playerRegistry.register('A', playerA);
     playerRegistry.register('B', playerB);
 
-    expect(playerRegistry.get('A')).toBe(playerA);
-    expect(playerRegistry.get('B')).toBe(playerB);
+    expect(getActivePlayer('A')).toBe(playerA);
+    expect(getActivePlayer('B')).toBe(playerB);
   });
 
   it('re-registering a deck replaces the previous player', () => {
-    const player1 = { seekTo: vi.fn(), id: '1' } as unknown as YT.Player;
-    const player2 = { seekTo: vi.fn(), id: '2' } as unknown as YT.Player;
+    const player1 = { seekTo: vi.fn(), getCurrentTime: () => 0, getDuration: () => 180, id: '1' };
+    const player2 = { seekTo: vi.fn(), getCurrentTime: () => 0, getDuration: () => 180, id: '2' };
 
     playerRegistry.register('A', player1);
     playerRegistry.register('A', player2);
 
-    expect(playerRegistry.get('A')).toBe(player2);
+    expect(getActivePlayer('A')).toBe(player2);
   });
 });
 

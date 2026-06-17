@@ -119,7 +119,6 @@ function initialDeckState(deckId: 'A' | 'B') {
   return {
     deckId,
     trackId: null,
-    sourceType: null as null,
     title: '',
     artist: '',
     waveformPeaks: null,
@@ -151,7 +150,6 @@ function initialDeckState(deckId: 'A' | 'B') {
     effectEnabled: false,
     effectWetDry: 0.5,
     error: null,
-    pitchRateLocked: false,
     synced: false,
     slipMode: false,
     slipPosition: null,
@@ -182,7 +180,6 @@ function resetStores() {
 async function loadMp3TrackAndWait(deckId: 'A' | 'B', file: File) {
   const entry = {
     id: 'test-entry-1',
-    sourceType: 'mp3' as const,
     title: 'Test Track',
     artist: 'Local File',
     duration: 240,
@@ -199,7 +196,7 @@ async function loadMp3TrackAndWait(deckId: 'A' | 'B', file: File) {
     useDeckStore.getState().loadTrack(
       deckId,
       entry.id,
-      { sourceType: 'mp3', title: entry.title, artist: entry.artist, duration: entry.duration, thumbnailUrl: null },
+      { title: entry.title, artist: entry.artist, duration: entry.duration, thumbnailUrl: null },
       false,
     );
     await Promise.resolve();
@@ -757,7 +754,6 @@ describe('MP3-003 — deck isolation: deck B transport does not affect deck A en
     // Load track into deck B (different deck)
     const entryB = {
       id: 'entry-b',
-      sourceType: 'mp3' as const,
       title: 'Track B',
       artist: 'Local File',
       duration: 120,
@@ -770,7 +766,7 @@ describe('MP3-003 — deck isolation: deck B transport does not affect deck A en
         currentIndex: { ...usePlaylistStore.getState().currentIndex, B: 0 },
       });
       useDeckStore.getState().loadTrack('B', entryB.id, {
-        sourceType: 'mp3', title: entryB.title, artist: entryB.artist, duration: entryB.duration, thumbnailUrl: null,
+        title: entryB.title, artist: entryB.artist, duration: entryB.duration, thumbnailUrl: null,
       });
       await Promise.resolve();
     });

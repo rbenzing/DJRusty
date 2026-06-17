@@ -90,8 +90,8 @@ import { useAudioEngine } from '../hooks/useAudioEngine';
 function resetStores() {
   useDeckStore.setState({
     decks: {
-      A: { deckId: 'A', trackId: null, sourceType: null, title: '', artist: '', waveformPeaks: null, waveformColoredPeaks: null, decoding: false, bpmDetecting: false, duration: 0, currentTime: 0, thumbnailUrl: null, playbackState: 'unstarted', pitchRate: 1 as const, bpm: null, volume: 80, loopActive: false, loopStart: null, loopEnd: null, loopBeatCount: null, beatJumpSize: 4, playerReady: false, hotCues: {}, eqLow: 0, eqMid: 0, eqHigh: 0, eqKillLow: false, eqKillMid: false, eqKillHigh: false, filterSweep: 0, effectType: 'none' as const, effectEnabled: false, effectWetDry: 0.5, error: null, pitchRateLocked: false, synced: false, slipMode: false, slipPosition: null, slipStartTime: null, slipStartPosition: null, rollMode: false, rollStartWallClock: null, rollStartPosition: null, autoPlayOnLoad: false, anchor: null, gridConfirmed: false, cuePoint: null, transportState: 'CUED' as const },
-      B: { deckId: 'B', trackId: null, sourceType: null, title: '', artist: '', waveformPeaks: null, waveformColoredPeaks: null, decoding: false, bpmDetecting: false, duration: 0, currentTime: 0, thumbnailUrl: null, playbackState: 'unstarted', pitchRate: 1 as const, bpm: null, volume: 80, loopActive: false, loopStart: null, loopEnd: null, loopBeatCount: null, beatJumpSize: 4, playerReady: false, hotCues: {}, eqLow: 0, eqMid: 0, eqHigh: 0, eqKillLow: false, eqKillMid: false, eqKillHigh: false, filterSweep: 0, effectType: 'none' as const, effectEnabled: false, effectWetDry: 0.5, error: null, pitchRateLocked: false, synced: false, slipMode: false, slipPosition: null, slipStartTime: null, slipStartPosition: null, rollMode: false, rollStartWallClock: null, rollStartPosition: null, autoPlayOnLoad: false, anchor: null, gridConfirmed: false, cuePoint: null, transportState: 'CUED' as const },
+      A: { deckId: 'A', trackId: null, title: '', artist: '', waveformPeaks: null, waveformColoredPeaks: null, decoding: false, bpmDetecting: false, duration: 0, currentTime: 0, thumbnailUrl: null, playbackState: 'unstarted', pitchRate: 1 as const, bpm: null, volume: 80, loopActive: false, loopStart: null, loopEnd: null, loopBeatCount: null, beatJumpSize: 4, playerReady: false, hotCues: {}, eqLow: 0, eqMid: 0, eqHigh: 0, eqKillLow: false, eqKillMid: false, eqKillHigh: false, filterSweep: 0, effectType: 'none' as const, effectEnabled: false, effectWetDry: 0.5, error: null, synced: false, slipMode: false, slipPosition: null, slipStartTime: null, slipStartPosition: null, rollMode: false, rollStartWallClock: null, rollStartPosition: null, autoPlayOnLoad: false, anchor: null, gridConfirmed: false, cuePoint: null, transportState: 'CUED' as const },
+      B: { deckId: 'B', trackId: null, title: '', artist: '', waveformPeaks: null, waveformColoredPeaks: null, decoding: false, bpmDetecting: false, duration: 0, currentTime: 0, thumbnailUrl: null, playbackState: 'unstarted', pitchRate: 1 as const, bpm: null, volume: 80, loopActive: false, loopStart: null, loopEnd: null, loopBeatCount: null, beatJumpSize: 4, playerReady: false, hotCues: {}, eqLow: 0, eqMid: 0, eqHigh: 0, eqKillLow: false, eqKillMid: false, eqKillHigh: false, filterSweep: 0, effectType: 'none' as const, effectEnabled: false, effectWetDry: 0.5, error: null, synced: false, slipMode: false, slipPosition: null, slipStartTime: null, slipStartPosition: null, rollMode: false, rollStartWallClock: null, rollStartPosition: null, autoPlayOnLoad: false, anchor: null, gridConfirmed: false, cuePoint: null, transportState: 'CUED' as const },
     },
   } as never);
   usePlaylistStore.setState({ playlists: { A: [], B: [] }, currentIndex: { A: -1, B: -1 } });
@@ -111,9 +111,9 @@ describe('MP3-006 — waveform hook integration', () => {
     act(() => { useDeckStore.getState().setWaveformPeaks('A', new Float32Array([1, 2, 3])); });
 
     const file = new File(['x'], 'test.mp3', { type: 'audio/mpeg' });
-    const entry = { id: 'e1', sourceType: 'mp3' as const, title: 'T', artist: 'A', duration: 120, thumbnailUrl: null, file };
+    const entry = { id: 'e1', title: 'T', artist: 'A', duration: 120, thumbnailUrl: null, file };
     act(() => { usePlaylistStore.setState({ playlists: { A: [entry], B: [] }, currentIndex: { A: 0, B: -1 } }); });
-    act(() => { useDeckStore.getState().loadTrack('A', entry.id, { sourceType: 'mp3', title: 'T', artist: 'A', duration: 120, thumbnailUrl: null }); });
+    act(() => { useDeckStore.getState().loadTrack('A', entry.id, { title: 'T', artist: 'A', duration: 120, thumbnailUrl: null }); });
     // At this point peaks should be cleared (before decode resolves)
     expect(useDeckStore.getState().decks['A'].waveformPeaks).toBeNull();
   });
@@ -121,10 +121,10 @@ describe('MP3-006 — waveform hook integration', () => {
   it('calls extractWaveformPeaks with decoded buffer after load', async () => {
     renderHook(() => useAudioEngine('A'));
     const file = new File(['x'], 'test.mp3', { type: 'audio/mpeg' });
-    const entry = { id: 'e1', sourceType: 'mp3' as const, title: 'T', artist: 'A', duration: 120, thumbnailUrl: null, file };
+    const entry = { id: 'e1', title: 'T', artist: 'A', duration: 120, thumbnailUrl: null, file };
     act(() => { usePlaylistStore.setState({ playlists: { A: [entry], B: [] }, currentIndex: { A: 0, B: -1 } }); });
     await act(async () => {
-      useDeckStore.getState().loadTrack('A', entry.id, { sourceType: 'mp3', title: 'T', artist: 'A', duration: 120, thumbnailUrl: null });
+      useDeckStore.getState().loadTrack('A', entry.id, { title: 'T', artist: 'A', duration: 120, thumbnailUrl: null });
       await Promise.resolve();
     });
     expect(waveformModule.extractWaveformPeaks).toHaveBeenCalledWith(fakeBuffer, expect.any(Number));
@@ -133,10 +133,10 @@ describe('MP3-006 — waveform hook integration', () => {
   it('stores extracted peaks in deckStore.waveformPeaks', async () => {
     renderHook(() => useAudioEngine('A'));
     const file = new File(['x'], 'test.mp3', { type: 'audio/mpeg' });
-    const entry = { id: 'e1', sourceType: 'mp3' as const, title: 'T', artist: 'A', duration: 120, thumbnailUrl: null, file };
+    const entry = { id: 'e1', title: 'T', artist: 'A', duration: 120, thumbnailUrl: null, file };
     act(() => { usePlaylistStore.setState({ playlists: { A: [entry], B: [] }, currentIndex: { A: 0, B: -1 } }); });
     await act(async () => {
-      useDeckStore.getState().loadTrack('A', entry.id, { sourceType: 'mp3', title: 'T', artist: 'A', duration: 120, thumbnailUrl: null });
+      useDeckStore.getState().loadTrack('A', entry.id, { title: 'T', artist: 'A', duration: 120, thumbnailUrl: null });
       await Promise.resolve();
     });
     expect(useDeckStore.getState().decks['A'].waveformPeaks).toBe(fakePeaks);
@@ -144,7 +144,7 @@ describe('MP3-006 — waveform hook integration', () => {
 
   it('does NOT set waveformPeaks for youtube source', async () => {
     renderHook(() => useAudioEngine('A'));
-    await act(async () => { useDeckStore.getState().loadTrack('A', 'yt1', { sourceType: 'youtube', title: '', artist: '', duration: 0, thumbnailUrl: null }); await Promise.resolve(); });
+    await act(async () => { useDeckStore.getState().loadTrack('A', 'yt1', { title: '', artist: '', duration: 0, thumbnailUrl: null }); await Promise.resolve(); });
     expect(waveformModule.extractWaveformPeaks).not.toHaveBeenCalled();
     expect(useDeckStore.getState().decks['A'].waveformPeaks).toBeNull();
   });

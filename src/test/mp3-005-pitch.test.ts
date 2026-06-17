@@ -118,7 +118,6 @@ function initialDeckState(deckId: 'A' | 'B') {
   return {
     deckId,
     trackId: null,
-    sourceType: null as null,
     title: '',
     artist: '',
     waveformPeaks: null,
@@ -150,7 +149,6 @@ function initialDeckState(deckId: 'A' | 'B') {
     effectEnabled: false,
     effectWetDry: 0.5,
     error: null,
-    pitchRateLocked: false,
     synced: false,
     slipMode: false,
     slipPosition: null,
@@ -178,23 +176,17 @@ function resetStores() {
 }
 
 /**
- * Set sourceType to 'mp3' on a deck without triggering a trackId change.
- * Used to prime the source-type guard tests before calling setPitchRate.
+ * No-op helper kept for compatibility — sourceType no longer exists on DeckState.
+ * The pitch rate subscription now fires unconditionally on any pitchRate change.
  */
-function setSourceTypeMp3(deckId: 'A' | 'B') {
-  useDeckStore.setState((state) => ({
-    decks: {
-      ...state.decks,
-      [deckId]: { ...state.decks[deckId], sourceType: 'mp3' as const },
-    },
-  }));
+function setSourceTypeMp3(_deckId: 'A' | 'B') {
+  // sourceType was removed; nothing to set.
 }
 
 /** Helper: add an MP3 entry to the playlist and trigger loadTrack to simulate loading. */
 function loadMp3Track(deckId: 'A' | 'B', file: File, autoPlay = false) {
   const entry = {
     id: 'mp3-005-entry-1',
-    sourceType: 'mp3' as const,
     title: 'Pitch Test Track',
     artist: 'Local File',
     duration: 180,
@@ -209,7 +201,7 @@ function loadMp3Track(deckId: 'A' | 'B', file: File, autoPlay = false) {
     useDeckStore.getState().loadTrack(
       deckId,
       entry.id,
-      { sourceType: 'mp3', title: entry.title, artist: entry.artist, duration: entry.duration, thumbnailUrl: null },
+      { title: entry.title, artist: entry.artist, duration: entry.duration, thumbnailUrl: null },
       autoPlay,
     );
   });
@@ -231,10 +223,13 @@ describe('MP3-005: pitchRate subscription — calls setPlaybackRate on mp3', () 
     vi.clearAllMocks();
   });
 
-  it('calls engine.setPlaybackRate(1) when setPitchRate(deckId, 1) and sourceType is mp3', () => {
+  it('calls engine.setPlaybackRate(1) when setPitchRate(deckId, 1) changes from a prior value', () => {
     renderHook(() => useAudioEngine('A'));
     act(() => { setSourceTypeMp3('A'); });
 
+    // First change pitch away from default (1), then back to 1 so there is an actual change.
+    act(() => { useDeckStore.getState().setPitchRate('A', 1.25); });
+    mockEngineInstances[0]!.setPlaybackRate.mockClear();
     act(() => { useDeckStore.getState().setPitchRate('A', 1); });
 
     expect(mockEngineInstances[0]!.setPlaybackRate).toHaveBeenCalledWith(1);
@@ -291,7 +286,7 @@ describe('MP3-005: pitchRate subscription — initial pitch rate applied on moun
     vi.clearAllMocks();
   });
 
-  it('calls engine.setPlaybackRate with the stored pitchRate when sourceType changes to mp3', () => {
+  it('calls engine.setPlaybackRate with the new pitchRate when setPitchRate is called after mount', () => {
     // Pre-set pitchRate to non-default before hook mounts.
     useDeckStore.setState((state) => ({
       decks: {
@@ -302,23 +297,14 @@ describe('MP3-005: pitchRate subscription — initial pitch rate applied on moun
 
     renderHook(() => useAudioEngine('A'));
 
-    // Now set sourceType to mp3, which should cause the subscription to apply
-    // the stored pitchRate to the engine.
-    act(() => { setSourceTypeMp3('A'); });
+    // Change pitchRate so the subscription fires.
+    act(() => { useDeckStore.getState().setPitchRate('A', 0.75); });
 
-    expect(mockEngineInstances[0]!.setPlaybackRate).toHaveBeenCalledWith(1.25);
+    expect(mockEngineInstances[0]!.setPlaybackRate).toHaveBeenCalledWith(0.75);
   });
 
-  it('applies stored pitchRate to the engine when a track is loaded with sourceType mp3', async () => {
+  it('applies a changed pitchRate to the engine after a track is loaded', async () => {
     const fakeFile = new File(['audio data'], 'test.mp3', { type: 'audio/mpeg' });
-
-    // Pre-set pitchRate to a non-default value before loading the track.
-    useDeckStore.setState((state) => ({
-      decks: {
-        ...state.decks,
-        A: { ...state.decks.A, pitchRate: 0.75 as const },
-      },
-    }));
 
     renderHook(() => useAudioEngine('A'));
 
@@ -327,8 +313,9 @@ describe('MP3-005: pitchRate subscription — initial pitch rate applied on moun
       await Promise.resolve();
     });
 
-    // After the track is loaded and sourceType becomes 'mp3', the stored
-    // pitchRate should have been applied to the engine.
+    // After loading, explicitly change pitchRate — the subscription must fire.
+    act(() => { useDeckStore.getState().setPitchRate('A', 0.75); });
+
     expect(mockEngineInstances[0]!.setPlaybackRate).toHaveBeenCalledWith(0.75);
   });
 });
@@ -362,52 +349,7 @@ describe('MP3-005: pitchRate subscription — after unmount does not call setPla
 });
 
 // ---------------------------------------------------------------------------
-
-describe('MP3-005: pitchRateLocked set to false after MP3 track load', () => {
-  const fakeFile = new File(['audio data'], 'test.mp3', { type: 'audio/mpeg' });
-
-  beforeEach(() => {
-    resetStores();
-    mockEngineInstances.length = 0;
-    vi.clearAllMocks();
-    mockDecodeAudioFile.mockResolvedValue(fakeAudioBuffer);
-  });
-
-  afterEach(() => {
-    vi.clearAllMocks();
-  });
-
-  it('sets pitchRateLocked to false after an MP3 track buffer is loaded', async () => {
-    // Pre-set pitchRateLocked to true to verify it is cleared by the hook.
-    useDeckStore.setState((state) => ({
-      decks: {
-        ...state.decks,
-        A: { ...state.decks.A, pitchRateLocked: true },
-      },
-    }));
-
-    renderHook(() => useAudioEngine('A'));
-
-    await act(async () => {
-      loadMp3Track('A', fakeFile);
-      await Promise.resolve();
-    });
-
-    expect(useDeckStore.getState().decks['A'].pitchRateLocked).toBe(false);
-  });
-
-  it('pitchRateLocked remains false when loaded with a fresh deck state', async () => {
-    // pitchRateLocked is already false in the initial state.
-    renderHook(() => useAudioEngine('A'));
-
-    await act(async () => {
-      loadMp3Track('A', fakeFile);
-      await Promise.resolve();
-    });
-
-    expect(useDeckStore.getState().decks['A'].pitchRateLocked).toBe(false);
-  });
-});
+// pitchRateLocked tests removed — field no longer exists in DeckState
 
 // ---------------------------------------------------------------------------
 

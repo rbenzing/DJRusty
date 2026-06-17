@@ -122,7 +122,6 @@ function initialDeckState(deckId: 'A' | 'B') {
   return {
     deckId,
     trackId: null,
-    sourceType: null as null,
     title: '',
     artist: '',
     waveformPeaks: null,
@@ -154,7 +153,6 @@ function initialDeckState(deckId: 'A' | 'B') {
     effectEnabled: false,
     effectWetDry: 0.5,
     error: null,
-    pitchRateLocked: false,
     synced: false,
     slipMode: false,
     slipPosition: null,
@@ -185,7 +183,6 @@ function resetStores() {
 function loadMp3Track(deckId: 'A' | 'B', file: File, autoPlay = false) {
   const entry = {
     id: 'test-entry-1',
-    sourceType: 'mp3' as const,
     title: 'Test Track',
     artist: 'Local File',
     duration: 240,
@@ -200,7 +197,7 @@ function loadMp3Track(deckId: 'A' | 'B', file: File, autoPlay = false) {
     useDeckStore.getState().loadTrack(
       deckId,
       entry.id,
-      { sourceType: 'mp3', title: entry.title, artist: entry.artist, duration: entry.duration, thumbnailUrl: null },
+      { title: entry.title, artist: entry.artist, duration: entry.duration, thumbnailUrl: null },
       autoPlay,
     );
   });
@@ -248,12 +245,12 @@ describe('useAudioEngine — lifecycle: mount', () => {
 
   it('registers the engine in playerRegistry with the correct deckId on mount', () => {
     renderHook(() => useAudioEngine('A'));
-    expect(playerRegistry.register).toHaveBeenCalledWith('A', 'audio', mockEngineInstances[0]);
+    expect(playerRegistry.register).toHaveBeenCalledWith('A', mockEngineInstances[0]);
   });
 
   it('registers with deckId B when called with B', () => {
     renderHook(() => useAudioEngine('B'));
-    expect(playerRegistry.register).toHaveBeenCalledWith('B', 'audio', mockEngineInstances[0]);
+    expect(playerRegistry.register).toHaveBeenCalledWith('B', mockEngineInstances[0]);
   });
 
   it('registers exactly once on mount (no double registration)', () => {
@@ -284,13 +281,13 @@ describe('useAudioEngine — lifecycle: unmount', () => {
   it('unregisters from playerRegistry on unmount with the correct deckId', () => {
     const { unmount } = renderHook(() => useAudioEngine('A'));
     unmount();
-    expect(playerRegistry.unregister).toHaveBeenCalledWith('A', 'audio');
+    expect(playerRegistry.unregister).toHaveBeenCalledWith('A');
   });
 
   it('unregisters deck B from playerRegistry on unmount', () => {
     const { unmount } = renderHook(() => useAudioEngine('B'));
     unmount();
-    expect(playerRegistry.unregister).toHaveBeenCalledWith('B', 'audio');
+    expect(playerRegistry.unregister).toHaveBeenCalledWith('B');
   });
 
   it('does not call destroy before unmount', () => {
@@ -423,7 +420,6 @@ describe('useAudioEngine — track loading: mp3', () => {
     // Set up a playlist entry with no file field.
     const entryWithoutFile = {
       id: 'no-file-entry',
-      sourceType: 'mp3' as const,
       title: 'No File',
       artist: 'Local File',
       duration: 0,
@@ -437,7 +433,7 @@ describe('useAudioEngine — track loading: mp3', () => {
 
     await act(async () => {
       useDeckStore.getState().loadTrack('A', 'no-file-entry', {
-        sourceType: 'mp3', title: 'No File', artist: 'Local File', duration: 0, thumbnailUrl: null,
+        title: 'No File', artist: 'Local File', duration: 0, thumbnailUrl: null,
       });
       await Promise.resolve();
     });
@@ -634,8 +630,8 @@ describe('useAudioEngine — onEnded callback: playlist auto-advance', () => {
     renderHook(() => useAudioEngine('A'));
 
     // Set up two tracks in the playlist so skipToNext has somewhere to go.
-    const entry1 = { id: 'e1', sourceType: 'mp3' as const, title: 'Track 1', artist: 'Local File', duration: 120, thumbnailUrl: null, file: fakeFile };
-    const entry2 = { id: 'e2', sourceType: 'mp3' as const, title: 'Track 2', artist: 'Local File', duration: 180, thumbnailUrl: null, file: fakeFile };
+    const entry1 = { id: 'e1', title: 'Track 1', artist: 'Local File', duration: 120, thumbnailUrl: null, file: fakeFile };
+    const entry2 = { id: 'e2', title: 'Track 2', artist: 'Local File', duration: 180, thumbnailUrl: null, file: fakeFile };
     usePlaylistStore.setState({
       playlists: { ...usePlaylistStore.getState().playlists, A: [entry1, entry2] },
       currentIndex: { ...usePlaylistStore.getState().currentIndex, A: 0 },
@@ -655,7 +651,7 @@ describe('useAudioEngine — onEnded callback: playlist auto-advance', () => {
     renderHook(() => useAudioEngine('A'));
 
     // Single track playlist — already at the end.
-    const entry = { id: 'e1', sourceType: 'mp3' as const, title: 'Track 1', artist: 'Local File', duration: 120, thumbnailUrl: null, file: fakeFile };
+    const entry = { id: 'e1', title: 'Track 1', artist: 'Local File', duration: 120, thumbnailUrl: null, file: fakeFile };
     usePlaylistStore.setState({
       playlists: { ...usePlaylistStore.getState().playlists, A: [entry] },
       currentIndex: { ...usePlaylistStore.getState().currentIndex, A: 0 },
@@ -713,7 +709,7 @@ describe('useAudioEngine — trackId subscription does not fire on unrelated sta
     // Set the same trackId again — should be a no-op.
     await act(async () => {
       useDeckStore.getState().loadTrack('A', 'test-entry-1', {
-        sourceType: 'mp3', title: 'Test Track', artist: 'Local File', duration: 240, thumbnailUrl: null,
+        title: 'Test Track', artist: 'Local File', duration: 240, thumbnailUrl: null,
       });
       await Promise.resolve();
     });
@@ -764,8 +760,8 @@ describe('useAudioEngine — deck isolation', () => {
   it('registers separate players for deck A and deck B', () => {
     renderHook(() => useAudioEngine('A'));
     renderHook(() => useAudioEngine('B'));
-    expect(playerRegistry.register).toHaveBeenCalledWith('A', 'audio', mockEngineInstances[0]);
-    expect(playerRegistry.register).toHaveBeenCalledWith('B', 'audio', mockEngineInstances[1]!);
+    expect(playerRegistry.register).toHaveBeenCalledWith('A', mockEngineInstances[0]);
+    expect(playerRegistry.register).toHaveBeenCalledWith('B', mockEngineInstances[1]!);
   });
 
   it('does not decode deck A track when deck B trackId changes', async () => {
@@ -786,7 +782,7 @@ describe('useAudioEngine — deck isolation', () => {
 
     unmountA();
 
-    expect(playerRegistry.unregister).toHaveBeenCalledWith('A', 'audio');
-    expect(playerRegistry.unregister).not.toHaveBeenCalledWith('B', 'audio');
+    expect(playerRegistry.unregister).toHaveBeenCalledWith('A');
+    expect(playerRegistry.unregister).not.toHaveBeenCalledWith('B');
   });
 });

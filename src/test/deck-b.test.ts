@@ -24,7 +24,6 @@ function resetDeckStore() {
       A: {
         deckId: 'A',
         trackId: null,
-        sourceType: null,
         title: '',
         artist: '',
         waveformPeaks: null,
@@ -55,7 +54,6 @@ function resetDeckStore() {
         effectEnabled: false,
         effectWetDry: 0.5,
         error: null,
-        pitchRateLocked: false,
         beatJumpSize: 4,
         synced: false,
         slipMode: false,
@@ -74,7 +72,6 @@ function resetDeckStore() {
       B: {
         deckId: 'B',
         trackId: null,
-        sourceType: null,
         title: '',
         artist: '',
         waveformPeaks: null,
@@ -105,7 +102,6 @@ function resetDeckStore() {
         effectEnabled: false,
         effectWetDry: 0.5,
         error: null,
-        pitchRateLocked: false,
         beatJumpSize: 4,
         synced: false,
         slipMode: false,
@@ -196,7 +192,6 @@ describe('Deck B track loading', () => {
   it('loads a track into Deck B without affecting Deck A', () => {
     act(() => {
       useDeckStore.getState().loadTrack('B', 'dQw4w9WgXcQ', {
-        sourceType: 'youtube',
         title: 'Deck B Track',
         artist: 'Channel B',
         duration: 180,
@@ -220,14 +215,12 @@ describe('Deck B track loading', () => {
   it('allows Deck A and Deck B to have different tracks simultaneously', () => {
     act(() => {
       useDeckStore.getState().loadTrack('A', 'trackA001', {
-        sourceType: 'youtube',
         title: 'Track A',
         artist: 'Artist A',
         duration: 210,
         thumbnailUrl: null,
       });
       useDeckStore.getState().loadTrack('B', 'trackB002', {
-        sourceType: 'youtube',
         title: 'Track B',
         artist: 'Artist B',
         duration: 195,
@@ -253,7 +246,6 @@ describe('Deck B track loading', () => {
     // Load a new track — should reset transient state
     act(() => {
       useDeckStore.getState().loadTrack('B', 'newVideoId', {
-        sourceType: 'youtube',
         title: 'New Track',
         artist: 'Artist B',
         duration: 200,

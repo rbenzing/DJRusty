@@ -8,7 +8,7 @@ describe('GridControl', () => {
 
   it('Tap Downbeat stamps the anchor at the current playhead and confirms the grid', () => {
     const s = useDeckStore.getState();
-    s.loadTrack('A', 'x', { sourceType: 'mp3', title: '', artist: '', duration: 180, thumbnailUrl: null });
+    s.loadTrack('A', 'x', { title: '', artist: '', duration: 180, thumbnailUrl: null });
     s.setBpm('A', 120);
     s.setCurrentTime('A', 4.2);
     render(<GridControl deckId="A" />);

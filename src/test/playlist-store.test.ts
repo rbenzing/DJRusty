@@ -45,7 +45,6 @@ vi.mock('../store/deckStore', () => ({
 function makeEntry(videoId: string) {
   return {
     videoId,
-    sourceType: 'youtube' as const,
     title: `Track ${videoId}`,
     artist: 'Test Channel',
     duration: 180,
