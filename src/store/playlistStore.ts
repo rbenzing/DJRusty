@@ -8,7 +8,7 @@
  * currentIndex tracks which playlist entry is currently active in the
  * deck. It is -1 when no playlist entry is loaded. Index advances via
  * skipToNext / skipToPrev / jumpToTrack, and automatically on track end
- * (handled by useYouTubePlayer which calls skipToNext when 'ended').
+ * (the audio engine hook calls skipToNext when the track ends).
  *
  * Playlist entries added via addTrack: if the deck is empty (first track),
  * the track is cued in the deck immediately. Subsequent entries queue up.
@@ -61,14 +61,11 @@ function generateId(): string {
 
 /**
  * Imperatively load a playlist entry into the deck store.
- * When autoPlay=true the YouTube player will call loadVideoById (plays immediately).
- * When autoPlay=false it calls cueVideoById (ready to play but not started).
+ * When autoPlay=true the track starts playing immediately after load.
+ * When autoPlay=false the track is cued (ready to play but not started).
  *
- * trackId derivation:
- *  - YouTube entries: use `entry.videoId` (the actual YouTube video ID, which is
- *    what hot cues and the IFrame API expect).
- *  - MP3 entries: fall back to `entry.id` (the playlist entry UUID) since there
- *    is no videoId. This ensures trackId is always a non-empty string.
+ * trackId derivation: uses `entry.id` (the playlist entry UUID), ensuring
+ * trackId is always a non-empty string.
  */
 function loadDeckTrack(deckId: 'A' | 'B', entry: PlaylistEntry, autoPlay: boolean): void {
   useDeckStore.getState().loadTrack(

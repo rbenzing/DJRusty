@@ -190,18 +190,6 @@ function setSourceTypeMp3(deckId: 'A' | 'B') {
   }));
 }
 
-/**
- * Set sourceType to 'youtube' on a deck without triggering a trackId change.
- */
-function setSourceTypeYoutube(deckId: 'A' | 'B') {
-  useDeckStore.setState((state) => ({
-    decks: {
-      ...state.decks,
-      [deckId]: { ...state.decks[deckId], sourceType: 'youtube' as const },
-    },
-  }));
-}
-
 /** Helper: add an MP3 entry to the playlist and trigger loadTrack to simulate loading. */
 function loadMp3Track(deckId: 'A' | 'B', file: File, autoPlay = false) {
   const entry = {
@@ -286,38 +274,6 @@ describe('MP3-005: pitchRate subscription — calls setPlaybackRate on mp3', () 
     act(() => { useDeckStore.getState().setPitchRate('A', 2); });
 
     expect(mockEngineInstances[0]!.setPlaybackRate).toHaveBeenCalledWith(2);
-  });
-});
-
-// ---------------------------------------------------------------------------
-
-describe('MP3-005: pitchRate subscription — sourceType guard: youtube', () => {
-  beforeEach(() => {
-    resetStores();
-    mockEngineInstances.length = 0;
-    vi.clearAllMocks();
-  });
-
-  afterEach(() => {
-    vi.clearAllMocks();
-  });
-
-  it('does NOT call engine.setPlaybackRate when sourceType is youtube and pitchRate changes', () => {
-    renderHook(() => useAudioEngine('A'));
-    act(() => { setSourceTypeYoutube('A'); });
-
-    act(() => { useDeckStore.getState().setPitchRate('A', 1.25); });
-
-    expect(mockEngineInstances[0]!.setPlaybackRate).not.toHaveBeenCalled();
-  });
-
-  it('does NOT call engine.setPlaybackRate when sourceType is null (no track loaded)', () => {
-    renderHook(() => useAudioEngine('A'));
-    // sourceType is null by default from resetStores
-
-    act(() => { useDeckStore.getState().setPitchRate('A', 0.75); });
-
-    expect(mockEngineInstances[0]!.setPlaybackRate).not.toHaveBeenCalled();
   });
 });
 

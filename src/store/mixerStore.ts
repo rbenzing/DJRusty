@@ -34,8 +34,7 @@ const INITIAL_STATE: MixerState = {
 
 /**
  * Applies the computed composite volumes to the deck store so that
- * the useYouTubePlayer hook subscription picks them up and calls
- * player.setVolume() on each IFrame player.
+ * audio engine subscriptions pick them up and call player.setVolume().
  *
  * STORY-013: masterVolume from settingsStore is applied as a multiplier
  * to the composite volume of each deck before pushing to the deck store.
@@ -54,7 +53,7 @@ function applyVolumesToDecks(
   const deckAVolume = Math.round(compositeVolume(cfVolA, channelFaderA) * masterScale);
   const deckBVolume = Math.round(compositeVolume(cfVolB, channelFaderB) * masterScale);
 
-  // Push volumes to deckStore so useYouTubePlayer subscription calls setVolume()
+  // Push volumes to deckStore so audio engine subscriptions call setVolume()
   const { setVolume } = useDeckStore.getState();
   setVolume('A', deckAVolume);
   setVolume('B', deckBVolume);

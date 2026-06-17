@@ -7,9 +7,8 @@
  *   2. Performs a one-shot downbeat phase alignment seek.
  * Shows a lit LED when synced. Disabled when either deck has no BPM.
  *
- * The existing useYouTubePlayer pitchRate subscription applies the rate
- * change to the YouTube player automatically — no direct player API calls
- * are needed here.
+ * The pitchRate subscription in useAudioEngine applies the rate change
+ * to the audio engine automatically — no direct player API calls are needed here.
  */
 import { useDeckStore, useDeckActions } from '../../store/deckStore';
 import styles from './SyncButton.module.css';

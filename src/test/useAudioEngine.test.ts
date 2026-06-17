@@ -301,69 +301,6 @@ describe('useAudioEngine — lifecycle: unmount', () => {
 
 // ---------------------------------------------------------------------------
 
-describe('useAudioEngine — source type guard: youtube', () => {
-  beforeEach(() => {
-    resetStores();
-    mockEngineInstances.length = 0;
-    vi.clearAllMocks();
-  });
-
-  afterEach(() => {
-    vi.clearAllMocks();
-  });
-
-  it('does NOT call decodeAudioFile when sourceType is youtube', async () => {
-    renderHook(() => useAudioEngine('A'));
-
-    await act(async () => {
-      useDeckStore.getState().loadTrack('A', 'yt-video-id', {
-        sourceType: 'youtube',
-        title: 'YouTube Track',
-        artist: 'Artist',
-        duration: 180,
-        thumbnailUrl: null,
-      });
-    });
-
-    expect(mockDecodeAudioFile).not.toHaveBeenCalled();
-  });
-
-  it('does NOT call engine.loadBuffer when sourceType is youtube', async () => {
-    renderHook(() => useAudioEngine('A'));
-
-    await act(async () => {
-      useDeckStore.getState().loadTrack('A', 'yt-video-id', {
-        sourceType: 'youtube',
-        title: 'YouTube Track',
-        artist: 'Artist',
-        duration: 180,
-        thumbnailUrl: null,
-      });
-    });
-
-    expect(mockEngineInstances[0]!.loadBuffer).not.toHaveBeenCalled();
-  });
-
-  it('does NOT call setDecoding when sourceType is youtube', async () => {
-    renderHook(() => useAudioEngine('A'));
-    const setDecodingSpy = vi.spyOn(useDeckStore.getState(), 'setDecoding');
-
-    await act(async () => {
-      useDeckStore.getState().loadTrack('A', 'yt-video-id', {
-        sourceType: 'youtube',
-        title: 'YouTube Track',
-        artist: 'Artist',
-        duration: 180,
-        thumbnailUrl: null,
-      });
-    });
-
-    expect(setDecodingSpy).not.toHaveBeenCalledWith('A', true);
-  });
-});
-
-// ---------------------------------------------------------------------------
-
 describe('useAudioEngine — track loading: mp3', () => {
   const fakeFile = new File(['audio data'], 'test.mp3', { type: 'audio/mpeg' });
 
