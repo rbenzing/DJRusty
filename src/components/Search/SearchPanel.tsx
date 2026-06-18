@@ -9,6 +9,7 @@
  */
 import { useState } from 'react';
 import { PlaylistPanel } from '../Playlist/PlaylistPanel';
+import { LibraryBrowser } from '../Library/LibraryBrowser';
 import styles from './SearchPanel.module.css';
 
 type ActiveTab = 'playlist' | 'library';
@@ -90,7 +91,7 @@ export function SearchPanel({ isOpen, onToggle }: SearchPanelProps) {
           aria-labelledby="library-tab"
           hidden={activeTab !== 'library'}
         >
-          <p className={styles.placeholder}>Library coming soon.</p>
+          <LibraryBrowser />
         </div>
 
       </div>{/* end .content */}
