@@ -44,8 +44,8 @@ it('save → load round-trips per-track bpm/anchor (grid restore)', async () => 
   useDeckStore.getState().clearTrack('A');
 
   await loadSession('GridSet');
-  // Loading the track onto the deck should apply the pending grid
-  useDeckStore.getState().loadTrack('A', t!.id, { title: 'Grid', artist: 'Local File', duration: 120, thumbnailUrl: null });
+  // loadSession populates pendingGrids BEFORE the queue rebuild, so the auto-cued
+  // first track (loaded via addTrack → loadDeckTrack) already consumed the grid.
 
   const deck = useDeckStore.getState().decks.A;
   expect(deck.bpm).toBe(128);

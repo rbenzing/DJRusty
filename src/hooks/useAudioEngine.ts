@@ -393,6 +393,10 @@ function launchBpmWorker(
   worker.onmessage = (e: MessageEvent<{ bpm: number }>) => {
     worker.terminate();
     if (!isMountedRef.current) return;
+    if (useDeckStore.getState().decks[deckId].gridConfirmed) {
+      useDeckStore.getState().setBpmDetecting(deckId, false);
+      return;
+    }
     const { bpm: dbpm, anchor } = proposeGrid(e.data.bpm);
     useDeckStore.getState().setBpm(deckId, dbpm);
     useDeckStore.setState((s) => ({

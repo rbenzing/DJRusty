@@ -124,6 +124,9 @@ export async function loadSession(name: string): Promise<void> {
   for (const [trackId, map] of Object.entries(session.cues)) {
     for (const [idx, sec] of Object.entries(map)) setHotCue(trackId, Number(idx), sec);
   }
+  // Stash grids/loops BEFORE queue rebuild so the auto-cued first track gets its grid
+  for (const [trackId, grid] of Object.entries(session.grids)) pendingGrids.set(trackId, grid);
+  for (const [trackId, loop] of Object.entries(session.loops)) pendingLoops.set(trackId, loop);
   const pl = usePlaylistStore.getState();
   for (const deck of ['A', 'B'] as const) {
     pl.clearPlaylist(deck);
@@ -133,7 +136,4 @@ export async function loadSession(name: string): Promise<void> {
       if (t) pl.addTrack(deck, libraryTrackToEntry(t));
     }
   }
-  // Stash grids/loops for consumption when the track loads onto a deck
-  for (const [trackId, grid] of Object.entries(session.grids)) pendingGrids.set(trackId, grid);
-  for (const [trackId, loop] of Object.entries(session.loops)) pendingLoops.set(trackId, loop);
 }
