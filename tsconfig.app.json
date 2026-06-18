@@ -21,8 +21,8 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
 
-    /* Test globals (vitest, import.meta.env) and YouTube IFrame API types */
-    "types": ["vitest/globals", "vite/client", "youtube"]
+    /* Test globals (vitest, import.meta.env) */
+    "types": ["vitest/globals", "vite/client"]
   },
   "include": ["src"],
   "exclude": ["src/test"]

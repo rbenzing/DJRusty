@@ -58,7 +58,6 @@ function makeDeck(deckId: 'A' | 'B'): DeckState {
   return {
     deckId,
     trackId: null,
-    sourceType: null,
     title: '',
     artist: '',
     waveformPeaks: null,
@@ -90,7 +89,6 @@ function makeDeck(deckId: 'A' | 'B'): DeckState {
     effectEnabled: false,
     effectWetDry: 0.5,
     error: null,
-    pitchRateLocked: false,
     synced: false,
     slipMode: false,
     slipPosition: null,
@@ -130,16 +128,16 @@ describe('useKeyboardShortcuts', () => {
     resetDecks();
     mockPlayerA = makeMockPlayer();
     mockPlayerB = makeMockPlayer();
-    playerRegistry.register('A', 'youtube', mockPlayerA);
-    playerRegistry.register('B', 'youtube', mockPlayerB);
+    playerRegistry.register('A', mockPlayerA as never);
+    playerRegistry.register('B', mockPlayerB as never);
     const rendered = renderHook(() => useKeyboardShortcuts());
     unmount = rendered.unmount;
   });
 
   afterEach(() => {
     unmount();
-    playerRegistry.unregister('A', 'youtube');
-    playerRegistry.unregister('B', 'youtube');
+    playerRegistry.unregister('A');
+    playerRegistry.unregister('B');
     vi.clearAllMocks();
   });
 
@@ -151,7 +149,6 @@ describe('useKeyboardShortcuts', () => {
     it('Space toggles Deck A from paused to playing', () => {
       act(() => {
         useDeckStore.getState().loadTrack('A', 'vid-a', {
-          sourceType: 'youtube',
           title: 'Test A',
           artist: 'Channel',
           duration: 300,
@@ -168,7 +165,6 @@ describe('useKeyboardShortcuts', () => {
     it('Space toggles Deck A from playing to paused', () => {
       act(() => {
         useDeckStore.getState().loadTrack('A', 'vid-a', {
-          sourceType: 'youtube',
           title: 'Test A',
           artist: 'Channel',
           duration: 300,
@@ -185,7 +181,6 @@ describe('useKeyboardShortcuts', () => {
     it('Enter toggles Deck B from paused to playing', () => {
       act(() => {
         useDeckStore.getState().loadTrack('B', 'vid-b', {
-          sourceType: 'youtube',
           title: 'Test B',
           artist: 'Channel',
           duration: 300,
@@ -224,7 +219,6 @@ describe('useKeyboardShortcuts', () => {
     it('INPUT focus suppresses Space shortcut', () => {
       act(() => {
         useDeckStore.getState().loadTrack('A', 'vid-a', {
-          sourceType: 'youtube',
           title: 'Test A',
           artist: 'Channel',
           duration: 300,
@@ -251,7 +245,6 @@ describe('useKeyboardShortcuts', () => {
     it('TEXTAREA focus suppresses Space shortcut', () => {
       act(() => {
         useDeckStore.getState().loadTrack('A', 'vid-a', {
-          sourceType: 'youtube',
           title: 'Test A',
           artist: 'Channel',
           duration: 300,
@@ -283,7 +276,6 @@ describe('useKeyboardShortcuts', () => {
     it('q jumps to cue on Deck A when hotCues[0] is set', () => {
       act(() => {
         useDeckStore.getState().loadTrack('A', 'vid-a', {
-          sourceType: 'youtube',
           title: 'Test A',
           artist: 'Channel',
           duration: 300,
@@ -305,7 +297,6 @@ describe('useKeyboardShortcuts', () => {
     it('a sets hotCues[0] on Deck A to currentTime', () => {
       act(() => {
         useDeckStore.getState().loadTrack('A', 'vid-a', {
-          sourceType: 'youtube',
           title: 'Test A',
           artist: 'Channel',
           duration: 300,
@@ -333,7 +324,6 @@ describe('useKeyboardShortcuts', () => {
     beforeEach(() => {
       act(() => {
         useDeckStore.getState().loadTrack('A', 'vid-a', {
-          sourceType: 'youtube',
           title: 'Test A',
           artist: 'Channel',
           duration: 300,
@@ -407,7 +397,6 @@ describe('useKeyboardShortcuts', () => {
     it('keys 1-4 map to Deck A hot cues 0-3', () => {
       act(() => {
         useDeckStore.getState().loadTrack('A', 'vid-a', {
-          sourceType: 'youtube',
           title: 'Test A',
           artist: 'Channel',
           duration: 300,
@@ -435,7 +424,6 @@ describe('useKeyboardShortcuts', () => {
     it('keys 5-8 map to Deck B hot cues 0-3', () => {
       act(() => {
         useDeckStore.getState().loadTrack('B', 'vid-b', {
-          sourceType: 'youtube',
           title: 'Test B',
           artist: 'Channel',
           duration: 300,
@@ -457,7 +445,6 @@ describe('useKeyboardShortcuts', () => {
     it('hot cue key is no-op if that cue index is not set', () => {
       act(() => {
         useDeckStore.getState().loadTrack('A', 'vid-a', {
-          sourceType: 'youtube',
           title: 'Test A',
           artist: 'Channel',
           duration: 300,
@@ -514,7 +501,6 @@ describe('useKeyboardShortcuts', () => {
     it('listener is removed after unmount — Space no longer toggles Deck A', () => {
       act(() => {
         useDeckStore.getState().loadTrack('A', 'vid-a', {
-          sourceType: 'youtube',
           title: 'Test A',
           artist: 'Channel',
           duration: 300,

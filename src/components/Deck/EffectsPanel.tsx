@@ -89,9 +89,6 @@ export function EffectsPanel({ deckId }: EffectsPanelProps) {
   const effectType = useDeckStore((s) => s.decks[deckId].effectType);
   const effectEnabled = useDeckStore((s) => s.decks[deckId].effectEnabled);
   const effectWetDry = useDeckStore((s) => s.decks[deckId].effectWetDry);
-  const sourceType = useDeckStore((s) => s.decks[deckId].sourceType);
-
-  const isMp3 = sourceType === 'mp3';
 
   const handleTypeSelect = useCallback((type: 'none' | 'echo' | 'reverb') => {
     setEffectType(deckId, type);
@@ -103,14 +100,9 @@ export function EffectsPanel({ deckId }: EffectsPanelProps) {
   }, [deckId, setEffectWetDry]);
 
   return (
-    <div className={`${styles.panel} ${!isMp3 ? styles.panelInactive : ''}`}>
+    <div className={styles.panel}>
       <div className={styles.headerRow}>
         <span className={styles.panelLabel}>FX</span>
-        {!isMp3 && (
-          <span className={styles.inactiveNote} title="Effects require MP3 playback">
-            MP3 only
-          </span>
-        )}
       </div>
       <div className={styles.controls}>
         {/* Effect type buttons */}
@@ -121,7 +113,6 @@ export function EffectsPanel({ deckId }: EffectsPanelProps) {
               type="button"
               className={`${styles.typeBtn} ${effectType === type || (type === 'none' && !effectEnabled) ? styles.typeBtnActive : ''}`}
               onClick={() => handleTypeSelect(type)}
-              disabled={!isMp3}
               aria-pressed={effectType === type}
             >
               {label}

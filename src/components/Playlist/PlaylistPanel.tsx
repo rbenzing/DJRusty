@@ -39,7 +39,7 @@ export function PlaylistPanel() {
             const audioUrl = URL.createObjectURL(file);
             const title = file.name.replace(/\.[^/.]+$/, '');
             const entry: Omit<PlaylistEntry, 'id'> = {
-              sourceType: 'mp3', title, artist: 'Local File',
+              title, artist: 'Local File',
               duration: 0, thumbnailUrl: null, file, audioUrl,
             };
             addTrack(deckId, entry);

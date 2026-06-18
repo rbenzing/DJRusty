@@ -18,9 +18,7 @@
  */
 import { useCallback, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { useAuthStore } from '../../store/authStore';
 import { useSettingsStore } from '../../store/settingsStore';
-import { useAuth } from '../../hooks/useAuth';
 import styles from './SettingsModal.module.css';
 
 const APP_VERSION = 'v1.0.0';
@@ -60,16 +58,7 @@ export function SettingsModal() {
   const masterVolume = useSettingsStore((s) => s.masterVolume);
   const setMasterVolume = useSettingsStore((s) => s.setMasterVolume);
 
-  const { signedIn, userInfo, signIn, signOut } = useAuth();
-  const channelName = useAuthStore((s) => s.channelName);
-
   const dialogRef = useRef<HTMLDivElement>(null);
-
-  // ── Handle sign-out ──────────────────────────────────────────────────────
-  const handleSignOut = useCallback(() => {
-    signOut();
-    closeSettings();
-  }, [signOut, closeSettings]);
 
   // ── Close on Escape key ──────────────────────────────────────────────────
   useEffect(() => {
@@ -169,55 +158,6 @@ export function SettingsModal() {
             ✕
           </button>
         </div>
-
-        {/* ── Section: Account ───────────────────────────────────────────── */}
-        <section className={styles.section} aria-label="Account">
-          <h3 className={styles.sectionTitle}>Account</h3>
-
-          {signedIn && userInfo ? (
-            <div className={styles.accountInfo}>
-              <img
-                src={userInfo.picture}
-                alt={`${userInfo.name}'s profile picture`}
-                className={styles.avatar}
-                width={48}
-                height={48}
-                referrerPolicy="no-referrer"
-              />
-              <div className={styles.accountDetails}>
-                <p className={styles.accountName}>{userInfo.name}</p>
-                <p className={styles.accountEmail}>{userInfo.email}</p>
-                {channelName && (
-                  <p className={styles.channelName}>YouTube: {channelName}</p>
-                )}
-              </div>
-            </div>
-          ) : (
-            <p className={styles.unauthMessage}>Not signed in</p>
-          )}
-
-          {signedIn ? (
-            <button
-              type="button"
-              className={styles.signOutButton}
-              onClick={handleSignOut}
-            >
-              Sign Out
-            </button>
-          ) : (
-            <button
-              type="button"
-              className={styles.signInButton}
-              onClick={signIn}
-              aria-label="Sign in with Google"
-            >
-              Sign in with Google
-            </button>
-          )}
-        </section>
-
-        {/* ── Divider ────────────────────────────────────────────────────── */}
-        <hr className={styles.divider} />
 
         {/* ── Section: Audio ─────────────────────────────────────────────── */}
         <section className={styles.section} aria-label="Audio settings">

@@ -17,7 +17,7 @@
 import { useRef, useState } from 'react';
 import type { KeyboardEvent, DragEvent, ChangeEvent } from 'react';
 import { usePlaylistStore } from '../../store/playlistStore';
-import type { PlaylistEntry } from '../../types/playlist';
+import { useLibraryStore, libraryTrackToEntry } from '../../store/libraryStore';
 import styles from './FileImportZone.module.css';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -29,14 +29,6 @@ const MAX_FILE_SIZE_BYTES = 500 * 1024 * 1024; // 500 MB
 /** Returns true when the MIME type indicates an audio file. */
 function isAudioType(type: string): boolean {
   return type.startsWith('audio/');
-}
-
-/** Strips the final extension from a filename (e.g. "My Track.mp3" → "My Track"). */
-function stripExtension(filename: string): string {
-  const lastDot = filename.lastIndexOf('.');
-  // If the dot is at position 0 (e.g. ".mp3"), keep the name as-is but strip extension.
-  if (lastDot === -1) return filename;
-  return filename.slice(0, lastDot);
 }
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -67,35 +59,8 @@ export function FileImportZone({ deckId, onFileAccepted }: FileImportZoneProps) 
   }
 
   /**
-   * Process a single validated File object:
-   *  1. Create a blob URL.
-   *  2. Extract duration via Audio element.
-   *  3. Build a PlaylistEntry and commit it to the store.
-   *  4. Invoke the optional onFileAccepted callback.
-   */
-  function processFile(file: File): void {
-    onFileAccepted?.(file);
-
-    const audioUrl = URL.createObjectURL(file);
-    const title = stripExtension(file.name);
-
-    // Add track immediately — duration starts at 0 and is updated by
-    // useAudioEngine after the AudioBuffer is decoded.
-    const entry: Omit<PlaylistEntry, 'id'> = {
-      sourceType: 'mp3',
-      title,
-      artist: 'Local File',
-      duration: 0,
-      thumbnailUrl: null,
-      file,
-      audioUrl,
-    };
-
-    usePlaylistStore.getState().addTrack(deckId, entry);
-  }
-
-  /**
    * Validate and process all files in the given FileList.
+   * Valid files are added to the library, then appended to the deck playlist.
    * Only audio files under 500 MB are accepted.
    * Any invalid file triggers the error state but processing continues for valid ones.
    */
@@ -103,14 +68,23 @@ export function FileImportZone({ deckId, onFileAccepted }: FileImportZoneProps) 
     if (!files || files.length === 0) return;
 
     let hasInvalid = false;
+    const validFiles: File[] = [];
 
     Array.from(files).forEach((file) => {
       if (!isAudioType(file.type) || file.size > MAX_FILE_SIZE_BYTES) {
         hasInvalid = true;
         return;
       }
-      processFile(file);
+      onFileAccepted?.(file);
+      validFiles.push(file);
     });
+
+    if (validFiles.length > 0) {
+      const created = useLibraryStore.getState().addFiles(validFiles);
+      for (const t of created) {
+        usePlaylistStore.getState().addTrack(deckId, libraryTrackToEntry(t));
+      }
+    }
 
     if (hasInvalid) {
       setZoneState('error');
@@ -184,12 +158,13 @@ export function FileImportZone({ deckId, onFileAccepted }: FileImportZoneProps) 
       <input
         ref={inputRef}
         type="file"
-        accept=".mp3,.wav,.ogg,.flac,audio/mpeg,audio/wav,audio/ogg,audio/flac"
+        accept=".mp3,.wav,.flac,.ogg,.m4a,.aac,audio/*"
         multiple
         className={styles.hiddenInput}
         onChange={handleInputChange}
         aria-hidden="true"
         tabIndex={-1}
+        data-testid="file-input"
       />
 
       <p className={styles.instructions}>

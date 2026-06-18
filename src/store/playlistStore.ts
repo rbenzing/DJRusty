@@ -8,7 +8,7 @@
  * currentIndex tracks which playlist entry is currently active in the
  * deck. It is -1 when no playlist entry is loaded. Index advances via
  * skipToNext / skipToPrev / jumpToTrack, and automatically on track end
- * (handled by useYouTubePlayer which calls skipToNext when 'ended').
+ * (the audio engine hook calls skipToNext when the track ends).
  *
  * Playlist entries added via addTrack: if the deck is empty (first track),
  * the track is cued in the deck immediately. Subsequent entries queue up.
@@ -18,7 +18,6 @@
 import { create } from 'zustand';
 import type { PlaylistEntry } from '../types/playlist';
 import { useDeckStore } from './deckStore';
-import { useDownloadStore } from './downloadStore';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -32,8 +31,10 @@ interface PlaylistStoreActions {
   /**
    * Add a track to the end of the specified deck's playlist.
    * If the playlist was empty, also cues the track in the deck (no autoplay).
+   * If the entry already has an `id`, it is preserved verbatim so that
+   * library track ids flow through to deckStore.trackId (used for hot-cue/grid keys).
    */
-  addTrack(deckId: 'A' | 'B', entry: Omit<PlaylistEntry, 'id'>): void;
+  addTrack(deckId: 'A' | 'B', entry: PlaylistEntry | Omit<PlaylistEntry, 'id'>): void;
 
   /** Remove a track by its unique entry id. Adjusts currentIndex as needed. */
   removeTrack(deckId: 'A' | 'B', id: string): void;
@@ -62,40 +63,21 @@ function generateId(): string {
 
 /**
  * Imperatively load a playlist entry into the deck store.
- * When autoPlay=true the YouTube player will call loadVideoById (plays immediately).
- * When autoPlay=false it calls cueVideoById (ready to play but not started).
+ * When autoPlay=true the track starts playing immediately after load.
+ * When autoPlay=false the track is cued (ready to play but not started).
  *
- * trackId derivation:
- *  - YouTube entries: use `entry.videoId` (the actual YouTube video ID, which is
- *    what hot cues and the IFrame API expect).
- *  - MP3 entries: fall back to `entry.id` (the playlist entry UUID) since there
- *    is no videoId. This ensures trackId is always a non-empty string.
+ * trackId derivation: uses `entry.id` (the playlist entry UUID), ensuring
+ * trackId is always a non-empty string.
  */
 function loadDeckTrack(deckId: 'A' | 'B', entry: PlaylistEntry, autoPlay: boolean): void {
-  // INT-005: if this is a YouTube track and we have a local downloaded copy, use it.
-  let resolvedEntry = entry;
-  if (entry.sourceType === 'youtube' && entry.videoId) {
-    const dl = useDownloadStore.getState().tracks.find(
-      (t) => t.videoId === entry.videoId && t.status === 'ready',
-    );
-    if (dl) {
-      resolvedEntry = {
-        ...entry,
-        sourceType: 'mp3',
-        audioUrl: `http://localhost:3001/api/audio/${dl.videoId}`,
-      };
-    }
-  }
-
   useDeckStore.getState().loadTrack(
     deckId,
-    resolvedEntry.videoId ?? resolvedEntry.id,
+    entry.id,
     {
-      sourceType: resolvedEntry.sourceType,
-      title: resolvedEntry.title,
-      artist: resolvedEntry.artist,
-      duration: resolvedEntry.duration,
-      thumbnailUrl: resolvedEntry.thumbnailUrl,
+      title: entry.title,
+      artist: entry.artist,
+      duration: entry.duration,
+      thumbnailUrl: entry.thumbnailUrl,
     },
     autoPlay,
   );
@@ -108,7 +90,8 @@ export const usePlaylistStore = create<PlaylistStore>((set, get) => ({
   currentIndex: { A: -1, B: -1 },
 
   addTrack: (deckId, entryData) => {
-    const entry: PlaylistEntry = { ...entryData, id: generateId() };
+    const id = 'id' in entryData ? entryData.id : generateId();
+    const entry: PlaylistEntry = { ...entryData, id };
     const wasEmpty = get().playlists[deckId].length === 0;
 
     set((state) => ({

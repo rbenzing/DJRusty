@@ -14,10 +14,10 @@ import { playerRegistry } from '../services/playerRegistry';
 import type { DeckPlayer } from '../services/playerRegistry';
 import type { DeckState } from '../types/deck';
 
-/** Register a mock backend whose seekTo is the given spy, under the 'youtube' backend key. */
+/** Register a mock backend whose seekTo is the given spy. */
 function registerMockBackend(deckId: 'A' | 'B', seekTo: ReturnType<typeof vi.fn>): void {
   const player: DeckPlayer = { seekTo, getCurrentTime: () => 0, getDuration: () => 300 };
-  playerRegistry.register(deckId, 'youtube', player);
+  playerRegistry.register(deckId, player);
 }
 
 /** Full initial state for a deck, including all slip/roll fields. */
@@ -25,9 +25,6 @@ function makeDeckState(deckId: 'A' | 'B'): DeckState {
   return {
     deckId,
     trackId: null,
-    // 'youtube' so seek routing resolves the registered backend (getActivePlayer
-    // returns undefined for a null sourceType). State-reset tests don't assert on this.
-    sourceType: 'youtube' as const,
     title: '',
     artist: '',
     waveformPeaks: null,
@@ -59,7 +56,6 @@ function makeDeckState(deckId: 'A' | 'B'): DeckState {
     effectEnabled: false,
     effectWetDry: 0.5,
     error: null,
-    pitchRateLocked: false,
     synced: false,
     slipMode: false,
     slipPosition: null,
@@ -83,12 +79,9 @@ beforeEach(() => {
       B: makeDeckState('B'),
     },
   });
-  // Seek routing now flows through getActivePlayer → the per-backend registry.
   // Clear any backend left over from a prior test so each test starts clean.
-  playerRegistry.unregister('A', 'youtube');
-  playerRegistry.unregister('A', 'audio');
-  playerRegistry.unregister('B', 'youtube');
-  playerRegistry.unregister('B', 'audio');
+  playerRegistry.unregister('A');
+  playerRegistry.unregister('B');
   vi.restoreAllMocks();
 });
 
@@ -658,7 +651,6 @@ describe('State Reset', () => {
 
     act(() => {
       useDeckStore.getState().loadTrack('A', 'test-video-id', {
-        sourceType: 'youtube',
         title: 'Test',
         artist: 'Channel',
         duration: 200,

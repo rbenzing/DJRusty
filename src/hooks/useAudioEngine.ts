@@ -1,14 +1,15 @@
 /**
  * useAudioEngine.ts — Web Audio API lifecycle hook for local MP3 playback.
  *
- * Called unconditionally in Deck.tsx alongside useYouTubePlayer (ADR-001).
- * All store subscriptions guard on sourceType === 'mp3' before acting.
+ * Called unconditionally in Deck.tsx. All store subscriptions act directly
+ * on the audio engine without sourceType gating (single backend).
  */
 import { useRef, useEffect } from 'react';
 import { AudioEngineImpl } from '../services/audioEngine';
 import { decodeAudioFile } from '../services/audioDecoder';
 import { playerRegistry } from '../services/playerRegistry';
 import { useDeckStore } from '../store/deckStore';
+import { useLibraryStore } from '../store/libraryStore';
 import { usePlaylistStore } from '../store/playlistStore';
 import { extractWaveformPeaks } from '../utils/extractWaveformPeaks';
 import { extractColoredPeaks } from '../utils/extractColoredPeaks';
@@ -44,7 +45,7 @@ export function useAudioEngine(deckId: 'A' | 'B'): void {
     isMountedRef.current = true;
     const engine = new AudioEngineImpl();
     engineRef.current = engine;
-    playerRegistry.register(deckId, 'audio', engine);
+    playerRegistry.register(deckId, engine);
 
     engine.onEnded(() => {
       if (!isMountedRef.current) return;
@@ -56,7 +57,7 @@ export function useAudioEngine(deckId: 'A' | 'B'): void {
     return () => {
       isMountedRef.current = false;
       if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
-      playerRegistry.unregister(deckId, 'audio');
+      playerRegistry.unregister(deckId);
       engine.destroy();
       engineRef.current = null;
     };
@@ -68,7 +69,7 @@ export function useAudioEngine(deckId: 'A' | 'B'): void {
     let prevTrackId: string | null = useDeckStore.getState().decks[deckId].trackId;
 
     const unsubscribe = useDeckStore.subscribe((state) => {
-      const { trackId, sourceType, autoPlayOnLoad } = state.decks[deckId];
+      const { trackId, autoPlayOnLoad } = state.decks[deckId];
       if (trackId === prevTrackId) return;
       prevTrackId = trackId;
 
@@ -79,7 +80,7 @@ export function useAudioEngine(deckId: 'A' | 'B'): void {
         return;
       }
 
-      if (sourceType !== 'mp3' || !engineRef.current) return;
+      if (!engineRef.current) return;
 
       // Clear previous waveform immediately
       useDeckStore.getState().setWaveformPeaks(deckId, null);
@@ -89,7 +90,7 @@ export function useAudioEngine(deckId: 'A' | 'B'): void {
       if (!entry) return;
 
       if (entry.file) {
-        void loadAudioFile(deckId, engineRef, entry.file, autoPlayOnLoad, isMountedRef, suppressTransportRef);
+        void loadAudioFile(deckId, trackId, engineRef, entry.file, autoPlayOnLoad, isMountedRef, suppressTransportRef);
       } else if (entry.audioUrl) {
         void loadAudioUrl(deckId, engineRef, entry.audioUrl, autoPlayOnLoad, isMountedRef, suppressTransportRef);
       }
@@ -103,12 +104,12 @@ export function useAudioEngine(deckId: 'A' | 'B'): void {
     let prev = useDeckStore.getState().decks[deckId].playbackState;
 
     const unsubscribe = useDeckStore.subscribe((state) => {
-      const { playbackState, sourceType, playerReady } = state.decks[deckId];
+      const { playbackState, playerReady } = state.decks[deckId];
       if (playbackState === prev) return;
       prev = playbackState;
       // Skip if autoPlay in loadAudioFile already called engine.play()
       if (suppressTransportRef.current) { suppressTransportRef.current = false; return; }
-      if (sourceType !== 'mp3' || !playerReady || !engineRef.current) return;
+      if (!playerReady || !engineRef.current) return;
       const engine = engineRef.current;
 
       if (playbackState === 'playing') {
@@ -136,10 +137,10 @@ export function useAudioEngine(deckId: 'A' | 'B'): void {
     let prev = useDeckStore.getState().decks[deckId].playerReady;
 
     const unsubscribe = useDeckStore.subscribe((state) => {
-      const { playerReady, playbackState, sourceType } = state.decks[deckId];
+      const { playerReady, playbackState } = state.decks[deckId];
       if (playerReady === prev) return;
       prev = playerReady;
-      if (!playerReady || sourceType !== 'mp3' || !engineRef.current) return;
+      if (!playerReady || !engineRef.current) return;
       // User may have clicked play while the buffer was still decoding.
       if (playbackState === 'playing') {
         void (async () => {
@@ -160,10 +161,10 @@ export function useAudioEngine(deckId: 'A' | 'B'): void {
     let prev = useDeckStore.getState().decks[deckId].volume;
 
     const unsubscribe = useDeckStore.subscribe((state) => {
-      const { volume, sourceType } = state.decks[deckId];
+      const { volume } = state.decks[deckId];
       if (volume === prev) return;
       prev = volume;
-      if (sourceType !== 'mp3' || !engineRef.current) return;
+      if (!engineRef.current) return;
       engineRef.current.setVolume(volume);
     });
 
@@ -177,9 +178,9 @@ export function useAudioEngine(deckId: 'A' | 'B'): void {
     let prevHigh = useDeckStore.getState().decks[deckId].eqHigh;
 
     const unsubscribe = useDeckStore.subscribe((state) => {
-      const { eqLow, eqMid, eqHigh, sourceType } = state.decks[deckId];
+      const { eqLow, eqMid, eqHigh } = state.decks[deckId];
       if (eqLow === prevLow && eqMid === prevMid && eqHigh === prevHigh) return;
-      if (sourceType !== 'mp3' || !engineRef.current) return;
+      if (!engineRef.current) return;
       if (eqLow !== prevLow) { engineRef.current.setEQ('low', eqLow); prevLow = eqLow; }
       if (eqMid !== prevMid) { engineRef.current.setEQ('mid', eqMid); prevMid = eqMid; }
       if (eqHigh !== prevHigh) { engineRef.current.setEQ('high', eqHigh); prevHigh = eqHigh; }
@@ -195,9 +196,9 @@ export function useAudioEngine(deckId: 'A' | 'B'): void {
     let prevKillHigh = useDeckStore.getState().decks[deckId].eqKillHigh;
 
     const unsubscribe = useDeckStore.subscribe((state) => {
-      const { eqKillLow, eqKillMid, eqKillHigh, sourceType } = state.decks[deckId];
+      const { eqKillLow, eqKillMid, eqKillHigh } = state.decks[deckId];
       if (eqKillLow === prevKillLow && eqKillMid === prevKillMid && eqKillHigh === prevKillHigh) return;
-      if (sourceType !== 'mp3' || !engineRef.current) return;
+      if (!engineRef.current) return;
       if (eqKillLow !== prevKillLow) { engineRef.current.setEQKill('low', eqKillLow); prevKillLow = eqKillLow; }
       if (eqKillMid !== prevKillMid) { engineRef.current.setEQKill('mid', eqKillMid); prevKillMid = eqKillMid; }
       if (eqKillHigh !== prevKillHigh) { engineRef.current.setEQKill('high', eqKillHigh); prevKillHigh = eqKillHigh; }
@@ -211,10 +212,10 @@ export function useAudioEngine(deckId: 'A' | 'B'): void {
     let prev = useDeckStore.getState().decks[deckId].filterSweep;
 
     const unsubscribe = useDeckStore.subscribe((state) => {
-      const { filterSweep, sourceType } = state.decks[deckId];
+      const { filterSweep } = state.decks[deckId];
       if (filterSweep === prev) return;
       prev = filterSweep;
-      if (sourceType !== 'mp3' || !engineRef.current) return;
+      if (!engineRef.current) return;
       engineRef.current.setFilterSweep(filterSweep);
     });
 
@@ -228,10 +229,10 @@ export function useAudioEngine(deckId: 'A' | 'B'): void {
     let prevWetDry = useDeckStore.getState().decks[deckId].effectWetDry;
 
     const unsubscribe = useDeckStore.subscribe((state) => {
-      const { effectType, effectEnabled, effectWetDry, sourceType, bpm } = state.decks[deckId];
+      const { effectType, effectEnabled, effectWetDry, bpm } = state.decks[deckId];
       if (effectType === prevType && effectEnabled === prevEnabled && effectWetDry === prevWetDry) return;
       prevType = effectType; prevEnabled = effectEnabled; prevWetDry = effectWetDry;
-      if (sourceType !== 'mp3' || !engineRef.current) return;
+      if (!engineRef.current) return;
       const active = effectEnabled ? effectType : 'none';
       engineRef.current.setEffect(active, effectWetDry, bpm ?? 120);
     });
@@ -242,18 +243,13 @@ export function useAudioEngine(deckId: 'A' | 'B'): void {
   // ── 7. Pitch rate ─────────────────────────────────────────────────────────
   useEffect(() => {
     let prevPitchRate = useDeckStore.getState().decks[deckId].pitchRate;
-    let prevSourceType = useDeckStore.getState().decks[deckId].sourceType;
 
     const unsubscribe = useDeckStore.subscribe((state) => {
-      const { pitchRate, sourceType } = state.decks[deckId];
-      const sourceJustBecameMp3 = sourceType === 'mp3' && prevSourceType !== 'mp3';
-      const pitchChanged = pitchRate !== prevPitchRate;
+      const { pitchRate } = state.decks[deckId];
+      if (pitchRate === prevPitchRate) return;
       prevPitchRate = pitchRate;
-      prevSourceType = sourceType;
-      if (sourceType !== 'mp3' || !engineRef.current) return;
-      if (pitchChanged || sourceJustBecameMp3) {
-        engineRef.current.setPlaybackRate(pitchRate);
-      }
+      if (!engineRef.current) return;
+      engineRef.current.setPlaybackRate(pitchRate);
     });
 
     return unsubscribe;
@@ -264,6 +260,7 @@ export function useAudioEngine(deckId: 'A' | 'B'): void {
 
 async function loadAudioFile(
   deckId: 'A' | 'B',
+  trackId: string,
   engineRef: React.MutableRefObject<AudioEngineImpl | null>,
   file: File,
   autoPlay: boolean,
@@ -286,7 +283,6 @@ async function loadAudioFile(
     useDeckStore.getState().setDecoding(deckId, false);
     useDeckStore.getState().setPlayerReady(deckId, true);
     useDeckStore.getState().setCurrentTime(deckId, 0);
-    useDeckStore.getState().setPitchRateLocked(deckId, false);
 
     // Waveform peaks (synchronous — runs on decoded buffer)
     const peaks = extractWaveformPeaks(buffer, WAVEFORM_PEAKS);
@@ -313,6 +309,10 @@ async function loadAudioFile(
     useDeckStore.getState().setError(
       deckId,
       `Failed to decode: ${err instanceof Error ? err.message : 'Unknown error'}`,
+    );
+    useLibraryStore.getState().setDecodeError(
+      trackId,
+      "Couldn't decode — this format may be unsupported in your browser",
     );
   }
 }
@@ -345,7 +345,6 @@ async function loadAudioUrl(
     useDeckStore.getState().setDecoding(deckId, false);
     useDeckStore.getState().setPlayerReady(deckId, true);
     useDeckStore.getState().setCurrentTime(deckId, 0);
-    useDeckStore.getState().setPitchRateLocked(deckId, false);
 
     const peaks = extractWaveformPeaks(buffer, WAVEFORM_PEAKS);
     if (isMountedRef.current) useDeckStore.getState().setWaveformPeaks(deckId, peaks);
@@ -394,6 +393,10 @@ function launchBpmWorker(
   worker.onmessage = (e: MessageEvent<{ bpm: number }>) => {
     worker.terminate();
     if (!isMountedRef.current) return;
+    if (useDeckStore.getState().decks[deckId].gridConfirmed) {
+      useDeckStore.getState().setBpmDetecting(deckId, false);
+      return;
+    }
     const { bpm: dbpm, anchor } = proposeGrid(e.data.bpm);
     useDeckStore.getState().setBpm(deckId, dbpm);
     useDeckStore.setState((s) => ({

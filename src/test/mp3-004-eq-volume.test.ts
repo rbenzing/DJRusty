@@ -38,8 +38,8 @@ import { useAudioEngine } from '../hooks/useAudioEngine';
 function resetStores() {
   useDeckStore.setState({
     decks: {
-      A: { deckId: 'A', trackId: null, sourceType: null, title: '', artist: '', waveformPeaks: null, waveformColoredPeaks: null, decoding: false, bpmDetecting: false, duration: 0, currentTime: 0, thumbnailUrl: null, playbackState: 'unstarted', pitchRate: 1 as const, bpm: null, volume: 80, loopActive: false, loopStart: null, loopEnd: null, loopBeatCount: null, beatJumpSize: 4, playerReady: false, hotCues: {}, eqLow: 0, eqMid: 0, eqHigh: 0, eqKillLow: false, eqKillMid: false, eqKillHigh: false, filterSweep: 0, effectType: 'none' as const, effectEnabled: false, effectWetDry: 0.5, error: null, pitchRateLocked: false, synced: false, slipMode: false, slipPosition: null, slipStartTime: null, slipStartPosition: null, rollMode: false, rollStartWallClock: null, rollStartPosition: null, autoPlayOnLoad: false, anchor: null, gridConfirmed: false, cuePoint: null, transportState: 'CUED' as const },
-      B: { deckId: 'B', trackId: null, sourceType: null, title: '', artist: '', waveformPeaks: null, waveformColoredPeaks: null, decoding: false, bpmDetecting: false, duration: 0, currentTime: 0, thumbnailUrl: null, playbackState: 'unstarted', pitchRate: 1 as const, bpm: null, volume: 80, loopActive: false, loopStart: null, loopEnd: null, loopBeatCount: null, beatJumpSize: 4, playerReady: false, hotCues: {}, eqLow: 0, eqMid: 0, eqHigh: 0, eqKillLow: false, eqKillMid: false, eqKillHigh: false, filterSweep: 0, effectType: 'none' as const, effectEnabled: false, effectWetDry: 0.5, error: null, pitchRateLocked: false, synced: false, slipMode: false, slipPosition: null, slipStartTime: null, slipStartPosition: null, rollMode: false, rollStartWallClock: null, rollStartPosition: null, autoPlayOnLoad: false, anchor: null, gridConfirmed: false, cuePoint: null, transportState: 'CUED' as const },
+      A: { deckId: 'A', trackId: null, title: '', artist: '', waveformPeaks: null, waveformColoredPeaks: null, decoding: false, bpmDetecting: false, duration: 0, currentTime: 0, thumbnailUrl: null, playbackState: 'unstarted', pitchRate: 1 as const, bpm: null, volume: 80, loopActive: false, loopStart: null, loopEnd: null, loopBeatCount: null, beatJumpSize: 4, playerReady: false, hotCues: {}, eqLow: 0, eqMid: 0, eqHigh: 0, eqKillLow: false, eqKillMid: false, eqKillHigh: false, filterSweep: 0, effectType: 'none' as const, effectEnabled: false, effectWetDry: 0.5, error: null, synced: false, slipMode: false, slipPosition: null, slipStartTime: null, slipStartPosition: null, rollMode: false, rollStartWallClock: null, rollStartPosition: null, autoPlayOnLoad: false, anchor: null, gridConfirmed: false, cuePoint: null, transportState: 'CUED' as const },
+      B: { deckId: 'B', trackId: null, title: '', artist: '', waveformPeaks: null, waveformColoredPeaks: null, decoding: false, bpmDetecting: false, duration: 0, currentTime: 0, thumbnailUrl: null, playbackState: 'unstarted', pitchRate: 1 as const, bpm: null, volume: 80, loopActive: false, loopStart: null, loopEnd: null, loopBeatCount: null, beatJumpSize: 4, playerReady: false, hotCues: {}, eqLow: 0, eqMid: 0, eqHigh: 0, eqKillLow: false, eqKillMid: false, eqKillHigh: false, filterSweep: 0, effectType: 'none' as const, effectEnabled: false, effectWetDry: 0.5, error: null, synced: false, slipMode: false, slipPosition: null, slipStartTime: null, slipStartPosition: null, rollMode: false, rollStartWallClock: null, rollStartPosition: null, autoPlayOnLoad: false, anchor: null, gridConfirmed: false, cuePoint: null, transportState: 'CUED' as const },
     },
   } as never);
   usePlaylistStore.setState({ playlists: { A: [], B: [] }, currentIndex: { A: -1, B: -1 } });
@@ -47,10 +47,10 @@ function resetStores() {
 
 async function loadMp3Track(deckId: 'A' | 'B') {
   const file = new File(['x'], 'test.mp3', { type: 'audio/mpeg' });
-  const entry = { id: 'e1', sourceType: 'mp3' as const, title: 'T', artist: 'A', duration: 120, thumbnailUrl: null, file };
+  const entry = { id: 'e1', title: 'T', artist: 'A', duration: 120, thumbnailUrl: null, file };
   act(() => { usePlaylistStore.setState({ playlists: { A: [], B: [], ...{ [deckId]: [entry] } }, currentIndex: { A: -1, B: -1, ...{ [deckId]: 0 } } }); });
   await act(async () => {
-    useDeckStore.getState().loadTrack(deckId, entry.id, { sourceType: 'mp3', title: 'T', artist: 'A', duration: 120, thumbnailUrl: null });
+    useDeckStore.getState().loadTrack(deckId, entry.id, { title: 'T', artist: 'A', duration: 120, thumbnailUrl: null });
     await Promise.resolve();
   });
 }
@@ -77,12 +77,9 @@ describe('MP3-004 — volume: mp3 deck', () => {
     expect(mockEngineInstances[0]!.setVolume).toHaveBeenCalledWith(100);
   });
 
-  it('does NOT call setVolume for youtube source', async () => {
-    renderHook(() => useAudioEngine('A'));
-    await act(async () => { useDeckStore.getState().loadTrack('A', 'yt1', { sourceType: 'youtube', title: '', artist: '', duration: 0, thumbnailUrl: null }); await Promise.resolve(); });
-    act(() => { useDeckStore.getState().setVolume('A', 50); });
-    expect(mockEngineInstances[0]!.setVolume).not.toHaveBeenCalled();
-  });
+  // Note: the old "does NOT call setVolume for youtube source" test was deleted
+  // because the project collapsed to a single Web Audio backend. Volume always
+  // routes to the engine.
 
   it('does NOT call setVolume after unmount', async () => {
     const { unmount } = renderHook(() => useAudioEngine('A'));
@@ -121,12 +118,9 @@ describe('MP3-004 — EQ: mp3 deck', () => {
     expect(mockEngineInstances[0]!.setEQ).toHaveBeenCalledWith('high', 6);
   });
 
-  it('does NOT call setEQ for youtube source', async () => {
-    renderHook(() => useAudioEngine('A'));
-    await act(async () => { useDeckStore.getState().loadTrack('A', 'yt1', { sourceType: 'youtube', title: '', artist: '', duration: 0, thumbnailUrl: null }); await Promise.resolve(); });
-    act(() => { useDeckStore.getState().setEq('A', 'eqLow', -3); });
-    expect(mockEngineInstances[0]!.setEQ).not.toHaveBeenCalled();
-  });
+  // Note: the old "does NOT call setEQ for youtube source" test was deleted
+  // because the project collapsed to a single Web Audio backend. EQ always
+  // routes to the engine.
 
   it('does NOT call setEQ after unmount', async () => {
     const { unmount } = renderHook(() => useAudioEngine('A'));

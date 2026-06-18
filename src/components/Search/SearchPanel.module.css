@@ -27,12 +27,6 @@
   transform: translateY(0);
 }
 
-/* Greyed-out state when unauthenticated and no API key. */
-.panelDisabled {
-  opacity: 0.5;
-  pointer-events: none;
-}
-
 /* ── Drawer handle — always visible at bottom of screen ──────────────────── */
 
 .handle {
@@ -122,20 +116,6 @@
   min-height: 0;
 }
 
-/* Overlay message shown on top of the disabled panel content area. */
-.disabledOverlay {
-  position: absolute;
-  inset: 44px 0 0 0;
-  z-index: 10;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(0, 0, 0, 0.5);
-  color: var(--color-text-secondary);
-  font-size: var(--text-base);
-  font-family: var(--font-primary);
-  pointer-events: none;
-}
 
 /* ── Tab bar ──────────────────────────────────────────────────────────────── */
 
@@ -303,4 +283,9 @@
 .channelToggleBtnActive {
   border-color: #4a9eff;
   background: rgba(74, 158, 255, 0.12);
+}
+
+.placeholder {
+  color: var(--color-text-muted, #888);
+  padding: 1.5rem;
 }

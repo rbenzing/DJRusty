@@ -6,7 +6,6 @@
  */
 import { describe, it, expect } from 'vitest';
 import { PITCH_RATES, DEFAULT_PITCH_RATE, nearestPitchRate } from '../constants/pitchRates';
-import { YOUTUBE_API_BASE, YOUTUBE_SEARCH_MAX_RESULTS } from '../constants/api';
 
 describe('PITCH_RATES constant', () => {
   it('contains exactly 8 discrete values', () => {
@@ -64,12 +63,3 @@ describe('nearestPitchRate', () => {
   });
 });
 
-describe('API constants', () => {
-  it('YOUTUBE_API_BASE points to the correct base URL', () => {
-    expect(YOUTUBE_API_BASE).toBe('https://www.googleapis.com/youtube/v3');
-  });
-
-  it('YOUTUBE_SEARCH_MAX_RESULTS is the API ceiling of 50', () => {
-    expect(YOUTUBE_SEARCH_MAX_RESULTS).toBe(50);
-  });
-});

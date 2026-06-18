@@ -7,13 +7,13 @@ function mockEngine() {
 }
 
 describe('grid-snapped loop actions', () => {
-  beforeEach(() => { useDeckStore.getState().clearTrack('A'); playerRegistry.unregister('A', 'audio'); });
+  beforeEach(() => { useDeckStore.getState().clearTrack('A'); playerRegistry.unregister('A'); });
 
   it('activateLoopBeat snaps loopStart to the grid and arms the engine loop', () => {
     const eng = mockEngine();
-    playerRegistry.register('A', 'audio', eng as never);
+    playerRegistry.register('A', eng as never);
     const s = useDeckStore.getState();
-    s.loadTrack('A', 'x', { sourceType: 'mp3', title: '', artist: '', duration: 180, thumbnailUrl: null });
+    s.loadTrack('A', 'x', { title: '', artist: '', duration: 180, thumbnailUrl: null });
     s.setGrid('A', 120, 0.5);   // beats at .5,1,1.5,...
     s.setCurrentTime('A', 1.7);
     s.activateLoopBeat('A', 4);
@@ -26,9 +26,9 @@ describe('grid-snapped loop actions', () => {
 
   it('deactivateLoop clears the engine loop', () => {
     const eng = mockEngine();
-    playerRegistry.register('A', 'audio', eng as never);
+    playerRegistry.register('A', eng as never);
     const s = useDeckStore.getState();
-    s.loadTrack('A', 'x', { sourceType: 'mp3', title: '', artist: '', duration: 180, thumbnailUrl: null });
+    s.loadTrack('A', 'x', { title: '', artist: '', duration: 180, thumbnailUrl: null });
     s.setGrid('A', 120, 0.5); s.setCurrentTime('A', 1.7); s.activateLoopBeat('A', 4);
     s.deactivateLoop('A');
     expect(eng.clearLoop).toHaveBeenCalled();
@@ -37,9 +37,9 @@ describe('grid-snapped loop actions', () => {
 
   it('activateLoopBeat is a no-op when there is no confirmed grid (anchor null)', () => {
     const eng = mockEngine();
-    playerRegistry.register('A', 'audio', eng as never);
+    playerRegistry.register('A', eng as never);
     const s = useDeckStore.getState();
-    s.loadTrack('A', 'x', { sourceType: 'mp3', title: '', artist: '', duration: 180, thumbnailUrl: null });
+    s.loadTrack('A', 'x', { title: '', artist: '', duration: 180, thumbnailUrl: null });
     s.setBpm('A', 120); // bpm set but anchor still null
     s.activateLoopBeat('A', 4);
     expect(useDeckStore.getState().decks.A.loopActive).toBe(false);

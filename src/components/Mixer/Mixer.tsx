@@ -19,8 +19,7 @@ import styles from './Mixer.module.css';
  *   mixerStore.setCrossfaderPosition / setChannelFaderA / setChannelFaderB
  *   → recalculates composite volumes
  *   → calls deckStore.setVolume(deckId, compositeVol)
- *   → useYouTubePlayer subscription picks up the store change
- *   → calls player.setVolume() on the IFrame player
+ *   → audio engine subscription picks up the store change and calls player.setVolume()
  *
  * This satisfies the <50ms response requirement because the entire chain is
  * synchronous within the React state update triggered by the input event.

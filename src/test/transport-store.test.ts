@@ -7,13 +7,13 @@ function mockPlayer(pos = 0) {
 }
 
 describe('dispatchTransport', () => {
-  beforeEach(() => { useDeckStore.getState().clearTrack('A'); playerRegistry.unregister('A', 'audio'); });
+  beforeEach(() => { useDeckStore.getState().clearTrack('A'); playerRegistry.unregister('A'); });
 
   it('PAUSED + CUE_PRESS sets the cue at the playhead, seeks there, → CUED', () => {
     const p = mockPlayer(25);
-    playerRegistry.register('A', 'audio', p as never);
+    playerRegistry.register('A', p as never);
     const s = useDeckStore.getState();
-    s.loadTrack('A', 'x', { sourceType: 'mp3', title: '', artist: '', duration: 180, thumbnailUrl: null });
+    s.loadTrack('A', 'x', { title: '', artist: '', duration: 180, thumbnailUrl: null });
     s.setPlaybackState('A', 'paused'); // → transportState PAUSED
     s.dispatchTransport('A', { type: 'CUE_PRESS' });
     const d = useDeckStore.getState().decks.A;
@@ -24,9 +24,9 @@ describe('dispatchTransport', () => {
 
   it('PLAYING + CUE_PRESS jumps back to the cue and pauses → CUED', () => {
     const p = mockPlayer(40);
-    playerRegistry.register('A', 'audio', p as never);
+    playerRegistry.register('A', p as never);
     const s = useDeckStore.getState();
-    s.loadTrack('A', 'x', { sourceType: 'mp3', title: '', artist: '', duration: 180, thumbnailUrl: null });
+    s.loadTrack('A', 'x', { title: '', artist: '', duration: 180, thumbnailUrl: null });
     s.setCuePoint('A', 10);
     s.setPlaybackState('A', 'playing'); // → PLAYING
     s.dispatchTransport('A', { type: 'CUE_PRESS' });
@@ -37,9 +37,9 @@ describe('dispatchTransport', () => {
   });
 
   it('CUED + PLAY → PLAYING', () => {
-    playerRegistry.register('A', 'audio', mockPlayer() as never);
+    playerRegistry.register('A', mockPlayer() as never);
     const s = useDeckStore.getState();
-    s.loadTrack('A', 'x', { sourceType: 'mp3', title: '', artist: '', duration: 180, thumbnailUrl: null });
+    s.loadTrack('A', 'x', { title: '', artist: '', duration: 180, thumbnailUrl: null });
     // fresh deck transportState is 'CUED'
     s.dispatchTransport('A', { type: 'PLAY' });
     const d = useDeckStore.getState().decks.A;

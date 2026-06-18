@@ -8,7 +8,7 @@ describe('control components do not re-render on the coarse currentTime tick', (
   beforeEach(() => useDeckStore.getState().clearTrack('A'));
   it('DeckControls stays put across coarse ticks', () => {
     const s = useDeckStore.getState();
-    s.loadTrack('A', 'vid12345678', { sourceType: 'mp3', title: 't', artist: 'a', duration: 180, thumbnailUrl: null });
+    s.loadTrack('A', 'vid12345678', { title: 't', artist: 'a', duration: 180, thumbnailUrl: null });
     let commits = 0;
     render(<Profiler id="dc" onRender={() => { commits++; }}><DeckControls deckId="A" /></Profiler>);
     const base = commits;

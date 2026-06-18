@@ -17,14 +17,9 @@
  *   - deckStore.setHotCue / clearHotCue update in-memory state.
  *   - loadTrack in deckStore already loads hotCues from localStorage on track load.
  *
- * The component reads currentTime and videoId from deckStore and delegates
- * player.seekTo() to the useYouTubePlayer hook via the playerRef that is
- * exposed through a shared registry (see playerRegistry below).
- *
- * Player seek:
- *   The YT.Player instance is not in Zustand — it lives in a useRef inside
- *   useYouTubePlayer. To perform a seek from outside the hook we use a simple
- *   module-level registry that the hook populates on mount and clears on unmount.
+ * The component reads currentTime and trackId from deckStore and delegates
+ * player.seekTo() via the module-level playerRegistry (populated on mount,
+ * cleared on unmount by the audio engine hook).
  */
 import { useDeckStore, useDeckActions } from '../../store/deckStore';
 import {
@@ -48,7 +43,6 @@ export function HotCues({ deckId }: HotCuesProps) {
   const trackId = useDeckStore((s) => s.decks[deckId].trackId);
   const hotCues = useDeckStore((s) => s.decks[deckId].hotCues);
   const playerReady = useDeckStore((s) => s.decks[deckId].playerReady);
-  const sourceType = useDeckStore((s) => s.decks[deckId].sourceType);
   const hasTrack = trackId !== null;
 
   /**
@@ -70,7 +64,7 @@ export function HotCues({ deckId }: HotCuesProps) {
     if (timestamp === undefined) return;
     if (!playerReady) return;
 
-    const player = getActivePlayer(deckId, sourceType);
+    const player = getActivePlayer(deckId);
     if (player) {
       player.seekTo(timestamp, true);
     }

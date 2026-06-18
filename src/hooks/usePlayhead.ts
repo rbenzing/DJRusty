@@ -1,6 +1,5 @@
 import { useEffect, useRef } from 'react';
 import { getActivePlayer } from '../services/playerRegistry';
-import { useDeckStore } from '../store/deckStore';
 
 /**
  * Smooth playhead from the active player's clock, updated each rAF into a ref (NOT Zustand).
@@ -13,8 +12,7 @@ export function usePlayhead(deckId: 'A' | 'B'): { current: number } {
   useEffect(() => {
     let raf = 0;
     const tick = () => {
-      const { sourceType } = useDeckStore.getState().decks[deckId];
-      const player = getActivePlayer(deckId, sourceType);
+      const player = getActivePlayer(deckId);
       if (player) ref.current = player.getCurrentTime();
       raf = requestAnimationFrame(tick);
     };

@@ -65,7 +65,7 @@ export function useKeyboardShortcuts(): void {
         case 'q': {
           const cueA = deckA.hotCues[0];
           if (cueA !== undefined) {
-            getActivePlayer('A', useDeckStore.getState().decks['A'].sourceType)?.seekTo(cueA, true);
+            getActivePlayer('A')?.seekTo(cueA, true);
           }
           break;
         }
@@ -73,7 +73,7 @@ export function useKeyboardShortcuts(): void {
         case 'w': {
           const cueB = deckB.hotCues[0];
           if (cueB !== undefined) {
-            getActivePlayer('B', useDeckStore.getState().decks['B'].sourceType)?.seekTo(cueB, true);
+            getActivePlayer('B')?.seekTo(cueB, true);
           }
           break;
         }
@@ -135,7 +135,7 @@ export function useKeyboardShortcuts(): void {
           const indexA = Number(e.key) - 1;
           const timestampA = deckA.hotCues[indexA];
           if (timestampA !== undefined) {
-            getActivePlayer('A', useDeckStore.getState().decks['A'].sourceType)?.seekTo(timestampA, true);
+            getActivePlayer('A')?.seekTo(timestampA, true);
           }
           break;
         }
@@ -150,7 +150,7 @@ export function useKeyboardShortcuts(): void {
           const indexB = Number(e.key) - 5;
           const timestampB = deckB.hotCues[indexB];
           if (timestampB !== undefined) {
-            getActivePlayer('B', useDeckStore.getState().decks['B'].sourceType)?.seekTo(timestampB, true);
+            getActivePlayer('B')?.seekTo(timestampB, true);
           }
           break;
         }

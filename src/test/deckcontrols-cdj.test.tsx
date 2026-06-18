@@ -7,13 +7,13 @@ import { playerRegistry } from '../services/playerRegistry';
 function mockPlayer(pos = 0) { return { seekTo: vi.fn(), getCurrentTime: () => pos, getDuration: () => 180 }; }
 
 describe('DeckControls — Pioneer-CDJ cue/play', () => {
-  beforeEach(() => { useDeckStore.getState().clearTrack('A'); playerRegistry.unregister('A', 'audio'); });
+  beforeEach(() => { useDeckStore.getState().clearTrack('A'); playerRegistry.unregister('A'); });
   afterEach(() => { cleanup(); });
 
   function setup(pos = 0) {
-    playerRegistry.register('A', 'audio', mockPlayer(pos) as never);
+    playerRegistry.register('A', mockPlayer(pos) as never);
     const s = useDeckStore.getState();
-    s.loadTrack('A', 'vid12345678', { sourceType: 'mp3', title: 't', artist: 'a', duration: 180, thumbnailUrl: null });
+    s.loadTrack('A', 'vid12345678', { title: 't', artist: 'a', duration: 180, thumbnailUrl: null });
     s.setPlayerReady('A', true);
     return s;
   }

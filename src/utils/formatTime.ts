@@ -1,7 +1,5 @@
 /**
  * formatTime.ts — Time display and ISO 8601 duration parsing utilities.
- * Full implementation here for STORY-001.
- * Used by DeckDisplay, SearchResult components, and youtubeDataApi service.
  */
 
 /**

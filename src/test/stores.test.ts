@@ -4,7 +4,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { act } from '@testing-library/react';
 import { useDeckStore } from '../store/deckStore';
-import { useAuthStore } from '../store/authStore';
 import { useMixerStore } from '../store/mixerStore';
 
 /**
@@ -17,7 +16,6 @@ beforeEach(() => {
       A: {
         deckId: 'A',
         trackId: null,
-        sourceType: null,
         title: '',
         artist: '',
         waveformPeaks: null,
@@ -48,7 +46,6 @@ beforeEach(() => {
         effectEnabled: false,
         effectWetDry: 0.5,
         error: null,
-        pitchRateLocked: false,
         beatJumpSize: 4,
         synced: false,
         slipMode: false,
@@ -67,7 +64,6 @@ beforeEach(() => {
       B: {
         deckId: 'B',
         trackId: null,
-        sourceType: null,
         title: '',
         artist: '',
         waveformPeaks: null,
@@ -98,7 +94,6 @@ beforeEach(() => {
         effectEnabled: false,
         effectWetDry: 0.5,
         error: null,
-        pitchRateLocked: false,
         beatJumpSize: 4,
         synced: false,
         slipMode: false,
@@ -115,13 +110,6 @@ beforeEach(() => {
         transportState: 'CUED' as const,
       },
     },
-  });
-
-  useAuthStore.setState({
-    accessToken: null,
-    expiresAt: null,
-    userInfo: null,
-    signedIn: false,
   });
 
   useMixerStore.setState({
@@ -160,7 +148,6 @@ describe('deckStore', () => {
   it('loadTrack updates deck state correctly', () => {
     act(() => {
       useDeckStore.getState().loadTrack('A', 'dQw4w9WgXcQ', {
-        sourceType: 'youtube',
         title: 'Test Track',
         artist: 'Test Channel',
         duration: 212,
@@ -298,7 +285,6 @@ describe('deckStore', () => {
     // anchor=11.0 so snapLoopIn returns exactly 11.0 for currentTime=11.0.
     act(() => {
       useDeckStore.getState().loadTrack('A', 'test-vid', {
-        sourceType: 'youtube',
         title: 'T',
         artist: 'C',
         duration: 12,
@@ -322,7 +308,6 @@ describe('deckStore', () => {
     // anchor=10.0 so snapLoopIn returns exactly 10.0 for currentTime=10.0.
     act(() => {
       useDeckStore.getState().loadTrack('A', 'test-vid', {
-        sourceType: 'youtube',
         title: 'T',
         artist: 'C',
         duration: 30,
@@ -352,34 +337,6 @@ describe('deckStore', () => {
 
     const deckA = useDeckStore.getState().decks['A'];
     expect(deckA.loopEnd).toBeCloseTo(7.0, 5); // Not clamped
-  });
-
-  // STORY-014: setPitchRateLocked unit test
-  it('setPitchRateLocked sets pitchRateLocked to true', () => {
-    act(() => {
-      useDeckStore.getState().setPitchRateLocked('A', true);
-    });
-
-    expect(useDeckStore.getState().decks['A'].pitchRateLocked).toBe(true);
-  });
-
-  it('setPitchRateLocked sets pitchRateLocked to false', () => {
-    act(() => {
-      useDeckStore.getState().setPitchRateLocked('A', true);
-    });
-    act(() => {
-      useDeckStore.getState().setPitchRateLocked('A', false);
-    });
-
-    expect(useDeckStore.getState().decks['A'].pitchRateLocked).toBe(false);
-  });
-
-  it('setPitchRateLocked does not affect the other deck', () => {
-    act(() => {
-      useDeckStore.getState().setPitchRateLocked('A', true);
-    });
-
-    expect(useDeckStore.getState().decks['B'].pitchRateLocked).toBe(false);
   });
 
   it('setHotCue stores the timestamp at the given index', () => {
@@ -445,7 +402,6 @@ describe('deckStore', () => {
   it('clearTrack resets all deck state', () => {
     act(() => {
       useDeckStore.getState().loadTrack('A', 'dQw4w9WgXcQ', {
-        sourceType: 'youtube',
         title: 'Test',
         artist: 'Channel',
         duration: 100,
@@ -463,85 +419,6 @@ describe('deckStore', () => {
     expect(deckA.title).toBe('');
     expect(deckA.playbackState).toBe('unstarted');
     expect(deckA.bpm).toBeNull();
-  });
-});
-
-describe('authStore', () => {
-  it('initialises with signed out state', () => {
-    const state = useAuthStore.getState();
-    expect(state.accessToken).toBeNull();
-    expect(state.expiresAt).toBeNull();
-    expect(state.userInfo).toBeNull();
-    expect(state.signedIn).toBe(false);
-  });
-
-  it('setToken stores token and marks signed in', () => {
-    act(() => {
-      useAuthStore.getState().setToken('ya29.test_token', 3600);
-    });
-
-    const state = useAuthStore.getState();
-    expect(state.accessToken).toBe('ya29.test_token');
-    expect(state.signedIn).toBe(true);
-    expect(state.expiresAt).toBeGreaterThan(Date.now());
-  });
-
-  it('setToken sets expiresAt approximately 1 hour from now', () => {
-    const beforeCall = Date.now();
-    act(() => {
-      useAuthStore.getState().setToken('ya29.test', 3600);
-    });
-    const afterCall = Date.now();
-
-    const { expiresAt } = useAuthStore.getState();
-    expect(expiresAt).toBeGreaterThanOrEqual(beforeCall + 3600 * 1000);
-    expect(expiresAt).toBeLessThanOrEqual(afterCall + 3600 * 1000);
-  });
-
-  it('setUserInfo stores user profile', () => {
-    act(() => {
-      useAuthStore.getState().setUserInfo({
-        sub: '12345',
-        name: 'DJ Rusty',
-        email: 'rusty@example.com',
-        picture: 'https://example.com/avatar.jpg',
-      });
-    });
-
-    const { userInfo } = useAuthStore.getState();
-    expect(userInfo?.name).toBe('DJ Rusty');
-    expect(userInfo?.email).toBe('rusty@example.com');
-  });
-
-  it('clearAuth resets all state to initial values', () => {
-    act(() => {
-      useAuthStore.getState().setToken('ya29.test', 3600);
-      useAuthStore.getState().setUserInfo({
-        sub: '12345',
-        name: 'DJ Rusty',
-        email: 'rusty@example.com',
-        picture: 'https://example.com/avatar.jpg',
-      });
-    });
-    act(() => {
-      useAuthStore.getState().clearAuth();
-    });
-
-    const state = useAuthStore.getState();
-    expect(state.accessToken).toBeNull();
-    expect(state.expiresAt).toBeNull();
-    expect(state.userInfo).toBeNull();
-    expect(state.signedIn).toBe(false);
-  });
-
-  it('clearAuth does not retain any token data', () => {
-    act(() => {
-      useAuthStore.getState().setToken('ya29.secret_token', 3600);
-      useAuthStore.getState().clearAuth();
-    });
-
-    // Token must not be recoverable after sign-out
-    expect(useAuthStore.getState().accessToken).toBeNull();
   });
 });
 

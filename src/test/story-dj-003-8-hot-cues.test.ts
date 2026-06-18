@@ -26,7 +26,6 @@ function resetDeckStore() {
       A: {
         deckId: 'A',
         trackId: null,
-        sourceType: null,
         title: '',
         artist: '',
         waveformPeaks: null,
@@ -67,7 +66,6 @@ function resetDeckStore() {
         effectEnabled: false,
         effectWetDry: 0.5,
         error: null,
-        pitchRateLocked: false,
         anchor: null,
         gridConfirmed: false,
         cuePoint: null,
@@ -76,7 +74,6 @@ function resetDeckStore() {
       B: {
         deckId: 'B',
         trackId: null,
-        sourceType: null,
         title: '',
         artist: '',
         waveformPeaks: null,
@@ -117,7 +114,6 @@ function resetDeckStore() {
         effectEnabled: false,
         effectWetDry: 0.5,
         error: null,
-        pitchRateLocked: false,
         anchor: null,
         gridConfirmed: false,
         cuePoint: null,

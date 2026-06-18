@@ -5,8 +5,7 @@
  * All tests are expected to FAIL until the Developer adds transport subscriptions to useAudioEngine.
  *
  * Coverage:
- *  - Transport subscriptions: play/pause/seek delegated to engine when sourceType === 'mp3'
- *  - Source-type guard: transport actions do NOT call engine when sourceType === 'youtube'
+ *  - Transport subscriptions: play/pause/seek delegated to engine
  *  - Pre-load guard: engine methods not called before a track is loaded
  *  - Unmount cleanup: transport actions do NOT call engine after unmount
  *  - Playback state synchronisation: play resolves -> 'playing', pause -> 'paused'
@@ -119,7 +118,6 @@ function initialDeckState(deckId: 'A' | 'B') {
   return {
     deckId,
     trackId: null,
-    sourceType: null as null,
     title: '',
     artist: '',
     waveformPeaks: null,
@@ -151,7 +149,6 @@ function initialDeckState(deckId: 'A' | 'B') {
     effectEnabled: false,
     effectWetDry: 0.5,
     error: null,
-    pitchRateLocked: false,
     synced: false,
     slipMode: false,
     slipPosition: null,
@@ -182,7 +179,6 @@ function resetStores() {
 async function loadMp3TrackAndWait(deckId: 'A' | 'B', file: File) {
   const entry = {
     id: 'test-entry-1',
-    sourceType: 'mp3' as const,
     title: 'Test Track',
     artist: 'Local File',
     duration: 240,
@@ -199,7 +195,7 @@ async function loadMp3TrackAndWait(deckId: 'A' | 'B', file: File) {
     useDeckStore.getState().loadTrack(
       deckId,
       entry.id,
-      { sourceType: 'mp3', title: entry.title, artist: entry.artist, duration: entry.duration, thumbnailUrl: null },
+      { title: entry.title, artist: entry.artist, duration: entry.duration, thumbnailUrl: null },
       false,
     );
     await Promise.resolve();
@@ -336,85 +332,6 @@ describe('MP3-003 — pause subscription: sourceType mp3', () => {
     });
 
     expect(mockEngineInstances[0]!.pause).not.toHaveBeenCalled();
-  });
-});
-
-// ---------------------------------------------------------------------------
-
-describe('MP3-003 — source type guard: youtube decks do not call engine transport', () => {
-  beforeEach(() => {
-    resetStores();
-    mockEngineInstances.length = 0;
-    vi.clearAllMocks();
-  });
-
-  afterEach(() => {
-    vi.clearAllMocks();
-  });
-
-  it('does NOT call engine.play() when playbackState changes to playing and sourceType is youtube', async () => {
-    renderHook(() => useAudioEngine('A'));
-
-    await act(async () => {
-      useDeckStore.getState().loadTrack('A', 'yt-video-id', {
-        sourceType: 'youtube',
-        title: 'YouTube Track',
-        artist: 'Artist',
-        duration: 180,
-        thumbnailUrl: null,
-      });
-      await Promise.resolve();
-    });
-
-    await act(async () => {
-      useDeckStore.getState().setPlaybackState('A', 'playing');
-      await Promise.resolve();
-    });
-
-    expect(mockEngineInstances[0]!.play).not.toHaveBeenCalled();
-  });
-
-  it('does NOT call engine.pause() when playbackState changes to paused and sourceType is youtube', async () => {
-    renderHook(() => useAudioEngine('A'));
-
-    await act(async () => {
-      useDeckStore.getState().loadTrack('A', 'yt-video-id', {
-        sourceType: 'youtube',
-        title: 'YouTube Track',
-        artist: 'Artist',
-        duration: 180,
-        thumbnailUrl: null,
-      });
-      await Promise.resolve();
-    });
-
-    act(() => {
-      useDeckStore.getState().setPlaybackState('A', 'paused');
-    });
-
-    expect(mockEngineInstances[0]!.pause).not.toHaveBeenCalled();
-  });
-
-  it('does NOT call engine.seekTo() when seekTo is invoked and sourceType is youtube', async () => {
-    renderHook(() => useAudioEngine('A'));
-
-    await act(async () => {
-      useDeckStore.getState().loadTrack('A', 'yt-video-id', {
-        sourceType: 'youtube',
-        title: 'YouTube Track',
-        artist: 'Artist',
-        duration: 180,
-        thumbnailUrl: null,
-      });
-      await Promise.resolve();
-    });
-
-    // Simulate a seek action via store currentTime write from external caller
-    act(() => {
-      useDeckStore.getState().setCurrentTime('A', 60);
-    });
-
-    expect(mockEngineInstances[0]!.seekTo).not.toHaveBeenCalled();
   });
 });
 
@@ -836,7 +753,6 @@ describe('MP3-003 — deck isolation: deck B transport does not affect deck A en
     // Load track into deck B (different deck)
     const entryB = {
       id: 'entry-b',
-      sourceType: 'mp3' as const,
       title: 'Track B',
       artist: 'Local File',
       duration: 120,
@@ -849,7 +765,7 @@ describe('MP3-003 — deck isolation: deck B transport does not affect deck A en
         currentIndex: { ...usePlaylistStore.getState().currentIndex, B: 0 },
       });
       useDeckStore.getState().loadTrack('B', entryB.id, {
-        sourceType: 'mp3', title: entryB.title, artist: entryB.artist, duration: entryB.duration, thumbnailUrl: null,
+        title: entryB.title, artist: entryB.artist, duration: entryB.duration, thumbnailUrl: null,
       });
       await Promise.resolve();
     });
