@@ -21,11 +21,11 @@
  */
 import { useState } from 'react';
 import type { DragEvent } from 'react';
-import { useDeck, useDeckStore } from '../../store/deckStore';
+import { useDeck } from '../../store/deckStore';
 import { useMixerStore } from '../../store/mixerStore';
 import { useAudioEngine } from '../../hooks/useAudioEngine';
 import { usePlaylistStore } from '../../store/playlistStore';
-import type { PlaylistEntry } from '../../types/playlist';
+import { useLibraryStore, libraryTrackToEntry } from '../../store/libraryStore';
 import { DeckControls } from './DeckControls';
 import { DeckDisplay } from './DeckDisplay';
 import { EQPanel } from './EQPanel';
@@ -53,8 +53,6 @@ export function Deck({ deckId }: DeckProps) {
   const setChannelFaderA = useMixerStore((s) => s.setChannelFaderA);
   const setChannelFaderB = useMixerStore((s) => s.setChannelFaderB);
   const channelFader = useMixerStore((s) => deckId === 'A' ? s.channelFaderA : s.channelFaderB);
-  const addTrack = usePlaylistStore((s) => s.addTrack);
-
   const { playbackState, trackId, thumbnailUrl, pitchRate, error } = deck;
 
   const isPlaying = playbackState === 'playing';
@@ -83,21 +81,9 @@ export function Deck({ deckId }: DeckProps) {
     const files = Array.from(e.dataTransfer.files).filter((f) => f.type.startsWith('audio/'));
     if (files.length === 0) return;
 
-    // Dropping onto the deck replaces whatever is loaded — stop, clear, then load.
-    const ds = useDeckStore.getState();
-    ds.setPlaybackState(deckId, 'paused');
-    ds.clearTrack(deckId);
-    usePlaylistStore.getState().clearPlaylist(deckId);
-
-    files.forEach((file) => {
-      const audioUrl = URL.createObjectURL(file);
-      const title = file.name.replace(/\.[^/.]+$/, '');
-      const entry: Omit<PlaylistEntry, 'id'> = {
-        title, artist: 'Local File',
-        duration: 0, thumbnailUrl: null, file, audioUrl,
-      };
-      addTrack(deckId, entry);
-    });
+    // Dropping onto the deck appends to the queue (does not replace).
+    const created = useLibraryStore.getState().addFiles(files);
+    created.forEach((t) => usePlaylistStore.getState().addTrack(deckId, libraryTrackToEntry(t)));
   }
 
   function handleVolumeChange(event: React.ChangeEvent<HTMLInputElement>) {

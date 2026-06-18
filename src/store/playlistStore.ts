@@ -31,8 +31,10 @@ interface PlaylistStoreActions {
   /**
    * Add a track to the end of the specified deck's playlist.
    * If the playlist was empty, also cues the track in the deck (no autoplay).
+   * If the entry already has an `id`, it is preserved verbatim so that
+   * library track ids flow through to deckStore.trackId (used for hot-cue/grid keys).
    */
-  addTrack(deckId: 'A' | 'B', entry: Omit<PlaylistEntry, 'id'>): void;
+  addTrack(deckId: 'A' | 'B', entry: PlaylistEntry | Omit<PlaylistEntry, 'id'>): void;
 
   /** Remove a track by its unique entry id. Adjusts currentIndex as needed. */
   removeTrack(deckId: 'A' | 'B', id: string): void;
@@ -88,7 +90,8 @@ export const usePlaylistStore = create<PlaylistStore>((set, get) => ({
   currentIndex: { A: -1, B: -1 },
 
   addTrack: (deckId, entryData) => {
-    const entry: PlaylistEntry = { ...entryData, id: generateId() };
+    const id = 'id' in entryData ? entryData.id : generateId();
+    const entry: PlaylistEntry = { ...entryData, id };
     const wasEmpty = get().playlists[deckId].length === 0;
 
     set((state) => ({

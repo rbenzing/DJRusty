@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import type { PlaylistEntry } from '../types/playlist';
 
 export interface ImportedTrack {
   id: string;
@@ -64,3 +65,16 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
     set({ tracks });
   },
 }));
+
+/** Full PlaylistEntry for a library track — id preserved so cues/grid/sessions align by id. */
+export function libraryTrackToEntry(t: ImportedTrack): PlaylistEntry {
+  return {
+    id: t.id,
+    title: t.title,
+    artist: t.artist,
+    duration: t.duration,
+    thumbnailUrl: null,
+    file: t.file,
+    audioUrl: t.audioUrl,
+  };
+}
