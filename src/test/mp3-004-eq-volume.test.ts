@@ -47,7 +47,7 @@ function resetStores() {
 
 async function loadMp3Track(deckId: 'A' | 'B') {
   const file = new File(['x'], 'test.mp3', { type: 'audio/mpeg' });
-  const entry = { id: 'e1', sourceType: 'mp3' as const, title: 'T', artist: 'A', duration: 120, thumbnailUrl: null, file };
+  const entry = { id: 'e1', title: 'T', artist: 'A', duration: 120, thumbnailUrl: null, file };
   act(() => { usePlaylistStore.setState({ playlists: { A: [], B: [], ...{ [deckId]: [entry] } }, currentIndex: { A: -1, B: -1, ...{ [deckId]: 0 } } }); });
   await act(async () => {
     useDeckStore.getState().loadTrack(deckId, entry.id, { title: 'T', artist: 'A', duration: 120, thumbnailUrl: null });

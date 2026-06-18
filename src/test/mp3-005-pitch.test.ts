@@ -6,12 +6,10 @@
  * to useAudioEngine.
  *
  * Coverage:
- *  - Pitch rate change: engine.setPlaybackRate called with correct value (mp3)
+ *  - Pitch rate change: engine.setPlaybackRate called with correct value
  *  - Multiple valid PitchRate values (1, 1.25, 0.75)
- *  - Source-type guard: setPlaybackRate NOT called when sourceType is 'youtube'
- *  - Initial pitch rate applied on mount when sourceType is 'mp3'
+ *  - Initial pitch rate applied on mount
  *  - After unmount: pitch changes do not call setPlaybackRate
- *  - pitchRateLocked is set to false after an MP3 track load
  *  - Deck isolation: pitch changes on deck B do not affect deck A engine
  */
 

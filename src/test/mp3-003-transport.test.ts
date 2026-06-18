@@ -5,8 +5,7 @@
  * All tests are expected to FAIL until the Developer adds transport subscriptions to useAudioEngine.
  *
  * Coverage:
- *  - Transport subscriptions: play/pause/seek delegated to engine when sourceType === 'mp3'
- *  - Source-type guard: transport actions do NOT call engine when sourceType === 'youtube'
+ *  - Transport subscriptions: play/pause/seek delegated to engine
  *  - Pre-load guard: engine methods not called before a track is loaded
  *  - Unmount cleanup: transport actions do NOT call engine after unmount
  *  - Playback state synchronisation: play resolves -> 'playing', pause -> 'paused'
