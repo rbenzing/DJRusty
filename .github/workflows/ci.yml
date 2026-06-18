@@ -13,17 +13,11 @@ jobs:
         with:
           node-version: '20'
           cache: 'npm'
-      - name: Install frontend deps
+      - name: Install deps
         run: npm ci
-      - name: Lint frontend
+      - name: Lint
         run: npm run lint
-      - name: Build frontend
+      - name: Build
         run: npm run build
-      - name: Test frontend
+      - name: Test
         run: npm test
-      - name: Install server deps
-        run: npm ci --prefix server
-      - name: Lint server
-        run: npm run lint --prefix server
-      - name: Test server
-        run: npm run test --prefix server
