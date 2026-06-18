@@ -8,6 +8,7 @@ import { DEFAULT_BEAT_JUMP_SIZE, gridJumpTarget } from '../utils/beatJump';
 import { getActivePlayer } from '../services/playerRegistry';
 import { snapLoopIn, loopOutFor } from '../utils/loopMath';
 import { transition, type TransportEvent } from '../utils/transport';
+import { consumePendingGrid, consumePendingLoop } from '../services/sessionStore';
 
 /**
  * Initial state for a single deck.
@@ -290,6 +291,23 @@ export const useDeckStore = create<DeckStore>((set, get) => ({
       cuePoint: null,
       transportState: 'CUED',
     });
+    // Restore grid/loop from a previously loaded session (if any)
+    const pendingGrid = consumePendingGrid(trackId);
+    if (pendingGrid?.bpm != null) {
+      get().setGrid(deckId, pendingGrid.bpm, pendingGrid.anchor ?? 0);
+    }
+    const pendingLoop = consumePendingLoop(trackId);
+    if (pendingLoop?.loopStart != null) {
+      const beatCount = pendingLoop.loopBeatCount;
+      const validBeatCount = (beatCount === 1 || beatCount === 2 || beatCount === 4 || beatCount === 8)
+        ? beatCount
+        : null;
+      updateDeck(set, deckId, {
+        loopStart: pendingLoop.loopStart,
+        loopEnd: pendingLoop.loopEnd,
+        loopBeatCount: validBeatCount,
+      });
+    }
   },
 
   setDecoding: (deckId, decoding) => {

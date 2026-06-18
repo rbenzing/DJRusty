@@ -10,9 +10,10 @@
 import { useState } from 'react';
 import { PlaylistPanel } from '../Playlist/PlaylistPanel';
 import { LibraryBrowser } from '../Library/LibraryBrowser';
+import { SessionPanel } from '../Session/SessionPanel';
 import styles from './SearchPanel.module.css';
 
-type ActiveTab = 'playlist' | 'library';
+type ActiveTab = 'playlist' | 'library' | 'sessions';
 
 interface SearchPanelProps {
   isOpen: boolean;
@@ -73,6 +74,17 @@ export function SearchPanel({ isOpen, onToggle }: SearchPanelProps) {
           >
             Library
           </button>
+          <button
+            role="tab"
+            type="button"
+            id="sessions-tab"
+            className={`${styles.tab} ${activeTab === 'sessions' ? styles.tabActive : ''}`}
+            aria-selected={activeTab === 'sessions'}
+            aria-controls="sessions-tab-panel"
+            onClick={() => setActiveTab('sessions')}
+          >
+            Sessions
+          </button>
         </div>
 
         {/* Playlist tab panel — split view of Deck A and Deck B queues */}
@@ -92,6 +104,15 @@ export function SearchPanel({ isOpen, onToggle }: SearchPanelProps) {
           hidden={activeTab !== 'library'}
         >
           <LibraryBrowser />
+        </div>
+
+        <div
+          role="tabpanel"
+          id="sessions-tab-panel"
+          aria-labelledby="sessions-tab"
+          hidden={activeTab !== 'sessions'}
+        >
+          <SessionPanel />
         </div>
 
       </div>{/* end .content */}

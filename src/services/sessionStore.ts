@@ -6,6 +6,21 @@ import { getHotCues, setHotCue } from '../utils/hotCues';
 const DB = 'dj-rusty';
 const STORE = 'sessions';
 
+const pendingGrids = new Map<string, { bpm: number | null; anchor: number | null }>();
+const pendingLoops = new Map<string, { loopStart: number | null; loopEnd: number | null; loopBeatCount: number | null }>();
+
+export function consumePendingGrid(trackId: string): { bpm: number | null; anchor: number | null } | undefined {
+  const v = pendingGrids.get(trackId);
+  pendingGrids.delete(trackId);
+  return v;
+}
+
+export function consumePendingLoop(trackId: string): { loopStart: number | null; loopEnd: number | null; loopBeatCount: number | null } | undefined {
+  const v = pendingLoops.get(trackId);
+  pendingLoops.delete(trackId);
+  return v;
+}
+
 export interface SavedSession {
   name: string;
   savedAt: number;
@@ -118,4 +133,7 @@ export async function loadSession(name: string): Promise<void> {
       if (t) pl.addTrack(deck, libraryTrackToEntry(t));
     }
   }
+  // Stash grids/loops for consumption when the track loads onto a deck
+  for (const [trackId, grid] of Object.entries(session.grids)) pendingGrids.set(trackId, grid);
+  for (const [trackId, loop] of Object.entries(session.loops)) pendingLoops.set(trackId, loop);
 }
