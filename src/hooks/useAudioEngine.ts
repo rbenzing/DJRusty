@@ -9,6 +9,7 @@ import { AudioEngineImpl } from '../services/audioEngine';
 import { decodeAudioFile } from '../services/audioDecoder';
 import { playerRegistry } from '../services/playerRegistry';
 import { useDeckStore } from '../store/deckStore';
+import { useLibraryStore } from '../store/libraryStore';
 import { usePlaylistStore } from '../store/playlistStore';
 import { extractWaveformPeaks } from '../utils/extractWaveformPeaks';
 import { extractColoredPeaks } from '../utils/extractColoredPeaks';
@@ -89,7 +90,7 @@ export function useAudioEngine(deckId: 'A' | 'B'): void {
       if (!entry) return;
 
       if (entry.file) {
-        void loadAudioFile(deckId, engineRef, entry.file, autoPlayOnLoad, isMountedRef, suppressTransportRef);
+        void loadAudioFile(deckId, trackId, engineRef, entry.file, autoPlayOnLoad, isMountedRef, suppressTransportRef);
       } else if (entry.audioUrl) {
         void loadAudioUrl(deckId, engineRef, entry.audioUrl, autoPlayOnLoad, isMountedRef, suppressTransportRef);
       }
@@ -259,6 +260,7 @@ export function useAudioEngine(deckId: 'A' | 'B'): void {
 
 async function loadAudioFile(
   deckId: 'A' | 'B',
+  trackId: string,
   engineRef: React.MutableRefObject<AudioEngineImpl | null>,
   file: File,
   autoPlay: boolean,
@@ -307,6 +309,10 @@ async function loadAudioFile(
     useDeckStore.getState().setError(
       deckId,
       `Failed to decode: ${err instanceof Error ? err.message : 'Unknown error'}`,
+    );
+    useLibraryStore.getState().setDecodeError(
+      trackId,
+      "Couldn't decode — this format may be unsupported in your browser",
     );
   }
 }
