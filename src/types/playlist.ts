@@ -33,7 +33,7 @@ export interface PlaylistEntry {
   file?: File;
 
   /**
-   * Blob URL (local MP3) or server URL (downloaded audio).
+   * Blob URL for the local audio file.
    * Set once the audio is ready to stream.
    */
   audioUrl?: string;

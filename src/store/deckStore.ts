@@ -269,8 +269,7 @@ export const useDeckStore = create<DeckStore>((set, get) => ({
       loopEnd: null,
       loopBeatCount: null,
       bpm: null,
-      // Hot cues are keyed by trackId — for YouTube entries trackId IS the videoId,
-      // so existing persisted hot cues load correctly without migration.
+      // Hot cues are keyed by trackId, persisted in localStorage.
       hotCues: getHotCues(trackId),
       error: null,
       waveformPeaks: null,

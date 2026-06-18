@@ -7,7 +7,7 @@ export type { TransportState };
 export type { PitchRate };
 
 /**
- * Current playback state of a deck, mapped from YT.PlayerState values.
+ * Current playback state of a deck.
  */
 export type PlaybackState = 'unstarted' | 'playing' | 'paused' | 'ended' | 'buffering';
 
@@ -80,19 +80,17 @@ export interface DeckState {
   /** Total duration of the loaded track in seconds. */
   duration: number;
 
-  /** Current playback position in seconds, polled from IFrame API at 250ms intervals. */
+  /** Current playback position in seconds, polled from the audio engine at 250ms intervals. */
   currentTime: number;
 
   /** Thumbnail URL from search result, used as vinyl label image. */
   thumbnailUrl: string | null;
 
-  /** Current playback state, derived from YT.PlayerState events. */
+  /** Current playback state. */
   playbackState: PlaybackState;
 
   /**
-   * Current playback rate.
-   * MP3 backend supports any continuous positive number; YouTube backend snaps
-   * to discrete PITCH_RATES internally via setPlaybackRate().
+   * Current playback rate. Supports any continuous positive number.
    */
   pitchRate: number;
 
@@ -120,7 +118,7 @@ export interface DeckState {
   /** Currently selected beat jump size. Controls how far the beat jump buttons seek. */
   beatJumpSize: number;
 
-  /** Whether the YT.Player instance is ready to receive commands. */
+  /** Whether the audio engine is ready to receive commands. */
   playerReady: boolean;
 
   /** Hot cue timestamps keyed by index (0–7). Only set cues are present. */
