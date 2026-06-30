@@ -21,7 +21,7 @@ it('playlist row has draggable attribute and sets DnD payload on dragstart', () 
   const entry = makeEntry('t1', 'Track One');
   usePlaylistStore.setState({
     playlists: { A: [entry], B: [] },
-    currentIndex: { A: 0, B: -1 },
+    currentIndex: { A: -1, B: -1 }, // no active track → draggable=true
   });
   render(<PlaylistPanel />);
 
@@ -32,7 +32,7 @@ it('playlist row has draggable attribute and sets DnD payload on dragstart', () 
   fireEvent.dragStart(li, { dataTransfer: { setData, effectAllowed: '' } });
   expect(setData).toHaveBeenCalledWith(
     DND_KEY,
-    JSON.stringify({ source: 'playlist', fromDeck: 'A', trackId: 't1', entry }),
+    JSON.stringify({ source: 'playlist', fromDeck: 'A', trackId: 't1' }),
   );
 });
 
@@ -40,11 +40,12 @@ it('dropping a playlist row on the other deck moves it', () => {
   const entry = makeEntry('t1', 'Move Me');
   usePlaylistStore.setState({
     playlists: { A: [entry], B: [] },
-    currentIndex: { A: 0, B: -1 },
+    currentIndex: { A: -1, B: -1 },
   });
   render(<PlaylistPanel />);
 
-  const payload = JSON.stringify({ source: 'playlist', fromDeck: 'A', trackId: 't1', entry });
+  // Payload no longer embeds entry — just trackId; drop handler looks up from store
+  const payload = JSON.stringify({ source: 'playlist', fromDeck: 'A', trackId: 't1' });
   const dt = {
     types: [DND_KEY],
     files: [],
@@ -67,11 +68,12 @@ it('dropping a playlist row on the same deck is ignored', () => {
   const entry = makeEntry('t1', 'Stay Here');
   usePlaylistStore.setState({
     playlists: { A: [entry], B: [] },
-    currentIndex: { A: 0, B: -1 },
+    currentIndex: { A: -1, B: -1 },
   });
   render(<PlaylistPanel />);
 
-  const payload = JSON.stringify({ source: 'playlist', fromDeck: 'A', trackId: 't1', entry });
+  // Payload no longer embeds entry
+  const payload = JSON.stringify({ source: 'playlist', fromDeck: 'A', trackId: 't1' });
   const dt = {
     types: [DND_KEY],
     files: [],

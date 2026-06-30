@@ -27,7 +27,7 @@ export function PlaylistPanel() {
   function makeRowDragStart(deckId: 'A' | 'B', entry: PlaylistEntry) {
     return (e: DragEvent<HTMLLIElement>) => {
       e.dataTransfer.effectAllowed = 'move';
-      const payload: DragPayload = { source: 'playlist', fromDeck: deckId, trackId: entry.id, entry };
+      const payload: DragPayload = { source: 'playlist', fromDeck: deckId, trackId: entry.id };
       e.dataTransfer.setData(DND_KEY, JSON.stringify(payload));
     };
   }
@@ -72,8 +72,11 @@ export function PlaylistPanel() {
           const payload = JSON.parse(raw) as DragPayload;
           if (payload.source !== 'playlist') return;
           if (payload.fromDeck === deckId) return; // same deck — ignore
+          const sourcePlaylist = usePlaylistStore.getState().playlists[payload.fromDeck];
+          const entry = sourcePlaylist.find((e) => e.id === payload.trackId);
+          if (!entry) return;
           removeTrack(payload.fromDeck, payload.trackId);
-          addTrack(deckId, payload.entry);
+          addTrack(deckId, entry);
         } catch {
           // malformed payload — ignore
         }

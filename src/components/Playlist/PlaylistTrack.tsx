@@ -32,7 +32,7 @@ export function PlaylistTrack({
   return (
     <li
       className={`${styles.track} ${isActive ? styles.trackActive : ''}`}
-      draggable={onDragStart !== undefined}
+      draggable={onDragStart !== undefined && !isActive}
       onDragStart={onDragStart}
     >
       <button
