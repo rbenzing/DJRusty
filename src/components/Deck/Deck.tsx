@@ -40,6 +40,7 @@ import { GridControl } from './GridControl';
 import { VinylPlatter } from './VinylPlatter';
 import { WaveformDisplay } from './WaveformDisplay';
 import { FileImportZone } from '../FileImport/FileImportZone';
+import { DND_KEY } from '../../types/dnd';
 import styles from './Deck.module.css';
 
 interface DeckProps {
@@ -62,7 +63,9 @@ export function Deck({ deckId }: DeckProps) {
   const [deckDragover, setDeckDragover] = useState(false);
 
   function handleDeckDragOver(e: DragEvent<HTMLDivElement>) {
-    if (e.dataTransfer.types.includes('Files')) {
+    const hasFiles = e.dataTransfer.types.includes('Files');
+    const hasDndPayload = e.dataTransfer.types.includes(DND_KEY);
+    if (hasFiles || hasDndPayload) {
       e.preventDefault();
       setDeckDragover(true);
     }
@@ -78,12 +81,29 @@ export function Deck({ deckId }: DeckProps) {
   function handleDeckDrop(e: DragEvent<HTMLDivElement>) {
     e.preventDefault();
     setDeckDragover(false);
-    const files = Array.from(e.dataTransfer.files).filter((f) => f.type.startsWith('audio/'));
-    if (files.length === 0) return;
 
-    // Dropping onto the deck appends to the queue (does not replace).
-    const created = useLibraryStore.getState().addFiles(files);
-    created.forEach((t) => usePlaylistStore.getState().addTrack(deckId, libraryTrackToEntry(t)));
+    // Branch 1: OS file drop — import to library + append to this deck's queue
+    if (e.dataTransfer.files.length > 0) {
+      const files = Array.from(e.dataTransfer.files).filter((f) => f.type.startsWith('audio/'));
+      if (files.length > 0) {
+        const created = useLibraryStore.getState().addFiles(files);
+        created.forEach((t) => usePlaylistStore.getState().addTrack(deckId, libraryTrackToEntry(t)));
+      }
+      return;
+    }
+
+    // Branch 2: DnD payload from the library browser
+    const raw = e.dataTransfer.getData(DND_KEY);
+    if (!raw) return;
+    try {
+      const payload = JSON.parse(raw) as { source: string; trackId: string };
+      if (payload.source !== 'library') return;
+      const track = useLibraryStore.getState().tracks.find((t) => t.id === payload.trackId);
+      if (!track) return;
+      usePlaylistStore.getState().addTrack(deckId, libraryTrackToEntry(track));
+    } catch {
+      // malformed payload — ignore
+    }
   }
 
   function handleVolumeChange(event: React.ChangeEvent<HTMLInputElement>) {
