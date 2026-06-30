@@ -10,6 +10,8 @@ import type { DragEvent } from 'react';
 import { usePlaylistStore } from '../../store/playlistStore';
 import { PlaylistTrack } from './PlaylistTrack';
 import type { PlaylistEntry } from '../../types/playlist';
+import { DND_KEY } from '../../types/dnd';
+import type { DragPayload } from '../../types/dnd';
 import styles from './PlaylistPanel.module.css';
 
 export function PlaylistPanel() {
@@ -22,10 +24,23 @@ export function PlaylistPanel() {
 
   const [dragoverDeck, setDragoverDeck] = useState<'A' | 'B' | null>(null);
 
+  function makeRowDragStart(deckId: 'A' | 'B', entry: PlaylistEntry) {
+    return (e: DragEvent<HTMLLIElement>) => {
+      e.dataTransfer.effectAllowed = 'move';
+      const payload: DragPayload = { source: 'playlist', fromDeck: deckId, trackId: entry.id, entry };
+      e.dataTransfer.setData(DND_KEY, JSON.stringify(payload));
+    };
+  }
+
   function makeDropHandlers(deckId: 'A' | 'B') {
     return {
       onDragOver(e: DragEvent<HTMLDivElement>) {
-        if (e.dataTransfer.types.includes('Files')) { e.preventDefault(); setDragoverDeck(deckId); }
+        const hasFiles = e.dataTransfer.types.includes('Files');
+        const hasDndPayload = e.dataTransfer.types.includes(DND_KEY);
+        if (hasFiles || hasDndPayload) {
+          e.preventDefault();
+          setDragoverDeck(deckId);
+        }
       },
       onDragLeave(e: DragEvent<HTMLDivElement>) {
         if (!e.currentTarget.contains(e.relatedTarget as Node)) setDragoverDeck(null);
@@ -33,17 +48,35 @@ export function PlaylistPanel() {
       onDrop(e: DragEvent<HTMLDivElement>) {
         e.preventDefault();
         setDragoverDeck(null);
-        Array.from(e.dataTransfer.files)
-          .filter((f) => f.type.startsWith('audio/'))
-          .forEach((file) => {
-            const audioUrl = URL.createObjectURL(file);
-            const title = file.name.replace(/\.[^/.]+$/, '');
-            const entry: Omit<PlaylistEntry, 'id'> = {
-              title, artist: 'Local File',
-              duration: 0, thumbnailUrl: null, file, audioUrl,
-            };
-            addTrack(deckId, entry);
-          });
+
+        // Branch 1: OS file drop
+        if (e.dataTransfer.files.length > 0) {
+          Array.from(e.dataTransfer.files)
+            .filter((f) => f.type.startsWith('audio/'))
+            .forEach((file) => {
+              const audioUrl = URL.createObjectURL(file);
+              const title = file.name.replace(/\.[^/.]+$/, '');
+              const entry: Omit<PlaylistEntry, 'id'> = {
+                title, artist: 'Local File',
+                duration: 0, thumbnailUrl: null, file, audioUrl,
+              };
+              addTrack(deckId, entry);
+            });
+          return;
+        }
+
+        // Branch 2: DnD payload — cross-deck playlist move
+        const raw = e.dataTransfer.getData(DND_KEY);
+        if (!raw) return;
+        try {
+          const payload = JSON.parse(raw) as DragPayload;
+          if (payload.source !== 'playlist') return;
+          if (payload.fromDeck === deckId) return; // same deck — ignore
+          removeTrack(payload.fromDeck, payload.trackId);
+          addTrack(deckId, payload.entry);
+        } catch {
+          // malformed payload — ignore
+        }
       },
     };
   }
@@ -58,6 +91,7 @@ export function PlaylistPanel() {
     return (
       <div
         className={`${styles.deckCol}${dragoverDeck === deckId ? ` ${styles.deckColDragover}` : ''}`}
+        aria-label={`Deck ${deckId} queue`}
         {...dropHandlers}
       >
         <div className={styles.deckHeader}>
@@ -101,6 +135,7 @@ export function PlaylistPanel() {
                 deckId={deckId}
                 onJump={jumpToTrack}
                 onRemove={removeTrack}
+                onDragStart={makeRowDragStart(deckId, entry)}
               />
             ))}
           </ul>

@@ -5,6 +5,7 @@
  * The × button removes the entry from the playlist.
  * The active track is highlighted with a ▶ indicator.
  */
+import type { DragEvent } from 'react';
 import { formatTime } from '../../utils/formatTime';
 import type { PlaylistEntry } from '../../types/playlist';
 import styles from './PlaylistTrack.module.css';
@@ -16,6 +17,7 @@ interface PlaylistTrackProps {
   deckId: 'A' | 'B';
   onJump: (deckId: 'A' | 'B', index: number) => void;
   onRemove: (deckId: 'A' | 'B', id: string) => void;
+  onDragStart?: (e: DragEvent<HTMLLIElement>) => void;
 }
 
 export function PlaylistTrack({
@@ -25,9 +27,14 @@ export function PlaylistTrack({
   deckId,
   onJump,
   onRemove,
+  onDragStart,
 }: PlaylistTrackProps) {
   return (
-    <li className={`${styles.track} ${isActive ? styles.trackActive : ''}`}>
+    <li
+      className={`${styles.track} ${isActive ? styles.trackActive : ''}`}
+      draggable={onDragStart !== undefined}
+      onDragStart={onDragStart}
+    >
       <button
         type="button"
         className={styles.trackInfo}
