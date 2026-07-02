@@ -48,6 +48,7 @@ function createInitialDeckState(deckId: 'A' | 'B'): DeckState {
     effectType: 'none',
     effectEnabled: false,
     effectWetDry: 0.5,
+    effectBeat: 0.5,
     error: null,
     synced: false,
     slipMode: false,
@@ -110,6 +111,9 @@ interface DeckStoreActions {
 
   /** Set the wet/dry mix for the effect (0 = dry, 1 = wet). */
   setEffectWetDry: (deckId: 'A' | 'B', wetDry: number) => void;
+
+  /** Set the FX BEAT/TIME knob position (0..1). */
+  setEffectBeat: (deckId: 'A' | 'B', v: number) => void;
 
   /** Clear the autoPlayOnLoad flag after the player has issued the load command. */
   clearAutoPlayOnLoad: (deckId: 'A' | 'B') => void;
@@ -348,6 +352,10 @@ export const useDeckStore = create<DeckStore>((set, get) => ({
 
   setEffectWetDry: (deckId, wetDry) => {
     updateDeck(set, deckId, { effectWetDry: Math.max(0, Math.min(1, wetDry)) });
+  },
+
+  setEffectBeat: (deckId, v) => {
+    updateDeck(set, deckId, { effectBeat: Math.max(0, Math.min(1, v)) });
   },
 
   clearAutoPlayOnLoad: (deckId) => {
@@ -685,6 +693,7 @@ export function useDeckActions() {
       setEq: s.setEq, setEqKill: s.setEqKill, setFilterSweep: s.setFilterSweep,
       setGain: s.setGain,
       setEffectType: s.setEffectType, setEffectEnabled: s.setEffectEnabled, setEffectWetDry: s.setEffectWetDry,
+      setEffectBeat: s.setEffectBeat,
       activateLoop: s.activateLoop, activateLoopBeat: s.activateLoopBeat, deactivateLoop: s.deactivateLoop,
       setBeatJumpSize: s.setBeatJumpSize, setSlipMode: s.setSlipMode, setSynced: s.setSynced,
       setRollMode: s.setRollMode, startRoll: s.startRoll, endRoll: s.endRoll,

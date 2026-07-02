@@ -65,6 +65,9 @@ export interface DeckState {
   /** Wet/dry mix: 0 = fully dry, 1 = fully wet. */
   effectWetDry: number;
 
+  /** FX BEAT/TIME knob position (0..1). Maps to a musical division; default 0.5 = half-beat. */
+  effectBeat: number;
+
   /**
    * True while the Web Audio API is decoding an MP3 ArrayBuffer.
    * Populated by mp3-002 story; always false until then.

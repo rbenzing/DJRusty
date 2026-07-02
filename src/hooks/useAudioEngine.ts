@@ -14,6 +14,7 @@ import { usePlaylistStore } from '../store/playlistStore';
 import { extractWaveformPeaks } from '../utils/extractWaveformPeaks';
 import { extractColoredPeaks } from '../utils/extractColoredPeaks';
 import { proposeGrid } from '../utils/beatGrid';
+import { fxBeatMultiplier } from '../utils/fxBeat';
 
 const WAVEFORM_PEAKS = 1000;
 
@@ -242,14 +243,15 @@ export function useAudioEngine(deckId: 'A' | 'B'): void {
     let prevType = useDeckStore.getState().decks[deckId].effectType;
     let prevEnabled = useDeckStore.getState().decks[deckId].effectEnabled;
     let prevWetDry = useDeckStore.getState().decks[deckId].effectWetDry;
+    let prevBeat = useDeckStore.getState().decks[deckId].effectBeat;
 
     const unsubscribe = useDeckStore.subscribe((state) => {
-      const { effectType, effectEnabled, effectWetDry, bpm } = state.decks[deckId];
-      if (effectType === prevType && effectEnabled === prevEnabled && effectWetDry === prevWetDry) return;
-      prevType = effectType; prevEnabled = effectEnabled; prevWetDry = effectWetDry;
+      const { effectType, effectEnabled, effectWetDry, effectBeat, bpm } = state.decks[deckId];
+      if (effectType === prevType && effectEnabled === prevEnabled && effectWetDry === prevWetDry && effectBeat === prevBeat) return;
+      prevType = effectType; prevEnabled = effectEnabled; prevWetDry = effectWetDry; prevBeat = effectBeat;
       if (!engineRef.current) return;
       const active = effectEnabled ? effectType : 'none';
-      engineRef.current.setEffect(active, effectWetDry, bpm ?? 120);
+      engineRef.current.setEffect(active, effectWetDry, bpm ?? 120, fxBeatMultiplier(effectBeat));
     });
 
     return unsubscribe;
