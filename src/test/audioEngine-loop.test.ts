@@ -66,6 +66,7 @@ vi.mock('../services/audioContext', () => ({
 
 function setupConstructorMocks() {
   mockContext.createGain
+    .mockReturnValueOnce(makeMockGain())  // trimGain
     .mockReturnValueOnce(makeMockGain())  // gainNode
     .mockReturnValueOnce(makeMockGain())  // lowKillGain
     .mockReturnValueOnce(makeMockGain())  // midKillGain

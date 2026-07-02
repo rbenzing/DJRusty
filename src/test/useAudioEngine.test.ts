@@ -35,6 +35,7 @@ interface MockAudioEngine {
   seekTo: ReturnType<typeof vi.fn>;
   stop: ReturnType<typeof vi.fn>;
   setVolume: ReturnType<typeof vi.fn>;
+  setGain: ReturnType<typeof vi.fn>;
   setPlaybackRate: ReturnType<typeof vi.fn>;
   setEQ: ReturnType<typeof vi.fn>;
   getAnalyser: ReturnType<typeof vi.fn>;
@@ -56,6 +57,7 @@ function makeMockEngine(): MockAudioEngine {
     seekTo: vi.fn(),
     stop: vi.fn(),
     setVolume: vi.fn(),
+    setGain: vi.fn(),
     setPlaybackRate: vi.fn(),
     setEQ: vi.fn(),
     getAnalyser: vi.fn(),
