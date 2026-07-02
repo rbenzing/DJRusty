@@ -390,7 +390,8 @@ export class AudioEngineImpl implements AudioEngine {
     if (type === 'echo') {
       const delay = this.context.createDelay(4.0);
       const beatSeconds = 60 / bpm;
-      delay.delayTime.value = beatSeconds * beatMultiplier; // FX BEAT/TIME division
+      const rawDelayTime = beatSeconds * beatMultiplier; // FX BEAT/TIME division
+      delay.delayTime.value = Math.min(rawDelayTime, 3.9);
       const feedbackGain = this.context.createGain();
       feedbackGain.gain.value = 0.4;
       // Echo chain: sweepFilter → wetGain → delay → feedbackGain → delay (loop) → analyser

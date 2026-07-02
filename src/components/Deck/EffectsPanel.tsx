@@ -120,6 +120,7 @@ function BeatKnob({ value, onChange }: { value: number; onChange: (v: number) =>
   const angle = (value - 0.5) * 270;
   const mult = fxBeatMultiplier(value);
   const label = mult < 1 ? `1/${Math.round(1 / mult)}` : `${mult}`;
+  const unit = mult === 1 ? 'beat' : 'beats';
 
   return (
     <div className={styles.knobWrap}>
@@ -128,11 +129,11 @@ function BeatKnob({ value, onChange }: { value: number; onChange: (v: number) =>
         style={{ '--knob-angle': `${angle.toFixed(1)}deg` } as React.CSSProperties}
         role="slider"
         tabIndex={0}
-        aria-label={`FX beat: ${label} beat`}
+        aria-label={`FX beat: ${label} ${unit}`}
         aria-valuemin={0}
         aria-valuemax={100}
         aria-valuenow={Math.round(value * 100)}
-        aria-valuetext={`${label} beat`}
+        aria-valuetext={`${label} ${unit}`}
         onMouseDown={handleMouseDown}
         onDoubleClick={() => onChange(0.5)}
         onKeyDown={(e) => {

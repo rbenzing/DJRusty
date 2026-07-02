@@ -497,5 +497,18 @@ describe('AudioEngine', () => {
 
       expect(mockDelay.delayTime.value).toBeCloseTo(0.25, 6); // 0.5 s/beat * 0.5
     });
+
+    it('clamps echo delay time below the DelayNode max when bpm is very low', () => {
+      const mockDelay = { connect: vi.fn(), disconnect: vi.fn(), delayTime: { value: 0 } };
+      const mockFeedbackGain = makeMockGain();
+      mockContext.createDelay.mockReturnValueOnce(mockDelay);
+      mockContext.createGain.mockReturnValueOnce(mockFeedbackGain);
+
+      // bpm=40 -> 1.5s/beat; beatMultiplier=4 -> raw 6.0s, must clamp below 4.0s cap
+      engine.setEffect('echo', 0.5, 40, 4);
+
+      expect(mockDelay.delayTime.value).toBeLessThan(4.0);
+      expect(mockDelay.delayTime.value).toBeCloseTo(3.9, 6);
+    });
   });
 });
