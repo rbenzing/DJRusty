@@ -27,6 +27,7 @@ import {
   clearHotCue as persistClearHotCue,
 } from '../../utils/hotCues';
 import { getActivePlayer } from '../../services/playerRegistry';
+import { snapToGrid } from '../../utils/quantize';
 import { HotCueButton } from './HotCueButton';
 import styles from './HotCues.module.css';
 
@@ -51,9 +52,13 @@ export function HotCues({ deckId }: HotCuesProps) {
    */
   function handleSet(index: number) {
     if (!trackId) return;
-    const currentTime = useDeckStore.getState().decks[deckId].currentTime;
-    persistSetHotCue(trackId, index, currentTime);
-    setHotCue(deckId, index, currentTime);
+    const deck = useDeckStore.getState().decks[deckId];
+    let t = deck.currentTime;
+    if (deck.quantize && deck.bpm && deck.anchor !== null) {
+      t = snapToGrid({ bpm: deck.bpm, anchor: deck.anchor }, t);
+    }
+    persistSetHotCue(trackId, index, t);
+    setHotCue(deckId, index, t);
   }
 
   /**
