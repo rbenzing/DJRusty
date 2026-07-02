@@ -41,6 +41,8 @@ function createInitialDeckState(deckId: 'A' | 'B'): DeckState {
     eqMid: 0,
     eqHigh: 0,
     gainDb: 0,
+    quantize: true,
+    shift: false,
     eqKillLow: false,
     eqKillMid: false,
     eqKillHigh: false,
@@ -163,6 +165,12 @@ interface DeckStoreActions {
 
   /** Set the channel input trim (GAIN) in dB, clamped to [-24, 12]. */
   setGain: (deckId: 'A' | 'B', gainDb: number) => void;
+
+  /** Toggle QUANTIZE for the specified deck. */
+  setQuantize: (deckId: 'A' | 'B', on: boolean) => void;
+
+  /** Toggle the SHIFT modifier for the specified deck. */
+  setShift: (deckId: 'A' | 'B', on: boolean) => void;
 
   /** Set the track duration (seconds) — used by useAudioEngine after buffer decode. */
   setDuration: (deckId: 'A' | 'B', duration: number) => void;
@@ -464,6 +472,14 @@ export const useDeckStore = create<DeckStore>((set, get) => ({
     updateDeck(set, deckId, { gainDb: Math.max(-24, Math.min(12, gainDb)) });
   },
 
+  setQuantize: (deckId, on) => {
+    updateDeck(set, deckId, { quantize: on });
+  },
+
+  setShift: (deckId, on) => {
+    updateDeck(set, deckId, { shift: on });
+  },
+
   setDuration: (deckId, duration) => {
     updateDeck(set, deckId, { duration });
   },
@@ -692,6 +708,7 @@ export function useDeckActions() {
       setBpm: s.setBpm, setVolume: s.setVolume, setPitchRate: s.setPitchRate,
       setEq: s.setEq, setEqKill: s.setEqKill, setFilterSweep: s.setFilterSweep,
       setGain: s.setGain,
+      setQuantize: s.setQuantize, setShift: s.setShift,
       setEffectType: s.setEffectType, setEffectEnabled: s.setEffectEnabled, setEffectWetDry: s.setEffectWetDry,
       setEffectBeat: s.setEffectBeat,
       activateLoop: s.activateLoop, activateLoopBeat: s.activateLoopBeat, deactivateLoop: s.deactivateLoop,

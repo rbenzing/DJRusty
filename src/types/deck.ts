@@ -135,6 +135,12 @@ export interface DeckState {
   /** Channel input trim (GAIN) in dB. Range -24..+12, unity at 0. */
   gainDb: number;
 
+  /** QUANTIZE: when true, snap hot-cue set and manual loop IN to the beat grid. */
+  quantize: boolean;
+
+  /** SHIFT modifier: alters certain button actions while active. */
+  shift: boolean;
+
   /** Error message if the deck is in an error state, or null if healthy. */
   error: string | null;
 
