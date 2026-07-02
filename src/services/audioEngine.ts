@@ -7,6 +7,7 @@
 
 import { getAudioContext, ensureAudioContextResumed } from './audioContext';
 import type { DeckPlayer } from './playerRegistry';
+import { dbToLinear } from '../utils/gain';
 
 export interface AudioEngine extends DeckPlayer {
   /** Load an AudioBuffer for playback. */
@@ -29,6 +30,9 @@ export interface AudioEngine extends DeckPlayer {
 
   /** Set the volume level (0-100). */
   setVolume(volume: number): void;
+
+  /** Set the pre-fader input trim (GAIN) in dB. Smoothed to avoid zipper noise. */
+  setGain(gainDb: number): void;
 
   /** Set EQ gain for a specific band in dB. */
   setEQ(band: 'low' | 'mid' | 'high', gainDb: number): void;
@@ -83,6 +87,7 @@ export class AudioEngineImpl implements AudioEngine {
   private buffer: AudioBuffer | null = null;
 
   // Signal chain nodes (persistent)
+  private trimGain: GainNode;
   private gainNode: GainNode;
   private lowFilter: BiquadFilterNode;
   private midFilter: BiquadFilterNode;
@@ -115,6 +120,8 @@ export class AudioEngineImpl implements AudioEngine {
     this.context = getAudioContext();
 
     // Create persistent signal chain nodes
+    // trimGain must be created first so the test mock ordering (trim, gain, kills…) holds.
+    this.trimGain = this.context.createGain();
     this.gainNode = this.context.createGain();
     this.lowFilter = this.context.createBiquadFilter();
     this.midFilter = this.context.createBiquadFilter();
@@ -146,10 +153,14 @@ export class AudioEngineImpl implements AudioEngine {
     this.dryGain.gain.value = 1;
     this.wetGain.gain.value = 0;
 
-    // Signal chain:
+    // Input trim: unity by default
+    this.trimGain.gain.value = 1;
+
+    // Signal chain head: source → trimGain → gainNode(volume) → EQ…
     // Gain → LowFilter → LowKillGain → MidFilter → MidKillGain → HighFilter → HighKillGain
     //      → SweepFilter → DryGain → Analyser → Destination
     //                    ↘ WetGain → [effectNode] → Analyser
+    this.trimGain.connect(this.gainNode);
     this.gainNode.connect(this.lowFilter);
     this.lowFilter.connect(this.lowKillGain);
     this.lowKillGain.connect(this.midFilter);
@@ -186,7 +197,7 @@ export class AudioEngineImpl implements AudioEngine {
     this.sourceNode = this.context.createBufferSource();
     this.sourceNode.buffer = this.buffer;
     this.sourceNode.playbackRate.value = this.playbackRate;
-    this.sourceNode.connect(this.gainNode);
+    this.sourceNode.connect(this.trimGain);
 
     // A superseded source (replaced by a seek-restart or a pause that bumped the
     // generation) must be ignored entirely — otherwise its async `ended` event would
@@ -304,6 +315,10 @@ export class AudioEngineImpl implements AudioEngine {
     // Map 0-100 to 0.0-1.0
     const gain = Math.max(0, Math.min(volume, 100)) / 100;
     this.gainNode.gain.value = gain;
+  }
+
+  setGain(gainDb: number): void {
+    this.trimGain.gain.setTargetAtTime(dbToLinear(gainDb), this.context.currentTime, 0.01);
   }
 
   setEQ(band: 'low' | 'mid' | 'high', gainDb: number): void {
@@ -437,7 +452,7 @@ export class AudioEngineImpl implements AudioEngine {
     }
     this.effectNodes = [];
     [
-      this.gainNode, this.lowFilter, this.lowKillGain,
+      this.trimGain, this.gainNode, this.lowFilter, this.lowKillGain,
       this.midFilter, this.midKillGain, this.highFilter, this.highKillGain,
       this.sweepFilter, this.dryGain, this.wetGain, this.analyser,
     ].forEach((n) => { try { n.disconnect(); } catch { /* ok */ } });

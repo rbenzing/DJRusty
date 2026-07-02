@@ -25,7 +25,7 @@ const mockContext = {
 };
 
 function makeMockGain() {
-  return { connect: vi.fn(), disconnect: vi.fn(), gain: { value: 1.0 } };
+  return { connect: vi.fn(), disconnect: vi.fn(), gain: { value: 1.0, setTargetAtTime: vi.fn() } };
 }
 
 function makeMockFilter(type: string, freq: number) {
@@ -33,6 +33,7 @@ function makeMockFilter(type: string, freq: number) {
 }
 
 // Named mocks for the signal chain nodes (in constructor order)
+let mockTrimGain: ReturnType<typeof makeMockGain>;
 let mockGainNode: ReturnType<typeof makeMockGain>;
 let mockLowKillGain: ReturnType<typeof makeMockGain>;
 let mockMidKillGain: ReturnType<typeof makeMockGain>;
@@ -64,6 +65,7 @@ vi.mock('../services/audioContext', () => ({
 
 /** Set up createGain/createBiquadFilter mocks for one AudioEngineImpl construction. */
 function setupConstructorMocks() {
+  mockTrimGain     = makeMockGain();
   mockGainNode     = makeMockGain();
   mockLowKillGain  = makeMockGain();
   mockMidKillGain  = makeMockGain();
@@ -75,8 +77,9 @@ function setupConstructorMocks() {
   mockHighFilter   = makeMockFilter('highshelf', 3200);
   mockSweepFilter  = makeMockFilter('allpass',  20000);
 
-  // createGain order: gainNode, lowKill, midKill, highKill, dryGain, wetGain
+  // createGain order: trimGain, gainNode, lowKill, midKill, highKill, dryGain, wetGain
   mockContext.createGain
+    .mockReturnValueOnce(mockTrimGain)
     .mockReturnValueOnce(mockGainNode)
     .mockReturnValueOnce(mockLowKillGain)
     .mockReturnValueOnce(mockMidKillGain)
@@ -115,11 +118,12 @@ describe('AudioEngine', () => {
 
   describe('initialization', () => {
     it('creates the signal chain correctly', () => {
-      expect(mockContext.createGain).toHaveBeenCalledTimes(6);        // gain + 3 kills + dry + wet
+      expect(mockContext.createGain).toHaveBeenCalledTimes(7);        // trim + gain + 3 kills + dry + wet
       expect(mockContext.createBiquadFilter).toHaveBeenCalledTimes(4); // low + mid + high + sweep
       expect(mockContext.createAnalyser).toHaveBeenCalled();
 
       // Key connections
+      expect(mockTrimGain.connect).toHaveBeenCalledWith(mockGainNode);
       expect(mockGainNode.connect).toHaveBeenCalledWith(mockLowFilter);
       expect(mockLowFilter.connect).toHaveBeenCalledWith(mockLowKillGain);
       expect(mockLowKillGain.connect).toHaveBeenCalledWith(mockMidFilter);
@@ -178,7 +182,7 @@ describe('AudioEngine', () => {
 
       expect(mockSourceNode.buffer).toBe(mockBuffer);
       expect(mockSourceNode.playbackRate.value).toBe(1.0);
-      expect(mockSourceNode.connect).toHaveBeenCalledWith(mockGainNode);
+      expect(mockSourceNode.connect).toHaveBeenCalledWith(mockTrimGain);
       expect(mockSourceNode.start).toHaveBeenCalledWith(0, 0);
       expect(engine.isPlaying()).toBe(true);
     });
@@ -299,6 +303,20 @@ describe('AudioEngine', () => {
 
       engine.setVolume(150);
       expect(mockGainNode.gain.value).toBe(1.0);
+    });
+  });
+
+  describe('gain / trim', () => {
+    it('sets 0 dB as unity via setTargetAtTime', () => {
+      engine.setGain(0);
+      expect(mockTrimGain.gain.setTargetAtTime).toHaveBeenCalledWith(1, 0, 0.01);
+    });
+
+    it('applies +6 dB as ~1.995 linear', () => {
+      engine.setGain(6);
+      const calls = mockTrimGain.gain.setTargetAtTime.mock.calls;
+      const lastCall = calls[calls.length - 1];
+      expect(lastCall?.[0]).toBeCloseTo(1.995, 3);
     });
   });
 
