@@ -4,6 +4,7 @@ import { ChannelFader } from './ChannelFader';
 import { CrossfaderCurveSelector } from './CrossfaderCurveSelector';
 import { MasterVolumeKnob } from './MasterVolumeKnob';
 import { GainKnob } from './GainKnob';
+import { BeatmatchGuide } from './BeatmatchGuide';
 import styles from './Mixer.module.css';
 
 /**
@@ -69,6 +70,11 @@ export function Mixer() {
             <VUMeter deckId="B" />
           </div>
         </div>
+      </section>
+
+      {/* Beatmatch guide — tempo + phase alignment between decks */}
+      <section className={styles.section} aria-label="Beatmatch">
+        <BeatmatchGuide />
       </section>
 
       {/* Crossfader */}
