@@ -11,6 +11,7 @@
  */
 import { useCallback, useEffect, useRef } from 'react';
 import { useDeckStore, useDeckActions } from '../../store/deckStore';
+import { fxBeatMultiplier } from '../../utils/fxBeat';
 import styles from './EffectsPanel.module.css';
 
 interface EffectsPanelProps {
@@ -84,11 +85,74 @@ function WetDryKnob({ value, onChange }: { value: number; onChange: (v: number) 
   );
 }
 
+function BeatKnob({ value, onChange }: { value: number; onChange: (v: number) => void }) {
+  const dragStartY = useRef<number | null>(null);
+  const dragStartValue = useRef(value);
+  const removeDrag = useRef<(() => void) | null>(null);
+
+  useEffect(() => () => { removeDrag.current?.(); }, []);
+
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    dragStartY.current = e.clientY;
+    dragStartValue.current = value;
+
+    function onMove(ev: MouseEvent) {
+      if (dragStartY.current === null) return;
+      const delta = (dragStartY.current - ev.clientY) * 0.008;
+      onChange(Math.max(0, Math.min(1, dragStartValue.current + delta)));
+    }
+    function onUp() {
+      dragStartY.current = null;
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+      removeDrag.current = null;
+    }
+    removeDrag.current?.();
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+    removeDrag.current = () => {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+    };
+  }, [value, onChange]);
+
+  const angle = (value - 0.5) * 270;
+  const mult = fxBeatMultiplier(value);
+  const label = mult < 1 ? `1/${Math.round(1 / mult)}` : `${mult}`;
+
+  return (
+    <div className={styles.knobWrap}>
+      <div
+        className={styles.knob}
+        style={{ '--knob-angle': `${angle.toFixed(1)}deg` } as React.CSSProperties}
+        role="slider"
+        tabIndex={0}
+        aria-label={`FX beat: ${label} beat`}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={Math.round(value * 100)}
+        aria-valuetext={`${label} beat`}
+        onMouseDown={handleMouseDown}
+        onDoubleClick={() => onChange(0.5)}
+        onKeyDown={(e) => {
+          if (e.key === 'ArrowUp')   { e.preventDefault(); onChange(Math.min(1, value + 0.1)); }
+          if (e.key === 'ArrowDown') { e.preventDefault(); onChange(Math.max(0, value - 0.1)); }
+        }}
+      >
+        <div className={styles.indicator} />
+      </div>
+      <span className={styles.knobLabel}>BEAT</span>
+    </div>
+  );
+}
+
 export function EffectsPanel({ deckId }: EffectsPanelProps) {
-  const { setEffectType, setEffectEnabled, setEffectWetDry } = useDeckActions();
+  const { setEffectType, setEffectEnabled, setEffectWetDry, setEffectBeat } = useDeckActions();
   const effectType = useDeckStore((s) => s.decks[deckId].effectType);
   const effectEnabled = useDeckStore((s) => s.decks[deckId].effectEnabled);
   const effectWetDry = useDeckStore((s) => s.decks[deckId].effectWetDry);
+  const effectBeat = useDeckStore((s) => s.decks[deckId].effectBeat);
 
   const handleTypeSelect = useCallback((type: 'none' | 'echo' | 'reverb') => {
     setEffectType(deckId, type);
@@ -98,6 +162,10 @@ export function EffectsPanel({ deckId }: EffectsPanelProps) {
   const handleWetDry = useCallback((v: number) => {
     setEffectWetDry(deckId, v);
   }, [deckId, setEffectWetDry]);
+
+  const handleBeat = useCallback((v: number) => {
+    setEffectBeat(deckId, v);
+  }, [deckId, setEffectBeat]);
 
   return (
     <div className={styles.panel}>
@@ -121,6 +189,7 @@ export function EffectsPanel({ deckId }: EffectsPanelProps) {
         </div>
         {/* Wet/Dry knob */}
         <WetDryKnob value={effectWetDry} onChange={handleWetDry} />
+        <BeatKnob value={effectBeat} onChange={handleBeat} />
       </div>
     </div>
   );
