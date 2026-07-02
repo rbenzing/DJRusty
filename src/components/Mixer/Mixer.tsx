@@ -3,6 +3,7 @@ import { Crossfader } from './Crossfader';
 import { ChannelFader } from './ChannelFader';
 import { CrossfaderCurveSelector } from './CrossfaderCurveSelector';
 import { MasterVolumeKnob } from './MasterVolumeKnob';
+import { GainKnob } from './GainKnob';
 import styles from './Mixer.module.css';
 
 /**
@@ -35,6 +36,15 @@ export function Mixer() {
       {/* Master volume — global output level above channel faders */}
       <section className={styles.section} aria-label="Master volume">
         <MasterVolumeKnob />
+      </section>
+
+      {/* Channel input trim (GAIN) — top of the controller's mixer column */}
+      <section className={styles.section} aria-label="Channel gain">
+        <div className={styles.sectionLabel}>GAIN</div>
+        <div className={styles.channelRow}>
+          <GainKnob deckId="A" />
+          <GainKnob deckId="B" />
+        </div>
       </section>
 
       {/* Channel faders — per-deck volume controls in the mixer strip */}
