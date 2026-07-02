@@ -27,8 +27,11 @@ export function beatmatchReadout(a: DeckBeatState, b: DeckBeatState): BeatmatchR
   }
   const aEff = a.bpm * a.pitchRate;
   const bEff = b.bpm * b.pitchRate;
-  const aGrid: BeatGrid = { bpm: aEff, anchor: a.anchor };
-  const bGrid: BeatGrid = { bpm: bEff, anchor: b.anchor };
+  // Phase is a within-beat position in TRACK-TIME coordinates (currentTime/anchor),
+  // so it must use the native bpm — pitchRate only changes how fast track-time
+  // advances in real time, not the beat spacing within track-time.
+  const aGrid: BeatGrid = { bpm: a.bpm, anchor: a.anchor };
+  const bGrid: BeatGrid = { bpm: b.bpm, anchor: b.anchor };
   const raw = phase(bGrid, b.currentTime) - phase(aGrid, a.currentTime);
   const phaseOffset = ((raw + 0.5) % 1 + 1) % 1 - 0.5; // wrap to [-0.5, 0.5)
   return { hasGrids: true, tempoDeltaBpm: bEff - aEff, phaseOffset };

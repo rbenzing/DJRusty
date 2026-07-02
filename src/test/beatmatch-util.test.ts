@@ -26,4 +26,17 @@ describe('beatmatchReadout', () => {
     const r = beatmatchReadout(base, { ...base, currentTime: 0.125 });
     expect(r.phaseOffset).toBeCloseTo(0.25, 6);
   });
+
+  it('phase math uses native bpm, not pitch-adjusted bpm, when a deck is pitched', () => {
+    // Deck A: bpm=120, pitchRate=1.1, anchor=0, currentTime=0.5 — exactly on the
+    // NATIVE downbeat (native spb = 0.5s), so phase should be 0 there.
+    // Deck B: bpm=120, pitchRate=1, anchor=0, currentTime=0 — also on a downbeat.
+    // The two decks are therefore aligned; the buggy pitch-adjusted-bpm phase grid
+    // would report ~0.1 instead of ~0.
+    const aPitched: DeckBeatState = { bpm: 120, pitchRate: 1.1, anchor: 0, currentTime: 0.5 };
+    const bUnpitched: DeckBeatState = { bpm: 120, pitchRate: 1, anchor: 0, currentTime: 0 };
+    const r = beatmatchReadout(aPitched, bUnpitched);
+    expect(r.hasGrids).toBe(true);
+    expect(r.phaseOffset).toBeCloseTo(0, 6);
+  });
 });
