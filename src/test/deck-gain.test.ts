@@ -2,7 +2,10 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { useDeckStore } from '../store/deckStore';
 
 describe('deck gain (input trim)', () => {
-  beforeEach(() => useDeckStore.getState().clearTrack('A'));
+  beforeEach(() => {
+    useDeckStore.getState().clearTrack('A');
+    useDeckStore.getState().setGain('A', 0);
+  });
 
   it('defaults gainDb to 0', () => {
     expect(useDeckStore.getState().decks.A.gainDb).toBe(0);

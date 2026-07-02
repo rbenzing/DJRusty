@@ -318,7 +318,8 @@ export class AudioEngineImpl implements AudioEngine {
   }
 
   setGain(gainDb: number): void {
-    this.trimGain.gain.setTargetAtTime(dbToLinear(gainDb), this.context.currentTime, 0.01);
+    const clamped = Math.max(-24, Math.min(12, gainDb));
+    this.trimGain.gain.setTargetAtTime(dbToLinear(clamped), this.context.currentTime, 0.01);
   }
 
   setEQ(band: 'low' | 'mid' | 'high', gainDb: number): void {

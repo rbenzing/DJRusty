@@ -3,7 +3,7 @@
  * Drag up/down to change; double-click resets to 0 dB; Arrow keys step ±1 dB.
  */
 import { useCallback, useEffect, useRef } from 'react';
-import { useDeck, useDeckActions } from '../../store/deckStore';
+import { useDeckStore, useDeckActions } from '../../store/deckStore';
 import styles from './GainKnob.module.css';
 
 const DB_MIN = -24;
@@ -18,7 +18,7 @@ interface GainKnobProps {
 }
 
 export function GainKnob({ deckId }: GainKnobProps) {
-  const value = useDeck(deckId).gainDb;
+  const value = useDeckStore((s) => s.decks[deckId].gainDb);
   const { setGain } = useDeckActions();
   const dragStartY = useRef<number | null>(null);
   const dragStartValue = useRef(value);
@@ -51,7 +51,7 @@ export function GainKnob({ deckId }: GainKnobProps) {
     };
   }, [deckId, value, setGain]);
 
-  // -24 dB → -135°, 0 dB → 0°, +12 dB → +135°
+  // Sweep the full -24..+12 dB range across -135°..+135° (0 dB sits at +45°).
   const ratio = (value - DB_MIN) / (DB_MAX - DB_MIN);
   const angle = -135 + ratio * 270;
   const valueLabel = value === 0 ? '0 dB' : `${value > 0 ? '+' : ''}${value.toFixed(1)} dB`;

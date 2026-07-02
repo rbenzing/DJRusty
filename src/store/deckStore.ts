@@ -489,7 +489,6 @@ export const useDeckStore = create<DeckStore>((set, get) => ({
       bpm: null,
       beatJumpSize: DEFAULT_BEAT_JUMP_SIZE,
       hotCues: {},
-      gainDb: 0,
       error: null,
       synced: false,
       slipMode: false,

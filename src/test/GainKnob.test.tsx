@@ -4,7 +4,10 @@ import { GainKnob } from '../components/Mixer/GainKnob';
 import { useDeckStore } from '../store/deckStore';
 
 describe('GainKnob', () => {
-  beforeEach(() => useDeckStore.getState().clearTrack('A'));
+  beforeEach(() => {
+    useDeckStore.getState().clearTrack('A');
+    useDeckStore.getState().setGain('A', 0);
+  });
 
   it('renders the current gain as a slider role', () => {
     useDeckStore.getState().setGain('A', 3);
