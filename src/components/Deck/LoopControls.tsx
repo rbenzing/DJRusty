@@ -33,7 +33,9 @@ export function LoopControls({ deckId }: LoopControlsProps) {
   const loopBeatCount = useDeckStore((s) => s.decks[deckId].loopBeatCount);
   const rollMode = useDeckStore((s) => s.decks[deckId].rollMode);
   const playbackState = useDeckStore((s) => s.decks[deckId].playbackState);
-  const { activateLoopBeat, deactivateLoop, setRollMode, startRoll, endRoll } = useDeckActions();
+  const manualLoopIn = useDeckStore((s) => s.decks[deckId].manualLoopIn);
+  const lastManualLoop = useDeckStore((s) => s.decks[deckId].lastManualLoop);
+  const { activateLoopBeat, deactivateLoop, setRollMode, startRoll, endRoll, setLoopIn, setLoopOut, reloop } = useDeckActions();
 
   const bpmIsSet = bpm !== null;
   const isPlaying = playbackState === 'playing';
@@ -72,6 +74,25 @@ export function LoopControls({ deckId }: LoopControlsProps) {
     <div className={styles.wrapper}>
       <span className={styles.label}>LOOPS</span>
       <div className={styles.buttons}>
+        {/* Manual loop in/out */}
+        <button
+          type="button"
+          className={[styles.loopBtn, manualLoopIn !== null ? styles.loopBtnActive : ''].filter(Boolean).join(' ')}
+          onClick={() => setLoopIn(deckId)}
+          aria-label={`Set loop in on Deck ${deckId}`}
+          title="Set loop in-point"
+        >
+          IN
+        </button>
+        <button
+          type="button"
+          className={styles.loopBtn}
+          onClick={() => setLoopOut(deckId)}
+          aria-label={`Set loop out on Deck ${deckId}`}
+          title="Set loop out-point and start looping"
+        >
+          OUT
+        </button>
         {BEAT_COUNTS.map((beatCount) => {
           const isActive = loopActive && loopBeatCount === beatCount;
 
@@ -146,6 +167,18 @@ export function LoopControls({ deckId }: LoopControlsProps) {
             </button>
           );
         })}
+
+        {/* RELOOP — re-arm the last manual loop */}
+        <button
+          type="button"
+          className={[styles.loopBtn, !lastManualLoop ? styles.loopBtnDisabled : ''].filter(Boolean).join(' ')}
+          onClick={() => reloop(deckId)}
+          disabled={!lastManualLoop}
+          aria-label={`Reloop on Deck ${deckId}`}
+          title="Re-arm the last manual loop"
+        >
+          RELOOP
+        </button>
 
         {/* EXIT button — always clickable; dims when no loop is active */}
         <button
