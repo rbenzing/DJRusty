@@ -23,6 +23,9 @@ describe('manual loop IN/OUT/RELOOP', () => {
     expect(d.loopEnd).toBeCloseTo(2.0, 6);
     expect(d.loopBeatCount).toBeNull();
     expect(d.lastManualLoop).toEqual({ start: 1.0, end: 2.0 });
+    // setLoopOut consumes manualLoopIn; it must not linger and re-arm stale state
+    // on a second OUT press (also keeps the IN button from staying visually "armed").
+    expect(d.manualLoopIn).toBeNull();
   });
 
   it('OUT with no IN is a no-op', () => {
@@ -64,8 +67,14 @@ describe('manual loop IN/OUT/RELOOP', () => {
     s.setCurrentTime('A', 1.0); s.setLoopIn('A');
     s.setCurrentTime('A', 2.0); s.setLoopOut('A');
     let d = useDeckStore.getState().decks.A;
-    expect(d.manualLoopIn).toBeCloseTo(1.0, 6);
+    // setLoopOut consumes manualLoopIn (Fix 3): already null right after arming the loop.
+    expect(d.manualLoopIn).toBeNull();
     expect(d.lastManualLoop).toEqual({ start: 1.0, end: 2.0 });
+
+    // Arm a fresh, uncommitted manual IN (no OUT yet) so loadTrack has stale
+    // pending state to clear too, not just the already-consumed one above.
+    s.setCurrentTime('A', 3.0); s.setLoopIn('A');
+    expect(useDeckStore.getState().decks.A.manualLoopIn).toBeCloseTo(3.0, 6);
 
     // Load a new track onto the same deck without ejecting first.
     s.loadTrack('A', 'track2', { title: 'New Track', artist: 'New Artist', duration: 200, thumbnailUrl: null });

@@ -486,6 +486,7 @@ export const useDeckStore = create<DeckStore>((set, get) => ({
       loopStart: deck.manualLoopIn,
       loopEnd: end,
       loopBeatCount: null,
+      manualLoopIn: null,
       lastManualLoop: { start: deck.manualLoopIn, end },
     });
   },

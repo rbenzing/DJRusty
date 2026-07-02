@@ -73,7 +73,7 @@ export function Mixer() {
       </section>
 
       {/* Beatmatch guide — tempo + phase alignment between decks */}
-      <section className={styles.section} aria-label="Beatmatch">
+      <section className={styles.section}>
         <BeatmatchGuide />
       </section>
 

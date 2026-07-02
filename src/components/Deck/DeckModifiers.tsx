@@ -3,7 +3,8 @@
  * Rendered under the transport. Buttons are small and clearly button-shaped
  * (fixed width, bordered, lit when active) — never a full-width bar.
  */
-import { useDeck, useDeckActions } from '../../store/deckStore';
+import { useShallow } from 'zustand/react/shallow';
+import { useDeckStore, useDeckActions } from '../../store/deckStore';
 import styles from './DeckModifiers.module.css';
 
 interface DeckModifiersProps {
@@ -11,7 +12,9 @@ interface DeckModifiersProps {
 }
 
 export function DeckModifiers({ deckId }: DeckModifiersProps) {
-  const { shift, quantize } = useDeck(deckId);
+  const { shift, quantize } = useDeckStore(
+    useShallow((s) => ({ shift: s.decks[deckId].shift, quantize: s.decks[deckId].quantize })),
+  );
   const { setShift, setQuantize } = useDeckActions();
 
   return (

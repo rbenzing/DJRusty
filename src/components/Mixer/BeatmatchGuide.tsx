@@ -5,11 +5,10 @@
 import { useShallow } from 'zustand/react/shallow';
 import { useDeckStore } from '../../store/deckStore';
 import { beatmatchReadout, type DeckBeatState } from '../../utils/beatmatch';
+import type { DeckState } from '../../types/deck';
 import styles from './BeatmatchGuide.module.css';
 
-function pick(d: {
-  bpm: number | null; pitchRate: number; anchor: number | null; currentTime: number;
-}): DeckBeatState {
+function pick(d: Pick<DeckState, 'bpm' | 'pitchRate' | 'anchor' | 'currentTime'>): DeckBeatState {
   return { bpm: d.bpm, pitchRate: d.pitchRate, anchor: d.anchor, currentTime: d.currentTime };
 }
 
