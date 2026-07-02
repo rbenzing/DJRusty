@@ -11,8 +11,7 @@ interface DeckModifiersProps {
 }
 
 export function DeckModifiers({ deckId }: DeckModifiersProps) {
-  const shift = useDeck(deckId).shift;
-  const quantize = useDeck(deckId).quantize;
+  const { shift, quantize } = useDeck(deckId);
   const { setShift, setQuantize } = useDeckActions();
 
   return (

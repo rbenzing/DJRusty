@@ -40,4 +40,26 @@ describe('DeckControls — seek routes to the active backend', () => {
     fireEvent.click(screen.getByLabelText('Restart Deck A'));
     expect(audio.seekTo).toHaveBeenCalledWith(0, true);
   });
+
+  it('SHIFT+Restart seeks the audio player to the cue point instead of 0', () => {
+    const store = useDeckStore.getState();
+    store.loadTrack('A', 'entry1', { title: 't', artist: 'a', duration: 180, thumbnailUrl: null });
+    store.setPlayerReady('A', true);
+    store.setCuePoint('A', 42);
+    store.setShift('A', true);
+    render(<DeckControls deckId="A" />);
+    fireEvent.click(screen.getByLabelText('Restart Deck A'));
+    expect(audio.seekTo).toHaveBeenCalledWith(42, true);
+  });
+
+  it('Restart without SHIFT still seeks to 0 even when a cue point is set', () => {
+    const store = useDeckStore.getState();
+    store.loadTrack('A', 'entry1', { title: 't', artist: 'a', duration: 180, thumbnailUrl: null });
+    store.setPlayerReady('A', true);
+    store.setCuePoint('A', 42);
+    store.setShift('A', false); // clearTrack() doesn't reset shift — guard against ordering with the SHIFT test above
+    render(<DeckControls deckId="A" />);
+    fireEvent.click(screen.getByLabelText('Restart Deck A'));
+    expect(audio.seekTo).toHaveBeenCalledWith(0, true);
+  });
 });
