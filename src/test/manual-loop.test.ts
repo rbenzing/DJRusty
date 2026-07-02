@@ -51,7 +51,7 @@ describe('manual loop IN/OUT/RELOOP', () => {
     s.deactivateLoop('A');
     expect(useDeckStore.getState().decks.A.loopActive).toBe(false);
     s.reloop('A');
-    let d = useDeckStore.getState().decks.A;
+    const d = useDeckStore.getState().decks.A;
     expect(d.loopActive).toBe(true);
     expect(eng.setLoop).toHaveBeenCalledWith(1.0, 2.0);
     s.reloop('A'); // toggle off
