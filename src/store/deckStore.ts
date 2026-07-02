@@ -7,6 +7,7 @@ import { getHotCues } from '../utils/hotCues';
 import { DEFAULT_BEAT_JUMP_SIZE, gridJumpTarget } from '../utils/beatJump';
 import { getActivePlayer } from '../services/playerRegistry';
 import { snapLoopIn, loopOutFor } from '../utils/loopMath';
+import { snapToGrid } from '../utils/quantize';
 import { transition, type TransportEvent } from '../utils/transport';
 import { consumePendingGrid, consumePendingLoop } from '../services/sessionStore';
 
@@ -34,6 +35,8 @@ function createInitialDeckState(deckId: 'A' | 'B'): DeckState {
     loopStart: null,
     loopEnd: null,
     loopBeatCount: null,
+    manualLoopIn: null,
+    lastManualLoop: null,
     beatJumpSize: DEFAULT_BEAT_JUMP_SIZE,
     playerReady: false,
     hotCues: {},
@@ -66,6 +69,16 @@ function createInitialDeckState(deckId: 'A' | 'B'): DeckState {
     cuePoint: null,
     transportState: 'CUED',
   };
+}
+
+/** Live playhead for a deck, snapped to the grid when quantize is on. */
+function quantizedNow(deck: DeckState): number {
+  const raw = getActivePlayer(deck.deckId)?.getCurrentTime();
+  const pos = raw !== undefined && Number.isFinite(raw) ? raw : deck.currentTime;
+  if (deck.quantize && deck.bpm && deck.anchor !== null) {
+    return snapToGrid({ bpm: deck.bpm, anchor: deck.anchor }, pos);
+  }
+  return pos;
 }
 
 /**
@@ -150,6 +163,15 @@ interface DeckStoreActions {
 
   /** Deactivate the active loop for the specified deck. */
   deactivateLoop: (deckId: 'A' | 'B') => void;
+
+  /** Set the manual loop in-point at the (quantized) playhead. */
+  setLoopIn: (deckId: 'A' | 'B') => void;
+
+  /** Set the manual loop out-point and arm the loop. No-op without a valid in-point. */
+  setLoopOut: (deckId: 'A' | 'B') => void;
+
+  /** Re-arm the last manual loop (toggles it on/off). No-op if none was set. */
+  reloop: (deckId: 'A' | 'B') => void;
 
   /** Set a hot cue timestamp for the specified deck and cue index. */
   setHotCue: (deckId: 'A' | 'B', index: number, timestamp: number) => void;
@@ -446,6 +468,44 @@ export const useDeckStore = create<DeckStore>((set, get) => ({
     });
   },
 
+  setLoopIn: (deckId) => {
+    const deck = get().decks[deckId];
+    updateDeck(set, deckId, { manualLoopIn: quantizedNow(deck) });
+  },
+
+  setLoopOut: (deckId) => {
+    const deck = get().decks[deckId];
+    if (deck.manualLoopIn === null) return;
+    const end = quantizedNow(deck);
+    if (end <= deck.manualLoopIn) return;
+    getActivePlayer(deckId)?.setLoop?.(deck.manualLoopIn, end);
+    updateDeck(set, deckId, {
+      loopActive: true,
+      loopStart: deck.manualLoopIn,
+      loopEnd: end,
+      loopBeatCount: null,
+      lastManualLoop: { start: deck.manualLoopIn, end },
+    });
+  },
+
+  reloop: (deckId) => {
+    const deck = get().decks[deckId];
+    const lm = deck.lastManualLoop;
+    if (!lm) return;
+    if (deck.loopActive) {
+      get().deactivateLoop(deckId);
+      return;
+    }
+    getActivePlayer(deckId)?.setLoop?.(lm.start, lm.end);
+    getActivePlayer(deckId)?.seekTo(lm.start, true);
+    updateDeck(set, deckId, {
+      loopActive: true,
+      loopStart: lm.start,
+      loopEnd: lm.end,
+      loopBeatCount: null,
+    });
+  },
+
   setHotCue: (deckId, index, timestamp) => {
     const deck = get().decks[deckId];
     updateDeck(set, deckId, {
@@ -510,6 +570,8 @@ export const useDeckStore = create<DeckStore>((set, get) => ({
       loopStart: null,
       loopEnd: null,
       loopBeatCount: null,
+      manualLoopIn: null,
+      lastManualLoop: null,
       bpm: null,
       beatJumpSize: DEFAULT_BEAT_JUMP_SIZE,
       hotCues: {},
@@ -712,6 +774,7 @@ export function useDeckActions() {
       setEffectType: s.setEffectType, setEffectEnabled: s.setEffectEnabled, setEffectWetDry: s.setEffectWetDry,
       setEffectBeat: s.setEffectBeat,
       activateLoop: s.activateLoop, activateLoopBeat: s.activateLoopBeat, deactivateLoop: s.deactivateLoop,
+      setLoopIn: s.setLoopIn, setLoopOut: s.setLoopOut, reloop: s.reloop,
       setBeatJumpSize: s.setBeatJumpSize, setSlipMode: s.setSlipMode, setSynced: s.setSynced,
       setRollMode: s.setRollMode, startRoll: s.startRoll, endRoll: s.endRoll,
       setGrid: s.setGrid, nudgeGrid: s.nudgeGrid,

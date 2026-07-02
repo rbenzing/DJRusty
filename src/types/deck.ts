@@ -118,6 +118,12 @@ export interface DeckState {
    */
   loopBeatCount: 1 | 2 | 4 | 8 | null;
 
+  /** Pending manual loop in-point (seconds), or null. Set by the IN button. */
+  manualLoopIn: number | null;
+
+  /** The most recent manual loop, remembered so RELOOP works after EXIT. */
+  lastManualLoop: { start: number; end: number } | null;
+
   /** Currently selected beat jump size. Controls how far the beat jump buttons seek. */
   beatJumpSize: number;
 
