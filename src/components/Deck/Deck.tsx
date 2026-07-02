@@ -27,6 +27,7 @@ import { useAudioEngine } from '../../hooks/useAudioEngine';
 import { usePlaylistStore } from '../../store/playlistStore';
 import { useLibraryStore, libraryTrackToEntry } from '../../store/libraryStore';
 import { DeckControls } from './DeckControls';
+import { DeckModifiers } from './DeckModifiers';
 import { DeckDisplay } from './DeckDisplay';
 import { EQPanel } from './EQPanel';
 import { EffectsPanel } from './EffectsPanel';
@@ -157,6 +158,9 @@ export function Deck({ deckId }: DeckProps) {
 
       {/* Transport controls */}
       <DeckControls deckId={deckId} />
+
+      {/* SHIFT + QUANTIZE modifier row */}
+      <DeckModifiers deckId={deckId} />
 
       {/* Hot cue buttons (4 per deck, STORY-011) */}
       <HotCues deckId={deckId} />

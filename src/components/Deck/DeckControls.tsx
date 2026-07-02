@@ -35,9 +35,10 @@ export function DeckControls({ deckId }: DeckControlsProps) {
   function handleRestart() {
     if (!playerReady || !hasTrack) return;
     const player = getActivePlayer(deckId);
-    if (player) {
-      player.seekTo(0, true);
-    }
+    if (!player) return;
+    const deck = useDeckStore.getState().decks[deckId];
+    const target = deck.shift && deck.cuePoint !== null ? deck.cuePoint : 0;
+    player.seekTo(target, true);
   }
 
   const playLabel = isPlaying ? `Pause Deck ${deckId}` : `Play Deck ${deckId}`;
