@@ -171,6 +171,21 @@ export function useAudioEngine(deckId: 'A' | 'B'): void {
     return unsubscribe;
   }, [deckId]);
 
+  // ── 5b. Gain (input trim) ─────────────────────────────────────────────────
+  useEffect(() => {
+    let prev = useDeckStore.getState().decks[deckId].gainDb;
+
+    const unsubscribe = useDeckStore.subscribe((state) => {
+      const { gainDb } = state.decks[deckId];
+      if (gainDb === prev) return;
+      prev = gainDb;
+      if (!engineRef.current) return;
+      engineRef.current.setGain(gainDb);
+    });
+
+    return unsubscribe;
+  }, [deckId]);
+
   // ── 6. EQ ─────────────────────────────────────────────────────────────────
   useEffect(() => {
     let prevLow = useDeckStore.getState().decks[deckId].eqLow;
@@ -279,6 +294,7 @@ async function loadAudioFile(
     engine.loadBuffer(buffer);
     // Sync engine volume to current mixer-computed deck volume immediately
     engine.setVolume(useDeckStore.getState().decks[deckId].volume);
+    engine.setGain(useDeckStore.getState().decks[deckId].gainDb);
     useDeckStore.getState().setDuration(deckId, buffer.duration);
     useDeckStore.getState().setDecoding(deckId, false);
     useDeckStore.getState().setPlayerReady(deckId, true);
@@ -341,6 +357,7 @@ async function loadAudioUrl(
     const engine = engineRef.current;
     engine.loadBuffer(buffer);
     engine.setVolume(useDeckStore.getState().decks[deckId].volume);
+    engine.setGain(useDeckStore.getState().decks[deckId].gainDb);
     useDeckStore.getState().setDuration(deckId, buffer.duration);
     useDeckStore.getState().setDecoding(deckId, false);
     useDeckStore.getState().setPlayerReady(deckId, true);

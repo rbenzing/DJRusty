@@ -129,6 +129,9 @@ export interface DeckState {
   eqMid: number;
   eqHigh: number;
 
+  /** Channel input trim (GAIN) in dB. Range -24..+12, unity at 0. */
+  gainDb: number;
+
   /** Error message if the deck is in an error state, or null if healthy. */
   error: string | null;
 
