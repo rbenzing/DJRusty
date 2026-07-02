@@ -474,5 +474,28 @@ describe('AudioEngine', () => {
       expect(mockDelay.disconnect).toHaveBeenCalled();
       expect(mockFeedbackGain.disconnect).toHaveBeenCalled();
     });
+
+    it('echo delay time follows bpm and beat multiplier', () => {
+      const mockDelay = { connect: vi.fn(), disconnect: vi.fn(), delayTime: { value: 0 } };
+      const mockFeedbackGain = makeMockGain();
+      mockContext.createDelay.mockReturnValueOnce(mockDelay);
+      mockContext.createGain.mockReturnValueOnce(mockFeedbackGain);
+
+      // 120 bpm → 0.5 s/beat; quarter-beat (0.25) → 0.125 s delay
+      engine.setEffect('echo', 0.5, 120, 0.25);
+
+      expect(mockDelay.delayTime.value).toBeCloseTo(0.125, 6);
+    });
+
+    it('defaults to a half-beat delay when beatMultiplier omitted', () => {
+      const mockDelay = { connect: vi.fn(), disconnect: vi.fn(), delayTime: { value: 0 } };
+      const mockFeedbackGain = makeMockGain();
+      mockContext.createDelay.mockReturnValueOnce(mockDelay);
+      mockContext.createGain.mockReturnValueOnce(mockFeedbackGain);
+
+      engine.setEffect('echo', 0.5, 120);
+
+      expect(mockDelay.delayTime.value).toBeCloseTo(0.25, 6); // 0.5 s/beat * 0.5
+    });
   });
 });

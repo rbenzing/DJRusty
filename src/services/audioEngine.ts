@@ -48,10 +48,10 @@ export interface AudioEngine extends DeckPlayer {
 
   /**
    * Enable/disable and configure an effect.
-   * type 'none' bypasses all effects.
-   * type 'echo' uses a DelayNode, 'reverb' uses a ConvolverNode.
+   * type 'none' bypasses all effects. beatMultiplier scales the effect time
+   * (echo delay = (60/bpm) * beatMultiplier; reverb size scales with it).
    */
-  setEffect(type: 'none' | 'echo' | 'reverb', wetDry: number, bpm?: number): void;
+  setEffect(type: 'none' | 'echo' | 'reverb', wetDry: number, bpm?: number, beatMultiplier?: number): void;
 
   /** Get the AnalyserNode for visualization. */
   getAnalyser(): AnalyserNode;
@@ -370,7 +370,7 @@ export class AudioEngineImpl implements AudioEngine {
     }
   }
 
-  setEffect(type: 'none' | 'echo' | 'reverb', wetDry: number, bpm = 120): void {
+  setEffect(type: 'none' | 'echo' | 'reverb', wetDry: number, bpm = 120, beatMultiplier = 0.5): void {
     // Tear down all nodes from the previous effect
     for (const node of this.effectNodes) {
       try { node.disconnect(); } catch { /* already disconnected */ }
@@ -390,7 +390,7 @@ export class AudioEngineImpl implements AudioEngine {
     if (type === 'echo') {
       const delay = this.context.createDelay(4.0);
       const beatSeconds = 60 / bpm;
-      delay.delayTime.value = beatSeconds * 0.5; // half-beat echo
+      delay.delayTime.value = beatSeconds * beatMultiplier; // FX BEAT/TIME division
       const feedbackGain = this.context.createGain();
       feedbackGain.gain.value = 0.4;
       // Echo chain: sweepFilter → wetGain → delay → feedbackGain → delay (loop) → analyser
@@ -403,7 +403,7 @@ export class AudioEngineImpl implements AudioEngine {
       this.effectNodes.push(delay, feedbackGain);
     } else if (type === 'reverb') {
       const convolver = this.context.createConvolver();
-      convolver.buffer = this.createReverbImpulse(2.5, 0.7);
+      convolver.buffer = this.createReverbImpulse(1 + beatMultiplier, 0.7); // 1..5 s room size
       this.sweepFilter.connect(this.wetGain);
       this.wetGain.connect(convolver);
       convolver.connect(this.analyser);
