@@ -80,14 +80,16 @@ export function LoopControls({ deckId }: LoopControlsProps) {
           className={[styles.loopBtn, manualLoopIn !== null ? styles.loopBtnActive : ''].filter(Boolean).join(' ')}
           onClick={() => setLoopIn(deckId)}
           aria-label={`Set loop in on Deck ${deckId}`}
+          aria-pressed={manualLoopIn !== null}
           title="Set loop in-point"
         >
           IN
         </button>
         <button
           type="button"
-          className={styles.loopBtn}
+          className={[styles.loopBtn, manualLoopIn === null ? styles.loopBtnDisabled : ''].filter(Boolean).join(' ')}
           onClick={() => setLoopOut(deckId)}
+          disabled={manualLoopIn === null}
           aria-label={`Set loop out on Deck ${deckId}`}
           title="Set loop out-point and start looping"
         >
@@ -175,6 +177,7 @@ export function LoopControls({ deckId }: LoopControlsProps) {
           onClick={() => reloop(deckId)}
           disabled={!lastManualLoop}
           aria-label={`Reloop on Deck ${deckId}`}
+          aria-pressed={loopActive && loopBeatCount === null}
           title="Re-arm the last manual loop"
         >
           RELOOP

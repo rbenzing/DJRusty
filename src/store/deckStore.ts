@@ -306,6 +306,8 @@ export const useDeckStore = create<DeckStore>((set, get) => ({
       loopStart: null,
       loopEnd: null,
       loopBeatCount: null,
+      manualLoopIn: null,
+      lastManualLoop: null,
       bpm: null,
       // Hot cues are keyed by trackId, persisted in localStorage.
       hotCues: getHotCues(trackId),
@@ -445,7 +447,7 @@ export const useDeckStore = create<DeckStore>((set, get) => ({
     // When duration is unknown (0), no clamping — the track may still be loading.
     const loopEnd = deck.duration > 0 ? Math.min(rawEnd, deck.duration) : rawEnd;
     getActivePlayer(deckId)?.setLoop?.(loopStart, loopEnd);
-    updateDeck(set, deckId, { loopActive: true, loopStart, loopEnd, loopBeatCount: beatCount });
+    updateDeck(set, deckId, { loopActive: true, loopStart, loopEnd, loopBeatCount: beatCount, manualLoopIn: null });
   },
 
   deactivateLoop: (deckId) => {

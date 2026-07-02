@@ -57,4 +57,41 @@ describe('manual loop IN/OUT/RELOOP', () => {
     s.reloop('A'); // toggle off
     expect(useDeckStore.getState().decks.A.loopActive).toBe(false);
   });
+
+  it('loadTrack resets manualLoopIn and lastManualLoop for a fresh track (no stale state carries over)', () => {
+    const s = useDeckStore.getState();
+    s.loadTrack('A', 'track1', { title: '', artist: '', duration: 180, thumbnailUrl: null });
+    s.setCurrentTime('A', 1.0); s.setLoopIn('A');
+    s.setCurrentTime('A', 2.0); s.setLoopOut('A');
+    let d = useDeckStore.getState().decks.A;
+    expect(d.manualLoopIn).toBeCloseTo(1.0, 6);
+    expect(d.lastManualLoop).toEqual({ start: 1.0, end: 2.0 });
+
+    // Load a new track onto the same deck without ejecting first.
+    s.loadTrack('A', 'track2', { title: 'New Track', artist: 'New Artist', duration: 200, thumbnailUrl: null });
+    d = useDeckStore.getState().decks.A;
+    expect(d.manualLoopIn).toBeNull();
+    expect(d.lastManualLoop).toBeNull();
+  });
+
+  it('activateLoopBeat clears a pending (not-yet-OUT) manualLoopIn but preserves lastManualLoop', () => {
+    const eng = mockEngine();
+    playerRegistry.register('A', eng as never);
+    const s = useDeckStore.getState();
+    s.loadTrack('A', 'x', { title: '', artist: '', duration: 180, thumbnailUrl: null });
+    // Establish a completed manual loop first, so lastManualLoop is set.
+    s.setCurrentTime('A', 1.0); s.setLoopIn('A');
+    s.setCurrentTime('A', 2.0); s.setLoopOut('A');
+    const lastManualLoopBefore = useDeckStore.getState().decks.A.lastManualLoop;
+    expect(lastManualLoopBefore).toEqual({ start: 1.0, end: 2.0 });
+
+    // Now arm a pending manual IN (no OUT yet) and engage a beat loop instead.
+    s.setGrid('A', 120, 0.5);
+    s.setCurrentTime('A', 3.0); s.setLoopIn('A');
+    expect(useDeckStore.getState().decks.A.manualLoopIn).not.toBeNull();
+    s.activateLoopBeat('A', 4);
+    const d = useDeckStore.getState().decks.A;
+    expect(d.manualLoopIn).toBeNull();
+    expect(d.lastManualLoop).toEqual(lastManualLoopBefore);
+  });
 });
