@@ -17,6 +17,7 @@
  * Pressing EXIT sets loopActive = false, clearing the loop regardless of mode.
  */
 import { useDeckStore, useDeckActions } from '../../store/deckStore';
+import { shiftedLoopBeatCount } from '../../utils/loopMath';
 import styles from './LoopControls.module.css';
 
 /** Beat counts available as loop lengths. */
@@ -35,6 +36,7 @@ export function LoopControls({ deckId }: LoopControlsProps) {
   const playbackState = useDeckStore((s) => s.decks[deckId].playbackState);
   const manualLoopIn = useDeckStore((s) => s.decks[deckId].manualLoopIn);
   const lastManualLoop = useDeckStore((s) => s.decks[deckId].lastManualLoop);
+  const shift = useDeckStore((s) => s.decks[deckId].shift);
   const { activateLoopBeat, deactivateLoop, setRollMode, startRoll, endRoll, setLoopIn, setLoopOut, reloop } = useDeckActions();
 
   const bpmIsSet = bpm !== null;
@@ -44,6 +46,19 @@ export function LoopControls({ deckId }: LoopControlsProps) {
 
   function handleLoopButton(beatCount: BeatCount) {
     if (!bpmIsSet) return;
+
+    // SHIFT + a loop-length button while a loop is active: halve/double the
+    // active loop instead of absolute-selecting the clicked length.
+    if (shift && loopActive && loopBeatCount !== null) {
+      const result = shiftedLoopBeatCount(loopBeatCount, beatCount);
+      if (result === 'deactivate') {
+        deactivateLoop(deckId);
+      } else {
+        activateLoopBeat(deckId, result);
+      }
+      return;
+    }
+
     // Pressing the same active beat count exits the loop; any other count
     // activates that beat length (replacing any existing loop).
     if (loopActive && loopBeatCount === beatCount) {

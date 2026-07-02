@@ -4,7 +4,7 @@ import type { DeckState, PlaybackState } from '../types/deck';
 import { DEFAULT_PITCH_RATE } from '../constants/pitchRates';
 import { exactSyncRate, phaseDelta } from '../utils/beatSync';
 import { getHotCues } from '../utils/hotCues';
-import { DEFAULT_BEAT_JUMP_SIZE, gridJumpTarget } from '../utils/beatJump';
+import { BEAT_JUMP_SIZES, DEFAULT_BEAT_JUMP_SIZE, gridJumpTarget } from '../utils/beatJump';
 import { getActivePlayer } from '../services/playerRegistry';
 import { snapLoopIn, loopOutFor } from '../utils/loopMath';
 import { snapToGrid } from '../utils/quantize';
@@ -747,7 +747,18 @@ export const useDeckStore = create<DeckStore>((set, get) => ({
     const deck = get().decks[deckId];
     if (!deck.bpm || deck.anchor === null) return;
     const grid = { bpm: deck.bpm, anchor: deck.anchor };
-    const target = gridJumpTarget(grid, deck.currentTime, deck.beatJumpSize, dir, deck.duration);
+    // SHIFT: use the next-larger grid size for this jump only — a one-shot
+    // bigger jump. deck.beatJumpSize (the persisted/displayed selector) is
+    // never mutated by this.
+    let size: number = deck.beatJumpSize;
+    if (deck.shift) {
+      const idx = BEAT_JUMP_SIZES.indexOf(deck.beatJumpSize as (typeof BEAT_JUMP_SIZES)[number]);
+      if (idx >= 0) {
+        const next = BEAT_JUMP_SIZES[Math.min(idx + 1, BEAT_JUMP_SIZES.length - 1)];
+        if (next !== undefined) size = next;
+      }
+    }
+    const target = gridJumpTarget(grid, deck.currentTime, size, dir, deck.duration);
     getActivePlayer(deckId)?.seekTo(target, true);
   },
 }));
