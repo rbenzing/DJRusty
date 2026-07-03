@@ -729,15 +729,18 @@ export const useDeckStore = create<DeckStore>((set, get) => ({
     const deck = get().decks[deckId];
     if (!deck.bpm || deck.anchor === null) return; // needs a confirmed grid
     const grid = { bpm: deck.bpm, anchor: deck.anchor };
-    const { start, end } = sliceStartFor(grid, deck.currentTime, deck.sliceWindowBeats, sliceIndex);
+    const { start, end: rawEnd } = sliceStartFor(grid, deck.currentTime, deck.sliceWindowBeats, sliceIndex);
+    // Clamp loopEnd to the track duration so the 250ms poll can always trigger.
+    // When duration is unknown (0), no clamping — the track may still be loading.
+    const loopEnd = deck.duration > 0 ? Math.min(rawEnd, deck.duration) : rawEnd;
     // Arm the native engine loop (no-op via optional chaining on YouTube).
-    getActivePlayer(deckId)?.setLoop?.(start, end);
+    getActivePlayer(deckId)?.setLoop?.(start, loopEnd);
     updateDeck(set, deckId, {
       rollStartWallClock: Date.now(),
       rollStartPosition: deck.currentTime,
       loopActive: true,
       loopStart: start,
-      loopEnd: end,
+      loopEnd,
       loopBeatCount: null,
       manualLoopIn: null,
     });
