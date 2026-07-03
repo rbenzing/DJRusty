@@ -31,9 +31,8 @@ import { DeckModifiers } from './DeckModifiers';
 import { DeckDisplay } from './DeckDisplay';
 import { EQPanel } from './EQPanel';
 import { EffectsPanel } from './EffectsPanel';
-import { HotCues } from './HotCues';
+import { PadGrid } from './PadGrid';
 import { BeatJump } from './BeatJump';
-import { LoopControls } from './LoopControls';
 import { SlipButton } from './SlipButton';
 import { PitchSlider } from './PitchSlider';
 import { TapTempo } from './TapTempo';
@@ -162,11 +161,8 @@ export function Deck({ deckId }: DeckProps) {
       {/* SHIFT + QUANTIZE modifier row */}
       <DeckModifiers deckId={deckId} />
 
-      {/* Hot cue buttons (4 per deck, STORY-011) */}
-      <HotCues deckId={deckId} />
-
-      {/* Loop controls */}
-      <LoopControls deckId={deckId} />
+      {/* Unified performance-pad grid: HOT CUE / LOOP functional, SLICER / SAMPLER coming later */}
+      <PadGrid deckId={deckId} />
 
       {/* Slip mode toggle */}
       <SlipButton deckId={deckId} />

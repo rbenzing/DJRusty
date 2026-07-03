@@ -9,7 +9,7 @@
  *
  * Restart button seeks to 0. Fixed ±15 s skip buttons removed in Task 5.2 — use the
  * grid-snapped BeatJump controls instead.
- * Hot cue panel (indices 0–3, long-press, right-click) handled by HotCues.tsx (STORY-011).
+ * Hot cue panel (indices 0–3, long-press, right-click) handled by PadGridHotCue.tsx (via PadGrid).
  */
 import { useDeckStore, useDeckActions } from '../../store/deckStore';
 import { usePlaylistStore } from '../../store/playlistStore';
