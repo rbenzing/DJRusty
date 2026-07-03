@@ -1,0 +1,116 @@
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.sizeRow {
+  display: flex;
+  gap: var(--space-1);
+}
+
+.sizeBtn {
+  flex: 1;
+  height: var(--btn-height-sm);
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  cursor: pointer;
+  transition:
+    color var(--transition-fast),
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast),
+    opacity var(--transition-fast);
+}
+
+.sizeBtn:hover:not(:disabled) {
+  color: var(--color-text-primary);
+}
+
+.sizeBtn:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus);
+}
+
+.sizeBtn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.sizeBtnActive {
+  color: var(--color-text-inverse);
+  background: var(--color-accent-primary);
+  border-color: var(--color-accent-primary-bright);
+  box-shadow: var(--shadow-button-active);
+}
+
+/* The active size is always disabled (re-clicking it is a no-op) — keep it
+   at full opacity so it still reads as "selected" rather than "unavailable". */
+.sizeBtnActive:disabled {
+  opacity: 1;
+}
+
+.pads {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-2);
+}
+
+.pad {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  height: 28px;
+  padding: 0 var(--space-2);
+  background: #1a1a1a;
+  border: 1px solid #333333;
+  border-radius: var(--radius-md);
+  color: #888888;
+  font-size: var(--text-xs);
+  font-weight: 700;
+  font-family: var(--font-primary);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  cursor: pointer;
+  transition:
+    background var(--transition-fast),
+    border-color var(--transition-fast),
+    color var(--transition-fast);
+}
+
+.pad:hover:not(:disabled) {
+  background: #242424;
+  border-color: #555555;
+  color: #aaaaaa;
+}
+
+.pad:focus-visible {
+  outline: none;
+  border-color: var(--color-accent-primary);
+  box-shadow: var(--shadow-focus);
+}
+
+/* Follow highlight — dim indicator that the playhead is naturally passing through this slice */
+.padFollow {
+  background: #1a2a3a;
+  border-color: #2a6aaa;
+  color: #7ab8f5;
+}
+
+/* Held highlight — bright indicator this slice is actively pressed/looped (wins over follow) */
+.padHeld {
+  background: #2a2a0a;
+  border-color: #8a8a2a;
+  color: #d4d44a;
+}
+
+.padDisabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
