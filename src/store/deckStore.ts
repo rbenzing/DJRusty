@@ -46,6 +46,7 @@ function createInitialDeckState(deckId: 'A' | 'B'): DeckState {
     gainDb: 0,
     quantize: true,
     shift: false,
+    padMode: 'hotcue',
     eqKillLow: false,
     eqKillMid: false,
     eqKillHigh: false,
@@ -193,6 +194,9 @@ interface DeckStoreActions {
 
   /** Toggle the SHIFT modifier for the specified deck. */
   setShift: (deckId: 'A' | 'B', on: boolean) => void;
+
+  /** Set the active performance-pad mode for the specified deck. */
+  setPadMode: (deckId: 'A' | 'B', mode: 'hotcue' | 'loop' | 'slicer' | 'sampler') => void;
 
   /** Set the track duration (seconds) — used by useAudioEngine after buffer decode. */
   setDuration: (deckId: 'A' | 'B', duration: number) => void;
@@ -543,6 +547,10 @@ export const useDeckStore = create<DeckStore>((set, get) => ({
     updateDeck(set, deckId, { shift: on });
   },
 
+  setPadMode: (deckId, mode) => {
+    updateDeck(set, deckId, { padMode: mode });
+  },
+
   setDuration: (deckId, duration) => {
     updateDeck(set, deckId, { duration });
   },
@@ -784,7 +792,7 @@ export function useDeckActions() {
       setBpm: s.setBpm, setVolume: s.setVolume, setPitchRate: s.setPitchRate,
       setEq: s.setEq, setEqKill: s.setEqKill, setFilterSweep: s.setFilterSweep,
       setGain: s.setGain,
-      setQuantize: s.setQuantize, setShift: s.setShift,
+      setQuantize: s.setQuantize, setShift: s.setShift, setPadMode: s.setPadMode,
       setEffectType: s.setEffectType, setEffectEnabled: s.setEffectEnabled, setEffectWetDry: s.setEffectWetDry,
       setEffectBeat: s.setEffectBeat,
       activateLoop: s.activateLoop, activateLoopBeat: s.activateLoopBeat, deactivateLoop: s.deactivateLoop,

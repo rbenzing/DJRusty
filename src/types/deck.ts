@@ -147,6 +147,13 @@ export interface DeckState {
   /** SHIFT modifier: alters certain button actions while active. */
   shift: boolean;
 
+  /**
+   * Active performance-pad mode. Only 'hotcue' and 'loop' are functional in
+   * Phase 2a; 'slicer' and 'sampler' select via disabled placeholder buttons
+   * until Phase 2b/2c land.
+   */
+  padMode: 'hotcue' | 'loop' | 'slicer' | 'sampler';
+
   /** Error message if the deck is in an error state, or null if healthy. */
   error: string | null;
 
