@@ -20,6 +20,13 @@ describe('sliceWindowStart', () => {
   it('supports larger window sizes (windowBeats=16 -> 8s window)', () => {
     expect(sliceWindowStart(grid, 9, 16)).toBeCloseTo(8, 6);
   });
+
+  it('correctly identifies the window at an exact boundary even when the boundary is not exactly representable in floating point (e.g. 121 BPM)', () => {
+    const oddGrid = { bpm: 121, anchor: 0 };
+    const windowSeconds = (60 / 121) * 4; // secondsPerBeat(121) * 4
+    const exactBoundary = windowSeconds * 3; // the exact 4th window's start
+    expect(sliceWindowStart(oddGrid, exactBoundary, 4)).toBeCloseTo(windowSeconds * 3, 9);
+  });
 });
 
 describe('sliceIndexAt', () => {
@@ -37,6 +44,13 @@ describe('sliceIndexAt', () => {
 
   it('a playhead exactly on a window boundary belongs to the next window (slice 0), not slice 8', () => {
     expect(sliceIndexAt(grid, 4.0, 8)).toBe(0);
+  });
+
+  it('a playhead exactly on an odd-BPM window boundary lands in slice 0 of the new window', () => {
+    const oddGrid = { bpm: 121, anchor: 0 };
+    const windowSeconds = (60 / 121) * 4;
+    const exactBoundary = windowSeconds * 3;
+    expect(sliceIndexAt(oddGrid, exactBoundary, 4)).toBe(0);
   });
 });
 

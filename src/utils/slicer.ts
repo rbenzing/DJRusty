@@ -20,14 +20,14 @@ const SLICE_COUNT = 8;
 /** The start (seconds) of the windowBeats-beat window containing playhead, aligned to the grid anchor. */
 export function sliceWindowStart(grid: BeatGrid, playhead: number, windowBeats: number): number {
   const windowSeconds = secondsPerBeat(grid.bpm) * windowBeats;
-  return grid.anchor + Math.floor((playhead - grid.anchor) / windowSeconds) * windowSeconds;
+  return grid.anchor + Math.floor((playhead - grid.anchor) / windowSeconds + 1e-9) * windowSeconds;
 }
 
-/** Which of the 8 slices (0-7) currently contains playhead, within its window. Clamped defensively. */
+/** Which of the 8 slices (0-7) currently contains playhead, within its window. Clamped to [0, 7] as a defensive guard. */
 export function sliceIndexAt(grid: BeatGrid, playhead: number, windowBeats: number): number {
   const windowStart = sliceWindowStart(grid, playhead, windowBeats);
   const sliceLength = (secondsPerBeat(grid.bpm) * windowBeats) / SLICE_COUNT;
-  const idx = Math.floor((playhead - windowStart) / sliceLength);
+  const idx = Math.floor((playhead - windowStart) / sliceLength + 1e-9);
   return Math.max(0, Math.min(SLICE_COUNT - 1, idx));
 }
 
