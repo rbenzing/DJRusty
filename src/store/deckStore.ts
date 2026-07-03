@@ -8,7 +8,7 @@ import { BEAT_JUMP_SIZES, DEFAULT_BEAT_JUMP_SIZE, gridJumpTarget } from '../util
 import { getActivePlayer } from '../services/playerRegistry';
 import { snapLoopIn, loopOutFor } from '../utils/loopMath';
 import { snapToGrid } from '../utils/quantize';
-import { DEFAULT_SLICE_WINDOW_BEATS } from '../utils/slicer';
+import { DEFAULT_SLICE_WINDOW_BEATS, sliceStartFor } from '../utils/slicer';
 import { transition, type TransportEvent } from '../utils/transport';
 import { consumePendingGrid, consumePendingLoop } from '../services/sessionStore';
 
@@ -235,6 +235,15 @@ interface DeckStoreActions {
 
   /** End a loop roll: seek to the computed target position and deactivate the loop. */
   endRoll: (deckId: 'A' | 'B') => void;
+
+  /**
+   * Begin a Slicer hold: arm a loop over the pressed slice (computed from the
+   * beat grid, deck.sliceWindowBeats, and the live playhead), record the
+   * catch-up fields (rollStartWallClock/rollStartPosition) so releasing via
+   * the pre-existing endRoll seeks back to where playback would have been.
+   * No-op without a confirmed grid.
+   */
+  startSlice: (deckId: 'A' | 'B', sliceIndex: number) => void;
 
   /** Set the beat grid: bpm, anchor position, and mark grid as confirmed. */
   setGrid: (deckId: 'A' | 'B', bpm: number, anchor: number) => void;
@@ -716,6 +725,28 @@ export const useDeckStore = create<DeckStore>((set, get) => ({
     });
   },
 
+  startSlice: (deckId, sliceIndex) => {
+    const deck = get().decks[deckId];
+    if (!deck.bpm || deck.anchor === null) return; // needs a confirmed grid
+    const grid = { bpm: deck.bpm, anchor: deck.anchor };
+    const { start, end } = sliceStartFor(grid, deck.currentTime, deck.sliceWindowBeats, sliceIndex);
+    // Arm the native engine loop (no-op via optional chaining on YouTube).
+    getActivePlayer(deckId)?.setLoop?.(start, end);
+    updateDeck(set, deckId, {
+      rollStartWallClock: Date.now(),
+      rollStartPosition: deck.currentTime,
+      loopActive: true,
+      loopStart: start,
+      loopEnd: end,
+      loopBeatCount: null,
+      manualLoopIn: null,
+    });
+    // If slip mode is on, start tracking the shadow playhead from now.
+    if (deck.slipMode) {
+      get().startSlipTracking(deckId);
+    }
+  },
+
   setGrid: (deckId, bpm, anchor) => updateDeck(set, deckId, { bpm, anchor, gridConfirmed: true }),
 
   nudgeGrid: (deckId, deltaSeconds) => {
@@ -808,7 +839,7 @@ export function useDeckActions() {
       activateLoop: s.activateLoop, activateLoopBeat: s.activateLoopBeat, deactivateLoop: s.deactivateLoop,
       setLoopIn: s.setLoopIn, setLoopOut: s.setLoopOut, reloop: s.reloop,
       setBeatJumpSize: s.setBeatJumpSize, setSlipMode: s.setSlipMode, setSynced: s.setSynced,
-      setRollMode: s.setRollMode, startRoll: s.startRoll, endRoll: s.endRoll,
+      setRollMode: s.setRollMode, startRoll: s.startRoll, endRoll: s.endRoll, startSlice: s.startSlice,
       setGrid: s.setGrid, nudgeGrid: s.nudgeGrid,
       dispatchTransport: s.dispatchTransport, syncToDeck: s.syncToDeck, beatJump: s.beatJump,
     })),
