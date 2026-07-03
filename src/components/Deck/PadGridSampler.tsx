@@ -13,7 +13,7 @@
  * validate-then-delegate pattern) — samplerStore.loadFile always attempts
  * to decode whatever it's given.
  */
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { DragEvent } from 'react';
 import { useSamplerStore } from '../../store/samplerStore';
 import { playSample, setSamplerVolume } from '../../services/samplerEngine';
@@ -21,6 +21,7 @@ import styles from './PadGridSampler.module.css';
 
 const SLOT_COUNT = 8;
 const MAX_FILE_SIZE_BYTES = 500 * 1024 * 1024; // 500 MB, matches FileImportZone
+const REJECTED_FLASH_MS = 2000;
 
 interface PadGridSamplerProps {
   deckId: 'A' | 'B';
@@ -37,11 +38,27 @@ export function PadGridSampler({ deckId }: PadGridSamplerProps) {
   const [rejectedIndex, setRejectedIndex] = useState<number | null>(null);
   const pendingSlotIndex = useRef<number | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const rejectedTimerRef = useRef<number | null>(null);
+
+  // Cancel any pending "rejected file" flash timer on unmount to prevent a
+  // setState call on an unmounted component (mirrors HotCueButton.tsx/TapTempo.tsx).
+  useEffect(() => {
+    return () => {
+      if (rejectedTimerRef.current !== null) {
+        clearTimeout(rejectedTimerRef.current);
+        rejectedTimerRef.current = null;
+      }
+    };
+  }, []);
 
   function acceptFile(slotIndex: number, file: File): void {
     if (!isAudioType(file.type) || file.size > MAX_FILE_SIZE_BYTES) {
       setRejectedIndex(slotIndex);
-      window.setTimeout(() => setRejectedIndex((cur) => (cur === slotIndex ? null : cur)), 2000);
+      if (rejectedTimerRef.current !== null) clearTimeout(rejectedTimerRef.current);
+      rejectedTimerRef.current = window.setTimeout(() => {
+        setRejectedIndex((cur) => (cur === slotIndex ? null : cur));
+        rejectedTimerRef.current = null;
+      }, REJECTED_FLASH_MS);
       return;
     }
     setRejectedIndex(null);
