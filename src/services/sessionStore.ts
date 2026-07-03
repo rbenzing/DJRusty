@@ -143,6 +143,15 @@ export async function loadSession(name: string): Promise<void> {
   // Stash grids/loops BEFORE queue rebuild so the auto-cued first track gets its grid
   for (const [trackId, grid] of Object.entries(session.grids)) pendingGrids.set(trackId, grid);
   for (const [trackId, loop] of Object.entries(session.loops)) pendingLoops.set(trackId, loop);
+  // Sampler slots use full-replace semantics, matching how tracks/queues are
+  // handled elsewhere in this function — clear both decks' 8 slots before
+  // applying whatever this session's samplers data contains (or nothing, for
+  // sessions saved before this feature existed).
+  for (const deckId of ['A', 'B'] as const) {
+    for (let i = 0; i < 8; i++) {
+      useSamplerStore.getState().clearSlot(deckId, i);
+    }
+  }
   if (session.samplers) {
     for (const deckId of ['A', 'B'] as const) {
       const deckSlots = session.samplers[deckId] ?? [];

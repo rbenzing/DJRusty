@@ -84,3 +84,56 @@ it('save → load round-trips a sampler slot (fileName always restored; buffer/d
   expect(restored?.buffer).toBeNull();
   expect(restored?.decodeError).toBe("Couldn't decode — this format may be unsupported in your browser");
 });
+
+it('loadSession clears stale sampler slots that are empty/absent in the loaded session', async () => {
+  // Save a session with NOTHING in sampler slot A[0] (it's empty at save time).
+  await saveSession('NoSamplesHere');
+
+  // Simulate loading that session while stale data is still live on the deck
+  // (e.g. left over from a previously loaded session or manual pad load).
+  const staleBuffer = { duration: 1 } as AudioBuffer;
+  const staleFile = new File([new Uint8Array([9])], 'stale.wav', { type: 'audio/wav' });
+  useSamplerStore.getState().restoreSlot('A', 0, {
+    fileName: 'stale.wav', file: staleFile, buffer: staleBuffer, decoding: false, decodeError: null,
+  });
+
+  await loadSession('NoSamplesHere');
+
+  expect(useSamplerStore.getState().slots.A[0]).toBeNull();
+});
+
+it('loadSession clears all sampler slots for a session saved before the SAMPLER feature existed (missing samplers key)', async () => {
+  const staleBuffer = { duration: 1 } as AudioBuffer;
+  const staleFile = new File([new Uint8Array([9])], 'stale2.wav', { type: 'audio/wav' });
+  useSamplerStore.getState().restoreSlot('B', 3, {
+    fileName: 'stale2.wav', file: staleFile, buffer: staleBuffer, decoding: false, decodeError: null,
+  });
+
+  await saveSession('LegacySession');
+
+  // Manually strip the samplers key from the stored record to simulate a
+  // genuinely pre-Task-5 session (IndexedDB records are plain objects; an
+  // older save simply never had this key).
+  const db = await new Promise<IDBDatabase>((resolve, reject) => {
+    const req = indexedDB.open('dj-rusty', 1);
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+  await new Promise<void>((resolve, reject) => {
+    const tx = db.transaction('sessions', 'readwrite');
+    const store = tx.objectStore('sessions');
+    const getReq = store.get('LegacySession');
+    getReq.onsuccess = () => {
+      const record = getReq.result as Record<string, unknown>;
+      delete record.samplers;
+      const putReq = store.put(record);
+      putReq.onsuccess = () => resolve();
+      putReq.onerror = () => reject(putReq.error);
+    };
+    getReq.onerror = () => reject(getReq.error);
+  });
+
+  await loadSession('LegacySession');
+
+  expect(useSamplerStore.getState().slots.B[3]).toBeNull();
+});
