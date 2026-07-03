@@ -733,6 +733,12 @@ export const useDeckStore = create<DeckStore>((set, get) => ({
     // Clamp loopEnd to the track duration so the 250ms poll can always trigger.
     // When duration is unknown (0), no clamping — the track may still be loading.
     const loopEnd = deck.duration > 0 ? Math.min(rawEnd, deck.duration) : rawEnd;
+    // A slice's start is a computed window position (unlike activateLoopBeat/startRoll,
+    // where loopStart derives from the live playhead and is always <= duration by
+    // construction) — it can itself land past the clamped end near the very end of a
+    // track. Guard against arming an inverted/dead loop region that the real engine
+    // would silently refuse (leaving the store falsely marked loopActive).
+    if (start >= loopEnd) return;
     // Arm the native engine loop (no-op via optional chaining on YouTube).
     getActivePlayer(deckId)?.setLoop?.(start, loopEnd);
     updateDeck(set, deckId, {

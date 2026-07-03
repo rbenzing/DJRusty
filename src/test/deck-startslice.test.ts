@@ -82,15 +82,34 @@ describe('startSlice', () => {
     useDeckStore.setState({
       decks: {
         ...useDeckStore.getState().decks,
+        A: { ...useDeckStore.getState().decks.A, bpm: 120, anchor: 0, currentTime: 0.3, duration: 3.2, sliceWindowBeats: 8 },
+      },
+    });
+    act(() => {
+      useDeckStore.getState().startSlice('A', 6); // slice 6 of an 8-beat window = [3.0, 3.5), clamped to duration 3.2
+    });
+    const d = useDeckStore.getState().decks.A;
+    expect(d.loopActive).toBe(true);
+    expect(d.loopStart).toBeCloseTo(3.0, 6);
+    expect(d.loopEnd).toBe(3.2);
+    expect(eng.setLoop).toHaveBeenCalledWith(3.0, 3.2);
+  });
+
+  it('no-ops instead of arming an inverted loop when the slice start lands past the clamped end', () => {
+    const eng = mockEngine();
+    playerRegistry.register('A', eng as never);
+    useDeckStore.setState({
+      decks: {
+        ...useDeckStore.getState().decks,
         A: { ...useDeckStore.getState().decks.A, bpm: 120, anchor: 0, currentTime: 0.3, duration: 1.2, sliceWindowBeats: 8 },
       },
     });
     act(() => {
-      useDeckStore.getState().startSlice('A', 7); // slice 7 of an 8-beat window = [3.5, 4.0) at 120bpm, past the 1.2s duration
+      useDeckStore.getState().startSlice('A', 7); // slice 7 = [3.5, 4.0) — entirely past duration 1.2
     });
     const d = useDeckStore.getState().decks.A;
-    expect(d.loopEnd).toBe(1.2);
-    expect(eng.setLoop).toHaveBeenCalledWith(d.loopStart, 1.2);
+    expect(d.loopActive).toBe(false);
+    expect(eng.setLoop).not.toHaveBeenCalled();
   });
 
   it('is a no-op when there is no confirmed grid', () => {
