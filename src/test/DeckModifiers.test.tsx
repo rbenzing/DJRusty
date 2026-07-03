@@ -22,4 +22,13 @@ describe('DeckModifiers', () => {
     fireEvent.click(q);
     expect(useDeckStore.getState().decks.A.quantize).toBe(false);
   });
+
+  it('ROLL button toggles rollMode and reflects aria-pressed', () => {
+    render(<DeckModifiers deckId="A" />);
+    const roll = screen.getByRole('button', { name: /loop roll mode/i });
+    expect(roll).toHaveAttribute('aria-pressed', 'false');
+    fireEvent.click(roll);
+    expect(useDeckStore.getState().decks.A.rollMode).toBe(true);
+    expect(roll).toHaveAttribute('aria-pressed', 'true');
+  });
 });
