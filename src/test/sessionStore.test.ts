@@ -5,11 +5,13 @@ import { useLibraryStore } from '../store/libraryStore';
 import { usePlaylistStore } from '../store/playlistStore';
 import { libraryTrackToEntry } from '../store/libraryStore';
 import { useDeckStore } from '../store/deckStore';
+import { useSamplerStore } from '../store/samplerStore';
 
 beforeEach(async () => {
   useLibraryStore.getState().clear();
   usePlaylistStore.getState().clearPlaylist('A');
   usePlaylistStore.getState().clearPlaylist('B');
+  useSamplerStore.setState({ slots: { A: Array(8).fill(null), B: Array(8).fill(null) } });
   vi.stubGlobal('URL', { createObjectURL: () => 'blob:s', revokeObjectURL: vi.fn() } as unknown as typeof URL);
   for (const s of await listSessions()) await deleteSession(s.name);
 });
@@ -58,4 +60,27 @@ it('deleteSession removes it', async () => {
   await saveSession('Temp');
   await deleteSession('Temp');
   expect((await listSessions()).map((s) => s.name)).not.toContain('Temp');
+});
+
+it('save → load round-trips a sampler slot (fileName always restored; buffer/decodeError depend on decode outcome)', async () => {
+  const buffer = { duration: 1 } as AudioBuffer;
+  const file = new File([new Uint8Array([1, 2, 3])], 'kick.wav', { type: 'audio/wav' });
+  useSamplerStore.getState().restoreSlot('A', 0, { fileName: 'kick.wav', file, buffer, decoding: false, decodeError: null });
+
+  await saveSession('WithSamples');
+
+  useSamplerStore.setState({ slots: { A: Array(8).fill(null), B: Array(8).fill(null) } });
+  await loadSession('WithSamples');
+
+  const restored = useSamplerStore.getState().slots.A[0];
+  expect(restored?.fileName).toBe('kick.wav');
+  expect(restored?.decoding).toBe(false);
+  // jsdom has no AudioContext implementation and this test doesn't mock
+  // audioDecoder/audioContext, so loadSession's real decodeAudioFile call
+  // deterministically throws (ReferenceError: AudioContext is not defined),
+  // landing in the catch branch — buffer stays null, decodeError is set.
+  // This still proves the round-trip (blob saved, file reconstructed,
+  // fileName preserved, decode genuinely attempted) without needing a mock.
+  expect(restored?.buffer).toBeNull();
+  expect(restored?.decodeError).toBe("Couldn't decode — this format may be unsupported in your browser");
 });

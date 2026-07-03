@@ -1,7 +1,9 @@
 import { useLibraryStore, type ImportedTrack, libraryTrackToEntry } from '../store/libraryStore';
 import { usePlaylistStore } from '../store/playlistStore';
 import { useDeckStore } from '../store/deckStore';
+import { useSamplerStore, type SampleSlot } from '../store/samplerStore';
 import { getHotCues, setHotCue } from '../utils/hotCues';
+import { decodeAudioFile } from './audioDecoder';
 
 const DB = 'dj-rusty';
 const STORE = 'sessions';
@@ -30,6 +32,10 @@ export interface SavedSession {
   cues: Record<string, Record<number, number>>;
   grids: Record<string, { bpm: number | null; anchor: number | null }>;
   loops: Record<string, { loopStart: number | null; loopEnd: number | null; loopBeatCount: number | null }>;
+  samplers: {
+    A: ({ fileName: string; blob: Blob } | null)[];
+    B: ({ fileName: string; blob: Blob } | null)[];
+  };
 }
 
 /** Read a File's bytes into a Blob, compatible with environments that don't support File.arrayBuffer(). */
@@ -83,12 +89,22 @@ async function snapshot(name: string): Promise<SavedSession> {
       loops[d.trackId] = { loopStart: d.loopStart, loopEnd: d.loopEnd, loopBeatCount: d.loopBeatCount };
     }
   }
+  const samplerSlots = useSamplerStore.getState().slots;
+  const samplers: SavedSession['samplers'] = { A: [], B: [] };
+  for (const deckId of ['A', 'B'] as const) {
+    samplers[deckId] = await Promise.all(
+      samplerSlots[deckId].map(async (slot: SampleSlot | null) => {
+        if (!slot) return null;
+        return { fileName: slot.fileName, blob: await fileToBlob(slot.file) };
+      }),
+    );
+  }
   return {
     name, savedAt: Date.now(),
     tracks,
     deckA: { queue: pl.playlists.A.map((e) => e.id), currentIndex: pl.currentIndex.A },
     deckB: { queue: pl.playlists.B.map((e) => e.id), currentIndex: pl.currentIndex.B },
-    cues, grids, loops,
+    cues, grids, loops, samplers,
   };
 }
 
@@ -127,6 +143,27 @@ export async function loadSession(name: string): Promise<void> {
   // Stash grids/loops BEFORE queue rebuild so the auto-cued first track gets its grid
   for (const [trackId, grid] of Object.entries(session.grids)) pendingGrids.set(trackId, grid);
   for (const [trackId, loop] of Object.entries(session.loops)) pendingLoops.set(trackId, loop);
+  if (session.samplers) {
+    for (const deckId of ['A', 'B'] as const) {
+      const deckSlots = session.samplers[deckId] ?? [];
+      for (let i = 0; i < deckSlots.length; i++) {
+        const saved = deckSlots[i];
+        if (!saved) continue;
+        const restoredFile = new File([saved.blob], saved.fileName, { type: saved.blob.type });
+        try {
+          const buffer = await decodeAudioFile(restoredFile);
+          useSamplerStore.getState().restoreSlot(deckId, i, {
+            fileName: saved.fileName, file: restoredFile, buffer, decoding: false, decodeError: null,
+          });
+        } catch {
+          useSamplerStore.getState().restoreSlot(deckId, i, {
+            fileName: saved.fileName, file: restoredFile, buffer: null, decoding: false,
+            decodeError: "Couldn't decode — this format may be unsupported in your browser",
+          });
+        }
+      }
+    }
+  }
   const pl = usePlaylistStore.getState();
   for (const deck of ['A', 'B'] as const) {
     pl.clearPlaylist(deck);
