@@ -1,7 +1,7 @@
 /**
  * hotCues.ts — Hot cue localStorage persistence utilities.
  * Full implementation here for STORY-001.
- * Used by HotCues component and deckStore in STORY-011.
+ * Used by PadGridHotCue component and deckStore in STORY-011.
  *
  * Hot cues are keyed by `trackId` (the deck-store identifier for the loaded track).
  * For YouTube entries, trackId IS the YouTube video ID, so existing persisted cues

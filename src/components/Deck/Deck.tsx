@@ -158,7 +158,7 @@ export function Deck({ deckId }: DeckProps) {
       {/* Transport controls */}
       <DeckControls deckId={deckId} />
 
-      {/* SHIFT + QUANTIZE modifier row */}
+      {/* SHIFT + QUANTIZE + ROLL modifier row */}
       <DeckModifiers deckId={deckId} />
 
       {/* Unified performance-pad grid: HOT CUE / LOOP functional, SLICER / SAMPLER coming later */}
