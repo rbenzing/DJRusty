@@ -154,6 +154,13 @@ export interface DeckState {
    */
   padMode: 'hotcue' | 'loop' | 'slicer' | 'sampler';
 
+  /**
+   * Slicer window size in beats — each of the 8 SLICER pads represents
+   * sliceWindowBeats / 8 beats. Mirrors beatJumpSize's reset convention:
+   * survives loadTrack, resets to the default (8) on clearTrack/eject.
+   */
+  sliceWindowBeats: 4 | 8 | 16 | 32;
+
   /** Error message if the deck is in an error state, or null if healthy. */
   error: string | null;
 

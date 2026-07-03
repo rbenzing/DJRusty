@@ -8,6 +8,7 @@ import { BEAT_JUMP_SIZES, DEFAULT_BEAT_JUMP_SIZE, gridJumpTarget } from '../util
 import { getActivePlayer } from '../services/playerRegistry';
 import { snapLoopIn, loopOutFor } from '../utils/loopMath';
 import { snapToGrid } from '../utils/quantize';
+import { DEFAULT_SLICE_WINDOW_BEATS } from '../utils/slicer';
 import { transition, type TransportEvent } from '../utils/transport';
 import { consumePendingGrid, consumePendingLoop } from '../services/sessionStore';
 
@@ -47,6 +48,7 @@ function createInitialDeckState(deckId: 'A' | 'B'): DeckState {
     quantize: true,
     shift: false,
     padMode: 'hotcue',
+    sliceWindowBeats: DEFAULT_SLICE_WINDOW_BEATS,
     eqKillLow: false,
     eqKillMid: false,
     eqKillHigh: false,
@@ -197,6 +199,9 @@ interface DeckStoreActions {
 
   /** Set the active performance-pad mode for the specified deck. */
   setPadMode: (deckId: 'A' | 'B', mode: 'hotcue' | 'loop' | 'slicer' | 'sampler') => void;
+
+  /** Set the Slicer window size (4/8/16/32 beats) for the specified deck. */
+  setSliceWindowBeats: (deckId: 'A' | 'B', size: 4 | 8 | 16 | 32) => void;
 
   /** Set the track duration (seconds) — used by useAudioEngine after buffer decode. */
   setDuration: (deckId: 'A' | 'B', duration: number) => void;
@@ -551,6 +556,10 @@ export const useDeckStore = create<DeckStore>((set, get) => ({
     updateDeck(set, deckId, { padMode: mode });
   },
 
+  setSliceWindowBeats: (deckId, size) => {
+    updateDeck(set, deckId, { sliceWindowBeats: size });
+  },
+
   setDuration: (deckId, duration) => {
     updateDeck(set, deckId, { duration });
   },
@@ -585,6 +594,7 @@ export const useDeckStore = create<DeckStore>((set, get) => ({
       lastManualLoop: null,
       bpm: null,
       beatJumpSize: DEFAULT_BEAT_JUMP_SIZE,
+      sliceWindowBeats: DEFAULT_SLICE_WINDOW_BEATS,
       hotCues: {},
       error: null,
       synced: false,
@@ -792,7 +802,7 @@ export function useDeckActions() {
       setBpm: s.setBpm, setVolume: s.setVolume, setPitchRate: s.setPitchRate,
       setEq: s.setEq, setEqKill: s.setEqKill, setFilterSweep: s.setFilterSweep,
       setGain: s.setGain,
-      setQuantize: s.setQuantize, setShift: s.setShift, setPadMode: s.setPadMode,
+      setQuantize: s.setQuantize, setShift: s.setShift, setPadMode: s.setPadMode, setSliceWindowBeats: s.setSliceWindowBeats,
       setEffectType: s.setEffectType, setEffectEnabled: s.setEffectEnabled, setEffectWetDry: s.setEffectWetDry,
       setEffectBeat: s.setEffectBeat,
       activateLoop: s.activateLoop, activateLoopBeat: s.activateLoopBeat, deactivateLoop: s.deactivateLoop,
