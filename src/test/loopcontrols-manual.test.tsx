@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import { LoopControls } from '../components/Deck/LoopControls';
+import { PadGridLoop } from '../components/Deck/PadGridLoop';
 import { useDeckStore } from '../store/deckStore';
 
 describe('LoopControls manual loop buttons', () => {
@@ -10,7 +10,7 @@ describe('LoopControls manual loop buttons', () => {
     const s = useDeckStore.getState();
     s.loadTrack('A', 'x', { title: '', artist: '', duration: 180, thumbnailUrl: null });
     s.setCurrentTime('A', 1.0);
-    render(<LoopControls deckId="A" />);
+    render(<PadGridLoop deckId="A" />);
     fireEvent.click(screen.getByRole('button', { name: /set loop in/i }));
     useDeckStore.getState().setCurrentTime('A', 2.0);
     fireEvent.click(screen.getByRole('button', { name: /set loop out/i }));

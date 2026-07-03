@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import { LoopControls } from '../components/Deck/LoopControls';
+import { PadGridLoop } from '../components/Deck/PadGridLoop';
 import { useDeckStore } from '../store/deckStore';
 import { playerRegistry } from '../services/playerRegistry';
 
@@ -27,7 +27,7 @@ describe('SHIFT + loop-length button: halve/double the active loop', () => {
     s.setCurrentTime('A', 0);
     if (activeBeatCount !== null) s.activateLoopBeat('A', activeBeatCount);
     s.setShift('A', true);
-    render(<LoopControls deckId="A" />);
+    render(<PadGridLoop deckId="A" />);
   }
 
   it('shift + smaller button halves a 4-beat loop to 2', () => {

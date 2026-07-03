@@ -1,0 +1,101 @@
+.buttons {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-2);
+}
+
+/* ---- Loop pads (IN / OUT / 1B / 2B / 4B / 8B / RELOOP) ---- */
+
+.loopBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  height: 28px;
+  padding: 0 var(--space-2);
+  background: #1a1a1a;
+  border: 1px solid #333333;
+  border-radius: var(--radius-md);
+  color: #888888;
+  font-size: var(--text-xs);
+  font-weight: 700;
+  font-family: var(--font-primary);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  cursor: pointer;
+  transition:
+    background var(--transition-fast),
+    border-color var(--transition-fast),
+    color var(--transition-fast);
+}
+
+.loopBtn:hover:not(:disabled) {
+  background: #242424;
+  border-color: #555555;
+  color: #aaaaaa;
+}
+
+.loopBtn:focus-visible {
+  outline: none;
+  border-color: var(--color-accent-primary);
+  box-shadow: var(--shadow-focus);
+}
+
+.loopBtnActive {
+  background: #1a3a1a;
+  border-color: #4a9a4a;
+  color: #7fd97f;
+}
+
+.loopBtnActive:hover {
+  background: #1f421f;
+  border-color: #5aaa5a;
+  color: #8fe98f;
+}
+
+.loopBtnDisabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+/* ---- EXIT button ---- */
+
+.exitBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  height: 28px;
+  padding: 0 var(--space-2);
+  background: #2a1a1a;
+  border: 1px solid #5a2a2a;
+  border-radius: var(--radius-md);
+  color: #cc6666;
+  font-size: var(--text-xs);
+  font-weight: 700;
+  font-family: var(--font-primary);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  cursor: pointer;
+  transition:
+    background var(--transition-fast),
+    border-color var(--transition-fast),
+    color var(--transition-fast),
+    opacity var(--transition-fast);
+}
+
+.exitBtn:hover {
+  background: #3a1a1a;
+  border-color: #aa3a3a;
+  color: #ee7777;
+}
+
+.exitBtn:focus-visible {
+  outline: none;
+  border-color: var(--color-accent-primary);
+  box-shadow: var(--shadow-focus);
+}
+
+.exitBtnDim {
+  opacity: 0.4;
+}
