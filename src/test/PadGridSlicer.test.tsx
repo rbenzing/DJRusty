@@ -29,6 +29,12 @@ describe('PadGridSlicer', () => {
   });
 
   it('clicking a window-size button updates sliceWindowBeats', () => {
+    useDeckStore.setState({
+      decks: {
+        ...useDeckStore.getState().decks,
+        A: { ...useDeckStore.getState().decks.A, bpm: 120, anchor: 0 },
+      },
+    });
     render(<PadGridSlicer deckId="A" />);
     fireEvent.click(screen.getByRole('button', { name: /set slicer window to 16 beats on deck a/i }));
     expect(useDeckStore.getState().decks.A.sliceWindowBeats).toBe(16);
@@ -38,6 +44,7 @@ describe('PadGridSlicer', () => {
     render(<PadGridSlicer deckId="A" />);
     expect(screen.getByRole('button', { name: /slice 1 on deck a/i })).toBeDisabled();
     expect(screen.getByRole('button', { name: /set slicer window to 8 beats on deck a/i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /set slicer window to 16 beats on deck a/i })).toBeDisabled();
   });
 
   it('holding a pad calls startSlice, releasing calls endRoll', () => {

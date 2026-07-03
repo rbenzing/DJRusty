@@ -13,13 +13,10 @@
  * playback up to where it would have been via the pre-existing, unchanged
  * endRoll action (built for ROLL mode in Phase 1).
  *
- * The 8 slice pads require a confirmed beat grid (bpm + anchor) — disabled
- * otherwise, same precondition and message as LOOP mode's beat-count pads.
- * The window-size row does NOT require a confirmed grid (choosing a window
- * size is just setting a preference for whenever a pad is next pressed); a
- * size button is only disabled while it's already the active size (clicking
- * it would be a no-op) or while a pad is held (switching windows mid-loop
- * would be undefined behavior).
+ * Both the 8 slice pads and the window-size row require a confirmed beat
+ * grid (bpm + anchor) — disabled otherwise, same precondition and message
+ * as LOOP mode's beat-count pads. The size row additionally disables while
+ * a pad is held (switching windows mid-loop would be undefined behavior).
  */
 import { useState } from 'react';
 import { useDeckStore, useDeckActions } from '../../store/deckStore';
@@ -60,29 +57,22 @@ export function PadGridSlicer({ deckId }: PadGridSlicerProps) {
   return (
     <div className={styles.wrapper}>
       <div className={styles.sizeRow}>
-        {SLICE_WINDOW_SIZES.map((size) => {
-          const isActiveSize = sliceWindowBeats === size;
-          return (
-            <button
-              key={size}
-              type="button"
-              className={[styles.sizeBtn, isActiveSize ? styles.sizeBtnActive : ''].filter(Boolean).join(' ')}
-              onClick={() => setSliceWindowBeats(deckId, size)}
-              disabled={isActiveSize || heldIndex !== null}
-              aria-pressed={isActiveSize}
-              aria-label={`Set Slicer window to ${size} beats on Deck ${deckId}`}
-              title={
-                heldIndex !== null
-                  ? 'Release the held pad to change window size'
-                  : isActiveSize
-                    ? `${size}-beat window (already selected)`
-                    : `${size}-beat window`
-              }
-            >
-              {size}
-            </button>
-          );
-        })}
+        {SLICE_WINDOW_SIZES.map((size) => (
+          <button
+            key={size}
+            type="button"
+            className={[styles.sizeBtn, sliceWindowBeats === size ? styles.sizeBtnActive : '']
+              .filter(Boolean)
+              .join(' ')}
+            onClick={() => setSliceWindowBeats(deckId, size)}
+            disabled={!gridConfirmed || heldIndex !== null}
+            aria-pressed={sliceWindowBeats === size}
+            aria-label={`Set Slicer window to ${size} beats on Deck ${deckId}`}
+            title={gridConfirmed ? `${size}-beat window` : disabledTitle}
+          >
+            {size}
+          </button>
+        ))}
       </div>
       <div className={styles.pads}>
         {Array.from({ length: SLICE_COUNT }, (_, index) => {

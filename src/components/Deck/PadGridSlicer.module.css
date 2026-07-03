@@ -49,12 +49,6 @@
   box-shadow: var(--shadow-button-active);
 }
 
-/* The active size is always disabled (re-clicking it is a no-op) — keep it
-   at full opacity so it still reads as "selected" rather than "unavailable". */
-.sizeBtnActive:disabled {
-  opacity: 1;
-}
-
 .pads {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
