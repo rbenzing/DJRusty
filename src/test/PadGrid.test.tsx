@@ -19,9 +19,13 @@ describe('PadGrid mode switching', () => {
     expect(screen.queryByRole('button', { name: /hot cue 1 on deck a/i })).not.toBeInTheDocument();
   });
 
-  it('SAMPLER mode button is disabled', () => {
+  it('switching to SAMPLER mode renders the sample pads', () => {
     render(<PadGrid deckId="A" />);
-    expect(screen.getByRole('button', { name: /sampler pad mode for deck a/i })).toBeDisabled();
+    const samplerBtn = screen.getByRole('button', { name: /sampler pad mode for deck a/i });
+    expect(samplerBtn).not.toBeDisabled();
+    fireEvent.click(samplerBtn);
+    expect(screen.getByRole('button', { name: /sample slot 1 on deck a/i })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /hot cue 1 on deck a/i })).not.toBeInTheDocument();
   });
 
   it('switching to SLICER mode renders the slice pads', () => {
