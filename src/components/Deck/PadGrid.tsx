@@ -3,9 +3,9 @@
  *
  * Replaces the separate HotCues + LoopControls panels with one mode-switched
  * 8-pad grid, matching the Hercules DJC Inpulse 300 MK2's HOT CUE / LOOP /
- * SLICER / SAMPLER pad section. Only HOT CUE and LOOP are functional in
- * Phase 2a; SLICER and SAMPLER render as disabled placeholder buttons
- * (Phase 2b/2c land later, flipping them on with no relayout).
+ * SLICER / SAMPLER pad section. Only HOT CUE, LOOP, and (as of Phase 2b)
+ * SLICER are functional. SAMPLER renders as a disabled placeholder button
+ * (Phase 2c lands later, flipping it on with no relayout).
  *
  * Mode-switch is a pure UI visibility concern — switching away from LOOP
  * mode does not deactivate a running loop or roll; the underlying state and
@@ -16,6 +16,7 @@ import { useDeckStore, useDeckActions } from '../../store/deckStore';
 import type { DeckState } from '../../types/deck';
 import { PadGridHotCue } from './PadGridHotCue';
 import { PadGridLoop } from './PadGridLoop';
+import { PadGridSlicer } from './PadGridSlicer';
 import styles from './PadGrid.module.css';
 
 interface PadGridProps {
@@ -25,7 +26,7 @@ interface PadGridProps {
 const MODES: { mode: DeckState['padMode']; label: string; disabled: boolean }[] = [
   { mode: 'hotcue', label: 'HOT CUE', disabled: false },
   { mode: 'loop', label: 'LOOP', disabled: false },
-  { mode: 'slicer', label: 'SLICER', disabled: true },
+  { mode: 'slicer', label: 'SLICER', disabled: false },
   { mode: 'sampler', label: 'SAMPLER', disabled: true },
 ];
 
@@ -59,6 +60,7 @@ export function PadGrid({ deckId }: PadGridProps) {
       <div className={styles.padArea}>
         {padMode === 'hotcue' && <PadGridHotCue deckId={deckId} />}
         {padMode === 'loop' && <PadGridLoop deckId={deckId} />}
+        {padMode === 'slicer' && <PadGridSlicer deckId={deckId} />}
       </div>
     </div>
   );
