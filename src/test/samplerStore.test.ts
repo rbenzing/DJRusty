@@ -66,4 +66,48 @@ describe('samplerStore', () => {
     await useSamplerStore.getState().loadFile('A', 0, new File([new Uint8Array([1])], 'a.wav', { type: 'audio/wav' }));
     expect(useSamplerStore.getState().slots.B[0]).toBeNull();
   });
+
+  it('discards a stale decode resolution when the same slot is re-loaded before the first decode finishes', async () => {
+    let resolveFirst: (buf: AudioBuffer) => void = () => {};
+    let resolveSecond: (buf: AudioBuffer) => void = () => {};
+    const firstPromise = new Promise<AudioBuffer>((res) => { resolveFirst = res; });
+    const secondPromise = new Promise<AudioBuffer>((res) => { resolveSecond = res; });
+    vi.spyOn(audioDecoder, 'decodeAudioFile')
+      .mockReturnValueOnce(firstPromise)
+      .mockReturnValueOnce(secondPromise);
+
+    const fileX = new File([new Uint8Array([1])], 'x.wav', { type: 'audio/wav' });
+    const fileY = new File([new Uint8Array([2])], 'y.wav', { type: 'audio/wav' });
+    const bufferX = { duration: 1 } as AudioBuffer;
+    const bufferY = { duration: 2 } as AudioBuffer;
+
+    const p1 = useSamplerStore.getState().loadFile('A', 0, fileX);
+    const p2 = useSamplerStore.getState().loadFile('A', 0, fileY);
+
+    // Resolve the FIRST (now-stale) call's decode AFTER the second one, simulating out-of-order completion.
+    resolveSecond(bufferY);
+    await p2;
+    resolveFirst(bufferX);
+    await p1;
+
+    const slot = useSamplerStore.getState().slots.A[0];
+    expect(slot?.fileName).toBe('y.wav');
+    expect(slot?.buffer).toBe(bufferY);
+  });
+
+  it('clearSlot invalidates an in-flight decode so it cannot resurrect after being cleared', async () => {
+    let resolveDecode: (buf: AudioBuffer) => void = () => {};
+    const decodePromise = new Promise<AudioBuffer>((res) => { resolveDecode = res; });
+    vi.spyOn(audioDecoder, 'decodeAudioFile').mockReturnValueOnce(decodePromise);
+
+    const file = new File([new Uint8Array([1])], 'ghost.wav', { type: 'audio/wav' });
+    const promise = useSamplerStore.getState().loadFile('A', 1, file);
+
+    useSamplerStore.getState().clearSlot('A', 1);
+
+    resolveDecode({ duration: 1 } as AudioBuffer);
+    await promise;
+
+    expect(useSamplerStore.getState().slots.A[1]).toBeNull();
+  });
 });

@@ -42,10 +42,34 @@ function emptySlots(): (SampleSlot | null)[] {
   return Array.from({ length: SLOT_COUNT }, () => null);
 }
 
+// Module-level generation counters, one per (deckId, slotIndex) — incremented on
+// every loadFile call AND every clearSlot/restoreSlot call, so a decode that resolves
+// after being superseded (by a newer loadFile, an explicit clear, or a session
+// restore) is discarded rather than silently overwriting newer state
+// ("last-resolved-wins" bug). Not part of Zustand state — this is bookkeeping, not
+// UI-relevant data, matching how samplerEngine.ts keeps its own module-level state.
+const generations = new Map<string, number>();
+
+function slotKey(deckId: 'A' | 'B', slotIndex: number): string {
+  return `${deckId}:${slotIndex}`;
+}
+
+function bumpGeneration(deckId: 'A' | 'B', slotIndex: number): number {
+  const key = slotKey(deckId, slotIndex);
+  const next = (generations.get(key) ?? 0) + 1;
+  generations.set(key, next);
+  return next;
+}
+
+function currentGeneration(deckId: 'A' | 'B', slotIndex: number): number {
+  return generations.get(slotKey(deckId, slotIndex)) ?? 0;
+}
+
 export const useSamplerStore = create<SamplerStore>((set) => ({
   slots: { A: emptySlots(), B: emptySlots() },
 
   loadFile: async (deckId, slotIndex, file) => {
+    const myGeneration = bumpGeneration(deckId, slotIndex);
     set((state) => {
       const deckSlots = [...state.slots[deckId]];
       deckSlots[slotIndex] = { fileName: file.name, file, buffer: null, decoding: true, decodeError: null };
@@ -53,12 +77,14 @@ export const useSamplerStore = create<SamplerStore>((set) => ({
     });
     try {
       const buffer = await decodeAudioFile(file);
+      if (currentGeneration(deckId, slotIndex) !== myGeneration) return;
       set((state) => {
         const deckSlots = [...state.slots[deckId]];
         deckSlots[slotIndex] = { fileName: file.name, file, buffer, decoding: false, decodeError: null };
         return { slots: { ...state.slots, [deckId]: deckSlots } };
       });
     } catch {
+      if (currentGeneration(deckId, slotIndex) !== myGeneration) return;
       set((state) => {
         const deckSlots = [...state.slots[deckId]];
         deckSlots[slotIndex] = {
@@ -71,6 +97,7 @@ export const useSamplerStore = create<SamplerStore>((set) => ({
   },
 
   clearSlot: (deckId, slotIndex) => {
+    bumpGeneration(deckId, slotIndex);
     set((state) => {
       const deckSlots = [...state.slots[deckId]];
       deckSlots[slotIndex] = null;
@@ -79,6 +106,7 @@ export const useSamplerStore = create<SamplerStore>((set) => ({
   },
 
   restoreSlot: (deckId, slotIndex, slot) => {
+    bumpGeneration(deckId, slotIndex);
     set((state) => {
       const deckSlots = [...state.slots[deckId]];
       deckSlots[slotIndex] = slot;
