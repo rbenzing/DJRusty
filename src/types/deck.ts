@@ -148,9 +148,9 @@ export interface DeckState {
   shift: boolean;
 
   /**
-   * Active performance-pad mode. Only 'hotcue' and 'loop' are functional in
-   * Phase 2a; 'slicer' and 'sampler' select via disabled placeholder buttons
-   * until Phase 2b/2c land.
+   * Active performance-pad mode. 'hotcue', 'loop', and (Phase 2b) 'slicer'
+   * are functional; 'sampler' remains a disabled placeholder button until
+   * Phase 2c lands.
    */
   padMode: 'hotcue' | 'loop' | 'slicer' | 'sampler';
 
