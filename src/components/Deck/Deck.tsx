@@ -158,17 +158,15 @@ export function Deck({ deckId }: DeckProps) {
       {/* Beat jump controls */}
       <BeatJump deckId={deckId} />
 
-      {/* Tap BPM */}
-      <TapTempo deckId={deckId} />
-
-      {/* Beat grid: tap downbeat + nudge */}
-      <GridControl deckId={deckId} />
+      {/* Tap BPM / FX / Grid Control — consolidated 3-column row */}
+      <div className={styles.tapFxGridRow}>
+        <TapTempo deckId={deckId} />
+        <EffectsPanel deckId={deckId} />
+        <GridControl deckId={deckId} />
+      </div>
 
       {/* Pitch slider */}
       <PitchSlider deckId={deckId} />
-
-      {/* Effects — Echo / Reverb */}
-      <EffectsPanel deckId={deckId} />
 
       {/* Volume fader */}
       <div className={styles.volumeSection}>
