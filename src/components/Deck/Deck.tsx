@@ -38,7 +38,6 @@ import { PitchSlider } from './PitchSlider';
 import { TapTempo } from './TapTempo';
 import { GridControl } from './GridControl';
 import { JogWheel } from './JogWheel';
-import { WaveformDisplay } from './WaveformDisplay';
 import { FileImportZone } from '../FileImport/FileImportZone';
 import { DND_KEY } from '../../types/dnd';
 import styles from './Deck.module.css';
@@ -141,9 +140,6 @@ export function Deck({ deckId }: DeckProps) {
           {error}
         </div>
       )}
-
-      {/* Waveform display — shown when peaks are available */}
-      <WaveformDisplay deckId={deckId} />
 
       {/* File import — only shown when no track is loaded */}
       {!hasTrack && <FileImportZone deckId={deckId} />}

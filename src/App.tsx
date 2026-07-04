@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
 import { SettingsModal } from './components/Auth/SettingsModal';
-import { CenterWaveform } from './components/CenterWaveform/CenterWaveform';
 import { Deck } from './components/Deck/Deck';
 import { Mixer } from './components/Mixer/Mixer';
 import { SearchPanel } from './components/Search/SearchPanel';
@@ -84,9 +83,6 @@ function App() {
       </header>
 
       <main className="app-main">
-        {/* Serato-style dual scrolling waveform — full width above deck columns */}
-        <CenterWaveform />
-
         <div className="app-deck-row">
           {/* Deck A — left column (~38% width) */}
           <div className="app-deck-col">
