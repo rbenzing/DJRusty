@@ -49,6 +49,8 @@ function createInitialDeckState(deckId: 'A' | 'B'): DeckState {
     shift: false,
     padMode: 'hotcue',
     sliceWindowBeats: DEFAULT_SLICE_WINDOW_BEATS,
+    vinylMode: true,
+    scratching: false,
     eqKillLow: false,
     eqKillMid: false,
     eqKillHigh: false,
@@ -203,6 +205,15 @@ interface DeckStoreActions {
   /** Set the Slicer window size (4/8/16/32 beats) for the specified deck. */
   setSliceWindowBeats: (deckId: 'A' | 'B', size: 4 | 8 | 16 | 32) => void;
 
+  /** Enable or disable VINYL scratch mode for the specified deck's jog wheel. Persists across track loads (like padMode); forces any in-progress scratch to end when disabled. */
+  setVinylMode: (deckId: 'A' | 'B', enabled: boolean) => void;
+
+  /** Begin a jog-wheel scratch gesture. No-op if VINYL mode is off or no track is loaded. Starts SLIP shadow tracking if slipMode is on. */
+  beginScratch: (deckId: 'A' | 'B') => void;
+
+  /** End a jog-wheel scratch gesture. Resumes from the SLIP shadow position if slipMode is on, else from the scratch's own exit position. No-op if not currently scratching. */
+  endScratch: (deckId: 'A' | 'B') => void;
+
   /** Set the track duration (seconds) — used by useAudioEngine after buffer decode. */
   setDuration: (deckId: 'A' | 'B', duration: number) => void;
 
@@ -343,6 +354,7 @@ export const useDeckStore = create<DeckStore>((set, get) => ({
       rollStartWallClock: null,
       rollStartPosition: null,
       autoPlayOnLoad: autoPlay,
+      scratching: false,
       anchor: null,
       gridConfirmed: false,
       cuePoint: null,
@@ -569,6 +581,36 @@ export const useDeckStore = create<DeckStore>((set, get) => ({
     updateDeck(set, deckId, { sliceWindowBeats: size });
   },
 
+  setVinylMode: (deckId, enabled) => {
+    if (!enabled && get().decks[deckId].scratching) {
+      get().endScratch(deckId);
+    }
+    updateDeck(set, deckId, { vinylMode: enabled });
+  },
+
+  beginScratch: (deckId) => {
+    const deck = get().decks[deckId];
+    if (deck.trackId === null || !deck.vinylMode) return;
+    getActivePlayer(deckId)?.beginScratch?.();
+    updateDeck(set, deckId, { scratching: true });
+    if (deck.slipMode) {
+      get().startSlipTracking(deckId);
+    }
+  },
+
+  endScratch: (deckId) => {
+    const deck = get().decks[deckId];
+    if (!deck.scratching) return;
+    const resumeAt = deck.slipMode && deck.slipPosition !== null ? deck.slipPosition : undefined;
+    getActivePlayer(deckId)?.endScratch?.(resumeAt);
+    updateDeck(set, deckId, {
+      scratching: false,
+      slipPosition: null,
+      slipStartTime: null,
+      slipStartPosition: null,
+    });
+  },
+
   setDuration: (deckId, duration) => {
     updateDeck(set, deckId, { duration });
   },
@@ -615,6 +657,7 @@ export const useDeckStore = create<DeckStore>((set, get) => ({
       rollStartWallClock: null,
       rollStartPosition: null,
       autoPlayOnLoad: false,
+      scratching: false,
       anchor: null,
       gridConfirmed: false,
       cuePoint: null,
@@ -850,6 +893,7 @@ export function useDeckActions() {
       setBeatJumpSize: s.setBeatJumpSize, setSlipMode: s.setSlipMode, setSynced: s.setSynced,
       setRollMode: s.setRollMode, startRoll: s.startRoll, endRoll: s.endRoll, startSlice: s.startSlice,
       setGrid: s.setGrid, nudgeGrid: s.nudgeGrid,
+      setVinylMode: s.setVinylMode, beginScratch: s.beginScratch, endScratch: s.endScratch,
       dispatchTransport: s.dispatchTransport, syncToDeck: s.syncToDeck, beatJump: s.beatJump,
     })),
   );

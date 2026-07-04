@@ -155,6 +155,21 @@ export interface DeckState {
   padMode: 'hotcue' | 'loop' | 'slicer' | 'sampler';
 
   /**
+   * VINYL scratch mode for the jog wheel. true (default, matches real
+   * hardware): dragging the platter stops the track and scratches it.
+   * false: dragging only applies a temporary pitch bend, never stopping
+   * the track. Persists across track loads (like padMode) — this is a
+   * per-deck hardware-style setting, not track state.
+   */
+  vinylMode: boolean;
+
+  /**
+   * True while a jog-wheel scratch gesture is in progress. Reset to false
+   * on loadTrack/clearTrack (unlike vinylMode, which persists).
+   */
+  scratching: boolean;
+
+  /**
    * Slicer window size in beats — each of the 8 SLICER pads represents
    * sliceWindowBeats / 8 beats. Mirrors beatJumpSize's reset convention:
    * survives loadTrack, resets to the default (8) on clearTrack/eject.
