@@ -514,7 +514,12 @@ export class AudioEngineImpl implements AudioEngine {
   }
 
   beginScratch(): void {
-    if (!this.scratchWorkletReady || !this.scratchNode || !this.buffer) return;
+    // Re-entrancy guard: a second beginScratch() while already scratching
+    // (e.g. a second touch landing on the same jog wheel before the first
+    // gesture's endScratch()) must not re-read isPlayingFlag — by then it's
+    // already false from the first call's stopSource(), which would clobber
+    // wasPlayingBeforeScratch and silently break the resume-to-playing behavior.
+    if (!this.scratchWorkletReady || !this.scratchNode || !this.buffer || this.scratching) return;
     this.wasPlayingBeforeScratch = this.isPlayingFlag;
     // Read the live position BEFORE flipping isPlayingFlag — getCurrentTime()'s
     // analytic formula only integrates elapsed time while isPlayingFlag is

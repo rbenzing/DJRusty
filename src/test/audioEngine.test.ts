@@ -584,6 +584,27 @@ describe('AudioEngine', () => {
       expect(lastScratchNode).toBeUndefined();
     });
 
+    it('a second beginScratch while already scratching is a no-op (re-entrancy guard)', async () => {
+      await engine.play();
+      engine.primeScratch(mockBuffer);
+      await Promise.resolve();
+      await Promise.resolve();
+
+      engine.beginScratch(); // wasPlayingBeforeScratch = true (was playing)
+      engine.beginScratch(); // must NOT re-read isPlayingFlag (now false) and clobber it
+
+      engine.endScratch();
+      // endScratch's resume path calls play(), whose first statement is
+      // `await ensureAudioContextResumed()` — flush microtasks so the resumed
+      // play() body (which sets isPlayingFlag) has a chance to run.
+      await Promise.resolve();
+      await Promise.resolve();
+
+      // If the second call had re-armed wasPlayingBeforeScratch from the
+      // now-false isPlayingFlag, this would stay paused instead of resuming.
+      expect(engine.isPlaying()).toBe(true);
+    });
+
     it('beginScratch connects the scratch node and stops the current source', async () => {
       await engine.play();
       engine.primeScratch(mockBuffer);
