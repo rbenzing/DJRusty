@@ -91,6 +91,25 @@ if (typeof Element !== 'undefined' && !Element.prototype.setPointerCapture) {
 }
 
 /**
+ * ResizeObserver polyfill for jsdom.
+ *
+ * jsdom does not implement ResizeObserver — needed by DeckWaveform's
+ * canvas-resizes-to-container-width logic. This is a minimal no-op stub:
+ * `observe()` never actually fires the callback (jsdom performs no real
+ * layout), so components using it fall back to their initial width state
+ * in tests — real resize behavior is verified visually via Playwright.
+ */
+if (typeof ResizeObserver === 'undefined') {
+  class ResizeObserverPolyfill {
+    constructor(_callback: ResizeObserverCallback) { /* callback intentionally unused in the stub */ }
+    observe(): void { /* no-op in jsdom */ }
+    unobserve(): void { /* no-op */ }
+    disconnect(): void { /* no-op */ }
+  }
+  (globalThis as unknown as Record<string, unknown>).ResizeObserver = ResizeObserverPolyfill;
+}
+
+/**
  * Mock the YouTube IFrame API global (window.YT).
  *
  * The YT global is injected by the YouTube IFrame API script, which is loaded
