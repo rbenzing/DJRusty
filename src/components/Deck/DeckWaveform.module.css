@@ -1,0 +1,12 @@
+/**
+ * DeckWaveform.module.css — full-width per-deck waveform canvas wrapper.
+ */
+.wrapper {
+  width: 100%;
+}
+
+.canvas {
+  display: block;
+  width: 100%;
+  height: 48px;
+}
