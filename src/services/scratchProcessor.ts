@@ -21,9 +21,10 @@ declare class AudioWorkletProcessor {
 }
 declare function registerProcessor(name: string, processorCtor: new () => AudioWorkletProcessor): void;
 
-// ~64 render quanta (128 samples each) ≈ 186ms at 44.1kHz — throttles how
-// often the live read-position is reported back to the main thread.
-const POSITION_REPORT_INTERVAL = 64;
+// 8 render quanta (128 samples each) ≈ 23ms at 44.1kHz (~43Hz) — throttles
+// how often the live read-position is reported back to the main thread,
+// targeting the design spec's ~30-60Hz range for scratch position feedback.
+const POSITION_REPORT_INTERVAL = 8;
 
 interface LoadMessage { type: 'load'; channels: Float32Array[]; }
 interface SetPositionMessage { type: 'setPosition'; position: number; }
