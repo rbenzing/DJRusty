@@ -1,17 +1,20 @@
 /**
  * Deck.tsx — Main deck container component.
  *
- * Renders the full Deck A or Deck B UI shell per ui-spec.md §4.
  * Reads all state from deckStore via the deckId prop.
  *
  * Layout (top to bottom):
- *   DeckDisplay   — deck label, BPM, track title, channel, time/rate
- *   JogWheel      — animated vinyl platter + scratch/bend drag surface
- *   DeckControls  — Play/Pause, Cue, Set Cue
- *   TapTempo      — TAP button + BPM display
- *   PitchSlider   — stepped pitch rate slider
- *   EQPanel       — visual-only EQ knobs (Low/Mid/High)
- *   Volume fader  — deck volume slider
+ *   DeckDisplay        — deck label, BPM, per-deck waveform, track title, channel, time/rate
+ *   JogWheel           — animated vinyl platter + scratch/bend drag surface
+ *   DeckControls       — Play/Pause, Cue, Set Cue
+ *   DeckModifiers      — SHIFT / QUANTIZE / ROLL
+ *   PadGrid            — HOT CUE / LOOP / SLICER / SAMPLER
+ *   SlipButton, BeatJump
+ *   Tap BPM / FX / Grid Control — consolidated row
+ *   Volume fader / Pitch slider — consolidated row
+ *
+ * EQ controls now live in Mixer.tsx, flanking the mixer's channel strip —
+ * not rendered here.
  *
  * States handled:
  *   - Empty: no track loaded, shows "No Track Loaded" message
@@ -165,30 +168,30 @@ export function Deck({ deckId }: DeckProps) {
         <GridControl deckId={deckId} />
       </div>
 
-      {/* Pitch slider */}
-      <PitchSlider deckId={deckId} />
-
-      {/* Volume fader */}
-      <div className={styles.volumeSection}>
-        <span className={styles.volumeLabel}>VOL</span>
-        <input
-          type="range"
-          className={styles.volumeSlider}
-          min={0}
-          max={100}
-          step={1}
-          value={channelFader}
-          onChange={handleVolumeChange}
-          aria-label={`Deck ${deckId} volume`}
-          aria-valuemin={0}
-          aria-valuemax={100}
-          aria-valuenow={channelFader}
-          aria-valuetext={`${channelFader}%`}
-        />
-        <div className={styles.volumeEndLabels}>
-          <span>0</span>
-          <span>100</span>
+      {/* Volume fader + Pitch slider — consolidated 2-column row */}
+      <div className={styles.pitchVolumeRow}>
+        <div className={styles.volumeSection}>
+          <span className={styles.volumeLabel}>VOL</span>
+          <input
+            type="range"
+            className={styles.volumeSlider}
+            min={0}
+            max={100}
+            step={1}
+            value={channelFader}
+            onChange={handleVolumeChange}
+            aria-label={`Deck ${deckId} volume`}
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={channelFader}
+            aria-valuetext={`${channelFader}%`}
+          />
+          <div className={styles.volumeEndLabels}>
+            <span>0</span>
+            <span>100</span>
+          </div>
         </div>
+        <PitchSlider deckId={deckId} />
       </div>
     </div>
   );

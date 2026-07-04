@@ -29,3 +29,18 @@ describe('Deck — Tap BPM / FX / Grid Control consolidated row', () => {
     expect(row?.children[2]?.getAttribute('aria-label')).toContain('beat grid');
   });
 });
+
+describe('Deck — Volume / Pitch consolidated row', () => {
+  it('renders the volume fader and PitchSlider as siblings inside one row wrapper', () => {
+    useDeckStore.setState({
+      decks: { ...useDeckStore.getState().decks, A: { ...useDeckStore.getState().decks['A'], trackId: null } },
+    });
+    const { container } = render(<Deck deckId="A" />);
+
+    const row = container.querySelector(`.${styles.pitchVolumeRow}`);
+    expect(row).not.toBeNull();
+    expect(row?.children.length).toBe(2);
+    expect(row?.children[0]?.textContent).toContain('VOL');
+    expect(row?.children[1]?.textContent).toContain('PITCH');
+  });
+});
