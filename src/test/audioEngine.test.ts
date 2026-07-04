@@ -6,7 +6,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
-import { AudioEngineImpl } from '../services/audioEngine';
+import { AudioEngineImpl, __resetScratchWorkletCacheForTests } from '../services/audioEngine';
 import * as audioContext from '../services/audioContext';
 
 // ── Mock Web Audio API ────────────────────────────────────────────────────
@@ -22,6 +22,7 @@ const mockContext = {
   state: 'running',
   destination: {},
   sampleRate: 44100,
+  audioWorklet: { addModule: vi.fn().mockResolvedValue(undefined) },
 };
 
 function makeMockGain() {
@@ -56,6 +57,33 @@ const mockSourceNode = {
   playbackRate: { value: 1.0 },
   onended: null as (() => void) | null,
 };
+
+interface MockAudioParam { value: number; setValueAtTime: ReturnType<typeof vi.fn>; linearRampToValueAtTime: ReturnType<typeof vi.fn>; }
+
+class MockAudioWorkletNode {
+  port = {
+    postMessage: vi.fn(),
+    onmessage: null as ((e: MessageEvent) => void) | null,
+  };
+  connect = vi.fn();
+  disconnect = vi.fn();
+  private params = new Map<string, MockAudioParam>([
+    ['readRate', { value: 0, setValueAtTime: vi.fn(), linearRampToValueAtTime: vi.fn() }],
+  ]);
+  parameters = { get: (name: string) => this.params.get(name) };
+  constructor(_context: unknown, _name: string, _options?: unknown) {}
+}
+
+/** The most recently constructed MockAudioWorkletNode, for assertions. */
+let lastScratchNode: MockAudioWorkletNode | undefined;
+
+vi.stubGlobal('AudioWorkletNode', class extends MockAudioWorkletNode {
+  constructor(context: unknown, name: string, options?: unknown) {
+    super(context, name, options);
+    // eslint-disable-next-line @typescript-eslint/no-this-alias -- captures the constructed mock instance for test assertions
+    lastScratchNode = this;
+  }
+});
 
 // Mock the audio context module
 vi.mock('../services/audioContext', () => ({
@@ -509,6 +537,173 @@ describe('AudioEngine', () => {
 
       expect(mockDelay.delayTime.value).toBeLessThan(4.0);
       expect(mockDelay.delayTime.value).toBeCloseTo(3.9, 6);
+    });
+  });
+
+  describe('scratch & bend', () => {
+    const mockBuffer = {
+      duration: 120,
+      numberOfChannels: 1,
+      getChannelData: () => new Float32Array(1000),
+    } as unknown as AudioBuffer;
+
+    beforeEach(() => {
+      lastScratchNode = undefined;
+      // The real ensureScratchWorkletLoaded caches its promise at module scope
+      // (correct in production — addModule must only run once per shared
+      // AudioContext) but that means it must be explicitly reset between
+      // otherwise-isolated test cases, since vi.clearAllMocks() only clears
+      // mock call history, not this module's own singleton state.
+      __resetScratchWorkletCacheForTests();
+      engine.loadBuffer(mockBuffer);
+    });
+
+    it('primeScratch loads the worklet module and creates a scratch node', async () => {
+      engine.primeScratch(mockBuffer);
+      await Promise.resolve();
+      await Promise.resolve();
+
+      expect(mockContext.audioWorklet.addModule).toHaveBeenCalledTimes(1);
+      expect(lastScratchNode).toBeDefined();
+    });
+
+    it('primeScratch copies channel data via postMessage without a transfer list (no detach)', async () => {
+      engine.primeScratch(mockBuffer);
+      await Promise.resolve();
+      await Promise.resolve();
+
+      const loadCall = lastScratchNode?.port.postMessage.mock.calls.find(
+        (call) => (call[0] as { type: string }).type === 'load',
+      );
+      expect(loadCall).toBeDefined();
+      expect(loadCall?.length).toBe(1); // no second (transfer list) argument
+    });
+
+    it('beginScratch is a no-op if the worklet has not been primed yet', () => {
+      engine.beginScratch();
+      expect(lastScratchNode).toBeUndefined();
+    });
+
+    it('beginScratch connects the scratch node and stops the current source', async () => {
+      await engine.play();
+      engine.primeScratch(mockBuffer);
+      await Promise.resolve();
+      await Promise.resolve();
+
+      engine.beginScratch();
+
+      expect(mockSourceNode.stop).toHaveBeenCalled();
+      expect(lastScratchNode?.connect).toHaveBeenCalledWith(mockTrimGain);
+    });
+
+    it('updateScratchRate automates the readRate param via a short ramp', async () => {
+      engine.primeScratch(mockBuffer);
+      await Promise.resolve();
+      await Promise.resolve();
+      engine.beginScratch();
+
+      engine.updateScratchRate(2.5);
+
+      const param = lastScratchNode?.parameters.get('readRate');
+      expect(param?.linearRampToValueAtTime).toHaveBeenCalledWith(2.5, expect.any(Number));
+    });
+
+    it('updateScratchRate is a no-op when not currently scratching', () => {
+      engine.updateScratchRate(2.5);
+      // No scratch node exists at all — must not throw, and there is nothing to assert on.
+      expect(lastScratchNode).toBeUndefined();
+    });
+
+    it('beginScratch seeds the worklet with the live elapsed position, not a stale offset', async () => {
+      await engine.play();
+      mockContext.currentTime = 5; // 5 real seconds have elapsed since play() started
+
+      engine.primeScratch(mockBuffer);
+      await Promise.resolve();
+      await Promise.resolve();
+      engine.beginScratch();
+
+      const setPositionCall = lastScratchNode?.port.postMessage.mock.calls.find(
+        (call) => (call[0] as { type: string }).type === 'setPosition',
+      );
+      expect(setPositionCall?.[0]).toEqual({ type: 'setPosition', position: 5 });
+    });
+
+    it('endScratch disconnects the worklet and resumes playing at the reported position if it was playing before', async () => {
+      await engine.play();
+      engine.primeScratch(mockBuffer);
+      await Promise.resolve();
+      await Promise.resolve();
+      engine.beginScratch();
+
+      // Simulate the worklet reporting a live position back.
+      lastScratchNode?.port.onmessage?.({ data: { type: 'position', position: 42 } } as MessageEvent);
+
+      engine.endScratch();
+      // endScratch's resume-play() call is async (awaits ensureAudioContextResumed
+      // internally before calling sourceNode.start()) — flush microtasks so it lands.
+      await Promise.resolve();
+      await Promise.resolve();
+
+      expect(lastScratchNode?.disconnect).toHaveBeenCalled();
+      expect(mockSourceNode.start).toHaveBeenCalledWith(0, 42);
+      expect(engine.isPlaying()).toBe(true);
+    });
+
+    it('endScratch stays paused at the reported position if it was paused before', async () => {
+      // Never called play() — engine starts paused.
+      engine.primeScratch(mockBuffer);
+      await Promise.resolve();
+      await Promise.resolve();
+      engine.beginScratch();
+
+      lastScratchNode?.port.onmessage?.({ data: { type: 'position', position: 17 } } as MessageEvent);
+
+      engine.endScratch();
+
+      expect(engine.isPlaying()).toBe(false);
+      expect(engine.getCurrentTime()).toBeCloseTo(17, 5);
+    });
+
+    it('endScratch resumes at an explicit resumeAt position when given (SLIP-aware resume)', async () => {
+      await engine.play();
+      engine.primeScratch(mockBuffer);
+      await Promise.resolve();
+      await Promise.resolve();
+      engine.beginScratch();
+
+      engine.endScratch(99);
+      // endScratch's resume-play() call is async (awaits ensureAudioContextResumed
+      // internally before calling sourceNode.start()) — flush microtasks so it lands.
+      await Promise.resolve();
+      await Promise.resolve();
+
+      expect(mockSourceNode.start).toHaveBeenCalledWith(0, 99);
+    });
+
+    it('getCurrentTime returns the worklet-reported position while scratching', async () => {
+      engine.primeScratch(mockBuffer);
+      await Promise.resolve();
+      await Promise.resolve();
+      engine.beginScratch();
+
+      lastScratchNode?.port.onmessage?.({ data: { type: 'position', position: 55 } } as MessageEvent);
+
+      expect(engine.getCurrentTime()).toBeCloseTo(55, 5);
+    });
+
+    it('setBendMultiplier scales playbackRate on top of the stored pitch rate', async () => {
+      await engine.play();
+
+      engine.setBendMultiplier(1.05);
+      expect(mockSourceNode.playbackRate.value).toBeCloseTo(1.05, 5);
+
+      engine.setPlaybackRate(2.0);
+      expect(mockSourceNode.playbackRate.value).toBeCloseTo(2.1, 5); // 2.0 * 1.05
+
+      engine.setBendMultiplier(1.0);
+      engine.setPlaybackRate(1.0);
+      expect(mockSourceNode.playbackRate.value).toBeCloseTo(1.0, 5);
     });
   });
 });

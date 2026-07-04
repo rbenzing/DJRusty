@@ -12,6 +12,10 @@ export interface DeckPlayer {
   setLoop?(startSec: number, endSec: number): void;
   clearLoop?(): void;
   isLooping?(): boolean;
+  beginScratch?(): void;
+  updateScratchRate?(rate: number): void;
+  endScratch?(resumeAt?: number): void;
+  setBendMultiplier?(multiplier: number): void;
 }
 
 const registry = new Map<DeckId, DeckPlayer>();

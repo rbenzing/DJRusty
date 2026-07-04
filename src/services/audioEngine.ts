@@ -71,11 +71,51 @@ export interface AudioEngine extends DeckPlayer {
   /** Returns true if a loop is currently armed. */
   isLooping(): boolean;
 
+  /** Prime the scratch worklet with a copy of this buffer's channel data. Fire-and-forget; safe to call again (e.g. on every loadBuffer) to re-prime for a new track. */
+  primeScratch(buffer: AudioBuffer): void;
+
+  /** Begin a scratch gesture: swap the normal source for the scratch worklet. No-op if the worklet hasn't finished priming yet or no buffer is loaded. */
+  beginScratch(): void;
+
+  /** Update the signed read-rate (seconds of track-time per second of real time) driving an in-progress scratch. No-op if not currently scratching. */
+  updateScratchRate(rate: number): void;
+
+  /** End a scratch gesture. Resumes at resumeAt if given (e.g. a SLIP shadow position), else at the worklet's last-reported position. Resumes playing if the deck was playing when the scratch began; otherwise stays paused. No-op if not currently scratching. */
+  endScratch(resumeAt?: number): void;
+
+  /** Temporarily scale playback rate by a multiplier on top of the deck's stored rate (VINYL-off pitch bend). Pass 1.0 to release. Does not touch the stored rate. */
+  setBendMultiplier(multiplier: number): void;
+
   /** Register a callback for when playback naturally ends. */
   onEnded(callback: () => void): void;
 
   /** Clean up all Web Audio nodes. */
   destroy(): void;
+}
+
+// Loads the scratch-processor module exactly once per (shared) AudioContext —
+// registerProcessor() throws if called twice in the same worklet global scope,
+// and both deck engines share one AudioContext singleton.
+let scratchWorkletModulePromise: Promise<void> | null = null;
+function ensureScratchWorkletLoaded(context: AudioContext): Promise<void> {
+  if (!scratchWorkletModulePromise) {
+    scratchWorkletModulePromise = context.audioWorklet
+      .addModule(new URL('./scratchProcessor.ts', import.meta.url))
+      .catch((err: unknown) => {
+        scratchWorkletModulePromise = null; // allow a retry on the next primeScratch call
+        throw err;
+      });
+  }
+  return scratchWorkletModulePromise;
+}
+
+/**
+ * Test-only: resets the module-level worklet-loading cache between test
+ * cases (each test constructs a fresh mocked AudioContext and expects
+ * addModule to be re-invoked). Never called by production code.
+ */
+export function __resetScratchWorkletCacheForTests(): void {
+  scratchWorkletModulePromise = null;
 }
 
 /**
@@ -115,6 +155,14 @@ export class AudioEngineImpl implements AudioEngine {
   // Loop state — null means no loop armed
   private loopStart: number | null = null;
   private loopEnd: number | null = null;
+
+  // Scratch/bend state
+  private scratchNode: AudioWorkletNode | null = null;
+  private scratchWorkletReady = false;
+  private scratching = false;
+  private wasPlayingBeforeScratch = false;
+  private lastScratchPosition = 0;
+  private bendMultiplier = 1.0;
 
   constructor() {
     this.context = getAudioContext();
@@ -196,7 +244,7 @@ export class AudioEngineImpl implements AudioEngine {
     // Create and configure new source node
     this.sourceNode = this.context.createBufferSource();
     this.sourceNode.buffer = this.buffer;
-    this.sourceNode.playbackRate.value = this.playbackRate;
+    this.sourceNode.playbackRate.value = this.effectiveRate();
     this.sourceNode.connect(this.trimGain);
 
     // A superseded source (replaced by a seek-restart or a pause that bumped the
@@ -258,9 +306,16 @@ export class AudioEngineImpl implements AudioEngine {
     }
   }
 
+  /** The actual audible rate: the stored playbackRate composed with any active bend multiplier. */
+  private effectiveRate(): number {
+    return this.playbackRate * this.bendMultiplier;
+  }
+
   getCurrentTime(): number {
+    if (this.scratching) return this.lastScratchPosition;
+
     const base = this.isPlayingFlag
-      ? this.seekOffset + (this.context.currentTime - this.startedAt) * this.playbackRate
+      ? this.seekOffset + (this.context.currentTime - this.startedAt) * this.effectiveRate()
       : this.seekOffset;
 
     if (this.loopStart !== null && this.loopEnd !== null && base >= this.loopStart) {
@@ -283,7 +338,7 @@ export class AudioEngineImpl implements AudioEngine {
     // CDJ-like behavior: if we're playing but outside the new window, re-seek into it.
     // seekTo → play() re-arms the loop on the new source node but does not re-enter setLoop.
     if (this.isPlayingFlag) {
-      const rawPos = this.seekOffset + (this.context.currentTime - this.startedAt) * this.playbackRate;
+      const rawPos = this.seekOffset + (this.context.currentTime - this.startedAt) * this.effectiveRate();
       if (rawPos < startSec || rawPos >= endSec) this.seekTo(startSec);
     }
   }
@@ -307,7 +362,7 @@ export class AudioEngineImpl implements AudioEngine {
   setPlaybackRate(rate: number): void {
     this.playbackRate = rate;
     if (this.sourceNode) {
-      this.sourceNode.playbackRate.value = rate;
+      this.sourceNode.playbackRate.value = this.effectiveRate();
     }
   }
 
@@ -430,6 +485,89 @@ export class AudioEngineImpl implements AudioEngine {
     return impulse;
   }
 
+  primeScratch(buffer: AudioBuffer): void {
+    void ensureScratchWorkletLoaded(this.context)
+      .then(() => {
+        if (!this.scratchNode) {
+          this.scratchNode = new AudioWorkletNode(this.context, 'scratch-processor', {
+            numberOfInputs: 0,
+            numberOfOutputs: 1,
+            outputChannelCount: [buffer.numberOfChannels],
+          });
+          this.scratchNode.port.onmessage = (e: MessageEvent<{ type: string; position: number }>) => {
+            if (e.data.type === 'position') this.lastScratchPosition = e.data.position;
+          };
+        }
+        const channels: Float32Array[] = [];
+        for (let ch = 0; ch < buffer.numberOfChannels; ch++) {
+          channels.push(buffer.getChannelData(ch));
+        }
+        // No transfer list — this must be a copy, not a transfer, or the
+        // original AudioBuffer's channel data would be detached and unusable
+        // for normal playback.
+        this.scratchNode.port.postMessage({ type: 'load', channels });
+        this.scratchWorkletReady = true;
+      })
+      .catch(() => {
+        this.scratchWorkletReady = false;
+      });
+  }
+
+  beginScratch(): void {
+    if (!this.scratchWorkletReady || !this.scratchNode || !this.buffer) return;
+    this.wasPlayingBeforeScratch = this.isPlayingFlag;
+    // Read the live position BEFORE flipping isPlayingFlag — getCurrentTime()'s
+    // analytic formula only integrates elapsed time while isPlayingFlag is
+    // still true; reading it after would silently return the stale seekOffset.
+    const startPosition = this.getCurrentTime();
+    ++this.generation; // invalidate any pending onended from the source we're stopping
+    this.isPlayingFlag = false;
+    this.stopSource();
+    this.lastScratchPosition = startPosition;
+
+    this.scratchNode.port.postMessage({ type: 'setPosition', position: startPosition });
+    this.scratchNode.port.postMessage({ type: 'setLoopBounds', start: this.loopStart, end: this.loopEnd });
+
+    const readRateParam = this.scratchNode.parameters.get('readRate');
+    readRateParam?.setValueAtTime(0, this.context.currentTime);
+
+    this.scratchNode.connect(this.trimGain);
+    this.scratching = true;
+  }
+
+  updateScratchRate(rate: number): void {
+    if (!this.scratching || !this.scratchNode) return;
+    const readRateParam = this.scratchNode.parameters.get('readRate');
+    if (!readRateParam) return;
+    readRateParam.linearRampToValueAtTime(rate, this.context.currentTime + 0.015);
+  }
+
+  endScratch(resumeAt?: number): void {
+    if (!this.scratching || !this.scratchNode) return;
+    this.scratching = false;
+
+    const readRateParam = this.scratchNode.parameters.get('readRate');
+    readRateParam?.setValueAtTime(0, this.context.currentTime);
+    this.scratchNode.disconnect();
+
+    const target = resumeAt !== undefined ? resumeAt : this.lastScratchPosition;
+    const clamped = Math.max(0, Math.min(target, this.getDuration()));
+    this.seekOffset = clamped;
+
+    if (this.wasPlayingBeforeScratch) {
+      void this.play(clamped).catch((err) => {
+        console.error('[audioEngine] endScratch resume play() failed:', err);
+      });
+    }
+  }
+
+  setBendMultiplier(multiplier: number): void {
+    this.bendMultiplier = multiplier;
+    if (this.sourceNode) {
+      this.sourceNode.playbackRate.value = this.effectiveRate();
+    }
+  }
+
   getAnalyser(): AnalyserNode {
     return this.analyser;
   }
@@ -449,6 +587,9 @@ export class AudioEngineImpl implements AudioEngine {
   destroy(): void {
     this.isPlayingFlag = false;
     this.stopSource();
+    if (this.scratchNode) {
+      try { this.scratchNode.disconnect(); } catch { /* already disconnected */ }
+    }
     for (const node of this.effectNodes) {
       try { node.disconnect(); } catch { /* ok */ }
     }
