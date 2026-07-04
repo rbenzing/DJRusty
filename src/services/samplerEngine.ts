@@ -11,7 +11,7 @@
  * handles never live in Zustand, per this project's core architecture rule
  * (mirrors playerRegistry.ts).
  */
-import { getAudioContext } from './audioContext';
+import { getAudioContext, ensureAudioContextResumed } from './audioContext';
 import { useSettingsStore } from '../store/settingsStore';
 
 type DeckId = 'A' | 'B';
@@ -52,6 +52,8 @@ useSettingsStore.subscribe((state, prevState) => {
 
 /** Play a one-shot sample. Stops any currently-playing instance from the same slot first. */
 export function playSample(deckId: DeckId, slotIndex: number, buffer: AudioBuffer): void {
+  void ensureAudioContextResumed();
+
   const key = slotKey(deckId, slotIndex);
   const existing = playing.get(key);
   if (existing) {
@@ -75,4 +77,9 @@ export function playSample(deckId: DeckId, slotIndex: number, buffer: AudioBuffe
 export function setSamplerVolume(deckId: DeckId, volume: number): void {
   samplerVolumes[deckId] = Math.max(0, Math.min(100, volume));
   applyBusGain(deckId);
+}
+
+/** Get the current per-deck sampler bus volume (0-100). */
+export function getSamplerVolume(deckId: DeckId): number {
+  return samplerVolumes[deckId];
 }

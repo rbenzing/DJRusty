@@ -8,6 +8,8 @@ describe('PadGridSampler', () => {
   beforeEach(() => {
     useSamplerStore.setState({ slots: { A: Array(8).fill(null), B: Array(8).fill(null) } });
     vi.restoreAllMocks();
+    samplerEngine.setSamplerVolume('A', 100);
+    samplerEngine.setSamplerVolume('B', 100);
   });
 
   it('renders 8 empty slots by default', () => {
@@ -58,5 +60,11 @@ describe('PadGridSampler', () => {
     render(<PadGridSampler deckId="A" />);
     fireEvent.change(screen.getByRole('slider', { name: /sample volume for deck a/i }), { target: { value: '60' } });
     expect(volSpy).toHaveBeenCalledWith('A', 60);
+  });
+
+  it('initializes the volume slider from the engine\'s current value, not a hardcoded default', () => {
+    samplerEngine.setSamplerVolume('A', 37);
+    render(<PadGridSampler deckId="A" />);
+    expect(screen.getByRole('slider', { name: /sample volume for deck a/i })).toHaveValue('37');
   });
 });

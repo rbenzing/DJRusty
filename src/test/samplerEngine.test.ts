@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { playSample, setSamplerVolume } from '../services/samplerEngine';
+import { playSample, setSamplerVolume, getSamplerVolume } from '../services/samplerEngine';
 import { useSettingsStore } from '../store/settingsStore';
 
 const mockContext = {
@@ -21,6 +21,7 @@ function makeMockSource() {
 
 vi.mock('../services/audioContext', () => ({
   getAudioContext: () => mockContext,
+  ensureAudioContextResumed: vi.fn().mockResolvedValue(undefined),
 }));
 
 describe('samplerEngine', () => {
@@ -80,5 +81,19 @@ describe('samplerEngine', () => {
 
     useSettingsStore.setState({ masterVolume: 50 });
     expect(mockGain.gain.value).toBeCloseTo(0.25, 6); // 50% volume * 50% master
+  });
+
+  it('resumes the AudioContext when a sample is triggered', async () => {
+    const audioContextModule = await import('../services/audioContext');
+    mockContext.createBufferSource.mockReturnValueOnce(makeMockSource());
+
+    playSample('A', 5, { duration: 1 } as AudioBuffer);
+
+    expect(audioContextModule.ensureAudioContextResumed).toHaveBeenCalled();
+  });
+
+  it('getSamplerVolume returns the current per-deck volume', () => {
+    setSamplerVolume('A', 42);
+    expect(getSamplerVolume('A')).toBe(42);
   });
 });

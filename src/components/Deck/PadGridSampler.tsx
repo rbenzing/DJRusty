@@ -16,7 +16,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { DragEvent } from 'react';
 import { useSamplerStore } from '../../store/samplerStore';
-import { playSample, setSamplerVolume } from '../../services/samplerEngine';
+import { playSample, setSamplerVolume, getSamplerVolume } from '../../services/samplerEngine';
 import styles from './PadGridSampler.module.css';
 
 const SLOT_COUNT = 8;
@@ -33,7 +33,7 @@ function isAudioType(type: string): boolean {
 
 export function PadGridSampler({ deckId }: PadGridSamplerProps) {
   const slots = useSamplerStore((s) => s.slots[deckId]);
-  const [volume, setVolume] = useState(100);
+  const [volume, setVolume] = useState(() => getSamplerVolume(deckId));
   const [dragoverIndex, setDragoverIndex] = useState<number | null>(null);
   const [rejectedIndex, setRejectedIndex] = useState<number | null>(null);
   const pendingSlotIndex = useRef<number | null>(null);
