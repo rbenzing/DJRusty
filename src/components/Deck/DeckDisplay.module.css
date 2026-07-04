@@ -15,6 +15,10 @@
   margin-bottom: var(--space-1);
 }
 
+.waveformRow {
+  margin-bottom: var(--space-2);
+}
+
 .deckLabel {
   font-size: var(--text-xs);
   /* Use the per-deck accent text colour so "DECK A" is blue and "DECK B" is red.

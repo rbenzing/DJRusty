@@ -7,6 +7,7 @@
  */
 import { useDeck } from '../../store/deckStore';
 import { formatTime } from '../../utils/formatTime';
+import { DeckWaveform } from './DeckWaveform';
 import styles from './DeckDisplay.module.css';
 
 interface DeckDisplayProps {
@@ -35,6 +36,12 @@ export function DeckDisplay({ deckId }: DeckDisplayProps) {
         >
           {bpmLabel}
         </span>
+      </div>
+
+      {/* Per-deck frequency-colored waveform — moved to the top of the deck,
+          replacing the formerly shared CenterWaveform */}
+      <div className={styles.waveformRow}>
+        <DeckWaveform deckId={deckId} />
       </div>
 
       {/* Track title */}
