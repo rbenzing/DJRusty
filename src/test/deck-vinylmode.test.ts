@@ -216,6 +216,39 @@ describe('endScratch', () => {
     expect(deck.slipStartTime).toBeNull();
     expect(deck.slipStartPosition).toBeNull();
   });
+
+  // Regression test for the whole-branch review finding: a needle-drop scratch
+  // on a paused/cued deck never runs the 100ms playing-only poll, so endScratch
+  // must pull the live position from the engine itself rather than leaving
+  // deck.currentTime frozen at its pre-scratch value.
+  it('updates deck.currentTime from the engine live position', () => {
+    const player: DeckPlayer = {
+      seekTo: vi.fn(),
+      getCurrentTime: () => 42,
+      getDuration: () => 300,
+      beginScratch: vi.fn(),
+      endScratch: vi.fn(),
+    };
+    playerRegistry.register('A', player);
+    useDeckStore.setState({
+      decks: { ...useDeckStore.getState().decks, A: { ...useDeckStore.getState().decks['A'], scratching: true, currentTime: 10 } },
+    });
+
+    act(() => { useDeckStore.getState().endScratch('A'); });
+
+    expect(useDeckStore.getState().decks['A'].currentTime).toBe(42);
+  });
+
+  it('leaves deck.currentTime unchanged when no player is registered', () => {
+    playerRegistry.unregister('A');
+    useDeckStore.setState({
+      decks: { ...useDeckStore.getState().decks, A: { ...useDeckStore.getState().decks['A'], scratching: true, currentTime: 10 } },
+    });
+
+    act(() => { useDeckStore.getState().endScratch('A'); });
+
+    expect(useDeckStore.getState().decks['A'].currentTime).toBe(10);
+  });
 });
 
 describe('State reset', () => {

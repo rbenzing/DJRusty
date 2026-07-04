@@ -602,12 +602,15 @@ export const useDeckStore = create<DeckStore>((set, get) => ({
     const deck = get().decks[deckId];
     if (!deck.scratching) return;
     const resumeAt = deck.slipMode && deck.slipPosition !== null ? deck.slipPosition : undefined;
-    getActivePlayer(deckId)?.endScratch?.(resumeAt);
+    const player = getActivePlayer(deckId);
+    player?.endScratch?.(resumeAt);
+    const newCurrentTime = player?.getCurrentTime() ?? deck.currentTime;
     updateDeck(set, deckId, {
       scratching: false,
       slipPosition: null,
       slipStartTime: null,
       slipStartPosition: null,
+      currentTime: newCurrentTime,
     });
   },
 
