@@ -29,7 +29,6 @@ import { useLibraryStore, libraryTrackToEntry } from '../../store/libraryStore';
 import { DeckControls } from './DeckControls';
 import { DeckModifiers } from './DeckModifiers';
 import { DeckDisplay } from './DeckDisplay';
-import { EQPanel } from './EQPanel';
 import { EffectsPanel } from './EffectsPanel';
 import { PadGrid } from './PadGrid';
 import { BeatJump } from './BeatJump';
@@ -167,9 +166,6 @@ export function Deck({ deckId }: DeckProps) {
 
       {/* Pitch slider */}
       <PitchSlider deckId={deckId} />
-
-      {/* EQ knobs with kill switches and filter sweep */}
-      <EQPanel deckId={deckId} />
 
       {/* Effects — Echo / Reverb */}
       <EffectsPanel deckId={deckId} />

@@ -2,12 +2,37 @@
 
 .mixer {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   height: 100%;
   background: var(--color-bg-surface);
+  overflow: hidden;
+}
+
+/* The former .mixer vertical stack — now the center of a 3-column row */
+.mixerCenter {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
   padding: var(--space-3);
   gap: var(--space-3);
   overflow-y: auto;
+}
+
+/* EQ columns flanking the mixer center */
+.eqColumn {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  padding: var(--space-1) 0;
+}
+
+.eqColumn:first-child {
+  border-right: 1px solid var(--color-border-default);
+}
+
+.eqColumn:last-child {
+  border-left: 1px solid var(--color-border-default);
 }
 
 /* Header */
