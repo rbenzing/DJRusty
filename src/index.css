@@ -94,6 +94,12 @@
   --btn-height-sm: 28px;
   --btn-height-md: 36px;
   --btn-height-lg: 44px;
+
+  /* Viewport — design-time reference only, not enforced by a media query.
+     This layout (deck/mixer proportions, consolidated control rows) is
+     designed and tested against this floor; there is no further reflow
+     below it. */
+  --min-viewport-width: 1366px;
 }
 
 /* CSS Reset */
