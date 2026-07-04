@@ -19,12 +19,22 @@ interface VinylPlatterProps {
   pitchRate: number;
   /** Track thumbnail URL, used as the vinyl center label image. */
   thumbnailUrl?: string | null;
+  /**
+   * When provided (during an active jog-wheel drag), overrides the CSS
+   * keyframe spin with this exact rotation angle in degrees — locking visual
+   * rotation to the live scratch/bend position. Omit to use the normal
+   * playing/paused CSS animation.
+   */
+  rotationOverrideDeg?: number;
 }
 
-export function VinylPlatter({ isPlaying, isBuffering, pitchRate, thumbnailUrl }: VinylPlatterProps) {
+export function VinylPlatter({ isPlaying, isBuffering, pitchRate, thumbnailUrl, rotationOverrideDeg }: VinylPlatterProps) {
   const platterStyle = {
     '--platter-state': isPlaying ? 'running' : 'paused',
     '--platter-duration': `${(1.8 / pitchRate).toFixed(3)}s`,
+    ...(rotationOverrideDeg !== undefined
+      ? { animation: 'none', transform: `rotate(${rotationOverrideDeg}deg)` }
+      : {}),
   } as React.CSSProperties;
 
   return (

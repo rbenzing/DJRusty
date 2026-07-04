@@ -1,0 +1,53 @@
+/**
+ * JogWheel.module.css — interactive jog wheel wrapper + VINYL toggle.
+ */
+
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.dragSurface {
+  cursor: grab;
+  /* Prevent the browser's default touch scroll/pinch gestures from
+     interfering with a single-pointer scratch/bend drag. */
+  touch-action: none;
+  user-select: none;
+}
+
+.dragSurface:active {
+  cursor: grabbing;
+}
+
+.vinylBtn {
+  width: 52px;
+  height: var(--btn-height-sm);
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: color var(--transition-fast), border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.vinylBtn:hover {
+  color: var(--color-text-primary);
+}
+
+.vinylBtn:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus);
+}
+
+.vinylBtnActive {
+  color: var(--color-text-inverse);
+  background: var(--color-accent-primary);
+  border-color: var(--color-accent-primary-bright);
+  box-shadow: var(--shadow-button-active);
+}

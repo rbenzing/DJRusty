@@ -65,6 +65,32 @@ if (typeof DataTransfer === 'undefined') {
 }
 
 /**
+ * PointerEvent polyfill for jsdom.
+ *
+ * jsdom does not implement the Pointer Events API (no PointerEvent
+ * constructor, no setPointerCapture/releasePointerCapture on Element) —
+ * needed for JogWheel's drag-to-scratch tests. This minimal polyfill is
+ * sufficient for fireEvent.pointerDown/pointerMove/pointerUp tests; it does
+ * not implement real pointer-capture semantics (the capture calls are just no-ops).
+ */
+if (typeof PointerEvent === 'undefined') {
+  class PointerEventPolyfill extends MouseEvent {
+    pointerId: number;
+    constructor(type: string, params: MouseEventInit & { pointerId?: number } = {}) {
+      super(type, params);
+      this.pointerId = params.pointerId ?? 0;
+    }
+  }
+  (globalThis as unknown as Record<string, unknown>).PointerEvent = PointerEventPolyfill;
+}
+
+if (typeof Element !== 'undefined' && !Element.prototype.setPointerCapture) {
+  Element.prototype.setPointerCapture = function (): void { /* no-op in jsdom */ };
+  Element.prototype.releasePointerCapture = function (): void { /* no-op in jsdom */ };
+  Element.prototype.hasPointerCapture = function (): boolean { return false; };
+}
+
+/**
  * Mock the YouTube IFrame API global (window.YT).
  *
  * The YT global is injected by the YouTube IFrame API script, which is loaded
