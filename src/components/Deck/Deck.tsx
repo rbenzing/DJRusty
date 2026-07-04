@@ -6,7 +6,7 @@
  *
  * Layout (top to bottom):
  *   DeckDisplay   — deck label, BPM, track title, channel, time/rate
- *   VinylPlatter  — animated vinyl disc
+ *   JogWheel      — animated vinyl platter + scratch/bend drag surface
  *   DeckControls  — Play/Pause, Cue, Set Cue
  *   TapTempo      — TAP button + BPM display
  *   PitchSlider   — stepped pitch rate slider
@@ -17,7 +17,7 @@
  *   - Empty: no track loaded, shows "No Track Loaded" message
  *   - Buffering: spinner overlay on platter
  *   - Error: error message banner beneath platter
- *   - Playing/Paused/Ended: platter spin controlled by playbackState
+ *   - Playing/Paused/Ended: platter spin controlled by JogWheel (reads playbackState internally)
  */
 import { useState } from 'react';
 import type { DragEvent } from 'react';
@@ -37,7 +37,7 @@ import { SlipButton } from './SlipButton';
 import { PitchSlider } from './PitchSlider';
 import { TapTempo } from './TapTempo';
 import { GridControl } from './GridControl';
-import { VinylPlatter } from './VinylPlatter';
+import { JogWheel } from './JogWheel';
 import { WaveformDisplay } from './WaveformDisplay';
 import { FileImportZone } from '../FileImport/FileImportZone';
 import { DND_KEY } from '../../types/dnd';
@@ -54,10 +54,8 @@ export function Deck({ deckId }: DeckProps) {
   const setChannelFaderA = useMixerStore((s) => s.setChannelFaderA);
   const setChannelFaderB = useMixerStore((s) => s.setChannelFaderB);
   const channelFader = useMixerStore((s) => deckId === 'A' ? s.channelFaderA : s.channelFaderB);
-  const { playbackState, trackId, thumbnailUrl, pitchRate, error } = deck;
+  const { trackId, error } = deck;
 
-  const isPlaying = playbackState === 'playing';
-  const isBuffering = playbackState === 'buffering';
   const hasTrack = trackId !== null;
 
   const [deckDragover, setDeckDragover] = useState(false);
@@ -126,12 +124,7 @@ export function Deck({ deckId }: DeckProps) {
       {/* Vinyl platter — always shown; empty state shown inside platter section */}
       <div className={styles.platterSection}>
         {hasTrack ? (
-          <VinylPlatter
-            isPlaying={isPlaying}
-            isBuffering={isBuffering}
-            pitchRate={pitchRate}
-            thumbnailUrl={thumbnailUrl}
-          />
+          <JogWheel deckId={deckId} />
         ) : (
           <div className={styles.emptyState} aria-live="polite">
             <span className={styles.emptyStateTitle}>No Track Loaded</span>

@@ -294,6 +294,7 @@ async function loadAudioFile(
 
     const engine = engineRef.current;
     engine.loadBuffer(buffer);
+    engine.primeScratch(buffer);
     // Sync engine volume to current mixer-computed deck volume immediately
     engine.setVolume(useDeckStore.getState().decks[deckId].volume);
     engine.setGain(useDeckStore.getState().decks[deckId].gainDb);
@@ -358,6 +359,7 @@ async function loadAudioUrl(
 
     const engine = engineRef.current;
     engine.loadBuffer(buffer);
+    engine.primeScratch(buffer);
     engine.setVolume(useDeckStore.getState().decks[deckId].volume);
     engine.setGain(useDeckStore.getState().decks[deckId].gainDb);
     useDeckStore.getState().setDuration(deckId, buffer.duration);

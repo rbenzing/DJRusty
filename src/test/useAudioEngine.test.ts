@@ -30,6 +30,7 @@ const mockEngineInstances: MockAudioEngine[] = [];
 
 interface MockAudioEngine {
   loadBuffer: ReturnType<typeof vi.fn>;
+  primeScratch: ReturnType<typeof vi.fn>;
   play: ReturnType<typeof vi.fn>;
   pause: ReturnType<typeof vi.fn>;
   seekTo: ReturnType<typeof vi.fn>;
@@ -52,6 +53,7 @@ interface MockAudioEngine {
 function makeMockEngine(): MockAudioEngine {
   const engine: MockAudioEngine = {
     loadBuffer: vi.fn(),
+    primeScratch: vi.fn(),
     play: vi.fn().mockResolvedValue(undefined),
     pause: vi.fn(),
     seekTo: vi.fn(),
@@ -335,6 +337,17 @@ describe('useAudioEngine — track loading: mp3', () => {
     });
 
     expect(mockEngineInstances[0]!.loadBuffer).toHaveBeenCalledWith(fakeAudioBuffer);
+  });
+
+  it('calls engine.primeScratch with the decoded AudioBuffer', async () => {
+    renderHook(() => useAudioEngine('A'));
+
+    await act(async () => {
+      loadMp3Track('A', fakeFile);
+      await Promise.resolve();
+    });
+
+    expect(mockEngineInstances[0]!.primeScratch).toHaveBeenCalledWith(fakeAudioBuffer);
   });
 
   it('calls setDecoding(deckId, true) before decode starts', async () => {
