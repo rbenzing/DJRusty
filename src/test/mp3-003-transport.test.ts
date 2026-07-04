@@ -732,6 +732,62 @@ describe('MP3-003 — slip tracking in poll', () => {
 
     expect(updateSlipPositionSpy).not.toHaveBeenCalled();
   });
+
+  it('calls deckStore.updateSlipPosition during poll when slipMode is active and scratching (no loop)', async () => {
+    renderHook(() => useAudioEngine('A'));
+    await loadMp3TrackAndWait('A', fakeFile);
+
+    // Plain (no-loop) scratch: slip mode on, deck marked scratching, tracking started.
+    // loopActive stays false — this is the SLIP-aware-resume path for a bare scratch.
+    act(() => {
+      useDeckStore.getState().setSlipMode('A', true);
+      useDeckStore.setState({
+        decks: {
+          ...useDeckStore.getState().decks,
+          A: { ...useDeckStore.getState().decks['A'], scratching: true },
+        },
+      });
+      useDeckStore.getState().startSlipTracking('A');
+    });
+
+    mockEngineInstances[0]!.getCurrentTime.mockReturnValue(7.0);
+
+    const updateSlipPositionSpy = vi.spyOn(useDeckStore.getState(), 'updateSlipPosition');
+
+    await act(async () => {
+      useDeckStore.getState().setPlaybackState('A', 'playing');
+      await Promise.resolve();
+    });
+
+    act(() => { vi.advanceTimersByTime(250); });
+
+    expect(updateSlipPositionSpy).toHaveBeenCalledWith('A');
+  });
+
+  it('does NOT call updateSlipPosition in poll when both scratching and loopActive are false', async () => {
+    renderHook(() => useAudioEngine('A'));
+    await loadMp3TrackAndWait('A', fakeFile);
+
+    // slip mode on, tracking started, but neither a loop nor a scratch is active — guards
+    // against the widened poll condition becoming too permissive.
+    act(() => {
+      useDeckStore.getState().setSlipMode('A', true);
+      useDeckStore.getState().startSlipTracking('A');
+    });
+
+    mockEngineInstances[0]!.getCurrentTime.mockReturnValue(7.0);
+
+    const updateSlipPositionSpy = vi.spyOn(useDeckStore.getState(), 'updateSlipPosition');
+
+    await act(async () => {
+      useDeckStore.getState().setPlaybackState('A', 'playing');
+      await Promise.resolve();
+    });
+
+    act(() => { vi.advanceTimersByTime(250); });
+
+    expect(updateSlipPositionSpy).not.toHaveBeenCalled();
+  });
 });
 
 // ---------------------------------------------------------------------------
