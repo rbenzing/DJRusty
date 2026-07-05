@@ -35,7 +35,11 @@ export function GridControl({ deckId }: GridControlProps) {
     setGrid(deckId, b, currentTime); // stamp anchor at playhead, confirm grid
   };
 
+  // Full phrase is preserved for assistive tech via the .sr-only span below;
+  // the visible text is abbreviated so the status fits without forcing the
+  // row's GridControl section wider than its neighbors at the 1366px floor.
   const statusText = confirmed ? 'grid set' : bpm !== null ? 'grid unconfirmed' : 'no bpm';
+  const statusShort = confirmed ? 'SET' : bpm !== null ? 'UNSET' : 'NO BPM';
 
   return (
     <div className={styles.grid} aria-label={`Deck ${deckId} beat grid`}>
@@ -63,7 +67,10 @@ export function GridControl({ deckId }: GridControlProps) {
       >
         ▶
       </button>
-      <span className={styles.status}>{statusText}</span>
+      <span className={styles.status}>
+        <span aria-hidden="true">{statusShort}</span>
+        <span className="sr-only">{statusText}</span>
+      </span>
     </div>
   );
 }

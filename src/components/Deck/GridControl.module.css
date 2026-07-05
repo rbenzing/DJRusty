@@ -10,7 +10,7 @@
 .grid {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: var(--space-1);
 }
 
 /* TAP downbeat button */
@@ -18,9 +18,9 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 48px;
+  min-width: 32px;
   height: 28px;
-  padding: 0 var(--space-3);
+  padding: 0 var(--space-1);
   background: #2a1e00;
   border: 1px solid #7a5500;
   border-radius: var(--radius-md);
@@ -59,9 +59,9 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 28px;
+  min-width: 22px;
   height: 28px;
-  padding: 0 var(--space-2);
+  padding: 0 2px;
   background: #1a1a2a;
   border: 1px solid #2a2a5a;
   border-radius: var(--radius-md);

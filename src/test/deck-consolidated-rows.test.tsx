@@ -22,9 +22,9 @@ describe('Deck — Tap BPM / FX / Grid Control consolidated row', () => {
     expect(row).not.toBeNull();
     expect(row?.children.length).toBe(3);
 
-    // TapTempo's own root has the "TAP BPM" label; GridControl's root has an
+    // TapTempo's own root has the "BPM" label; GridControl's root has an
     // aria-label containing "beat grid"; EffectsPanel's root contains "FX".
-    expect(row?.children[0]?.textContent).toContain('TAP BPM');
+    expect(row?.children[0]?.textContent).toContain('BPM');
     expect(row?.children[1]?.textContent).toContain('FX');
     expect(row?.children[2]?.getAttribute('aria-label')).toContain('beat grid');
   });

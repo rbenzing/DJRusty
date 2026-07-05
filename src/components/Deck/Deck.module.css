@@ -32,11 +32,17 @@
 /* Tap BPM / FX / Grid Control — consolidated row. FX gets the most room
    (5 controls); Tap BPM and Grid Control take only the width their content
    needs. Targets the 3 direct children by position since each of
-   TapTempo/EffectsPanel/GridControl renders its own single root element. */
+   TapTempo/EffectsPanel/GridControl renders its own single root element.
+   FX gets an explicit min-width floor (its 5 controls need ~197px to avoid
+   internal wrapping/clipping) so it can never collapse below what it needs,
+   even before it claims its share of leftover flex space — TapTempo and
+   GridControl were sized down (see their own module CSS) so the three
+   always fit within the ~453px of row content width available at the
+   1366px viewport floor, with FX left visibly widest. */
 .tapFxGridRow {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--space-2);
   padding: var(--space-2) var(--space-4);
   border-bottom: 1px solid var(--color-border-subtle);
 }
@@ -47,7 +53,7 @@
 
 .tapFxGridRow > *:nth-child(2) {
   flex: 1;
-  min-width: 0;
+  min-width: 200px;
 }
 
 .tapFxGridRow > *:nth-child(3) {

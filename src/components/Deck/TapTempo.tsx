@@ -54,7 +54,7 @@ export function TapTempo({ deckId }: TapTempoProps) {
 
   return (
     <div className={styles.wrapper}>
-      <span className={styles.label}>TAP BPM</span>
+      <span className={styles.label}>BPM</span>
       <div className={styles.rightGroup}>
         <BpmDisplay bpm={localBpm} />
         <button
