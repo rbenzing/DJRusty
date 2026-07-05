@@ -182,13 +182,15 @@ describe('settingsStore — setAvailableOutputDevices', () => {
 
   it('does not persist availableOutputDevices to localStorage', async () => {
     const { useSettingsStore } = await import('../store/settingsStore');
+    // Force a non-null persisted blob first (setAvailableOutputDevices never
+    // writes on its own) so the assertion below is not vacuously skipped.
+    act(() => { useSettingsStore.getState().setMasterVolume(55); });
     const devices = [{ deviceId: 'd1', label: 'Speakers', kind: 'audiooutput', groupId: 'g1' }] as MediaDeviceInfo[];
     act(() => { useSettingsStore.getState().setAvailableOutputDevices(devices); });
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw) as Record<string, unknown>;
-      expect('availableOutputDevices' in parsed).toBe(false);
-    }
+    expect(raw).not.toBeNull();
+    const parsed = JSON.parse(raw!) as Record<string, unknown>;
+    expect('availableOutputDevices' in parsed).toBe(false);
   });
 });
 
