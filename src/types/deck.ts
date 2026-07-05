@@ -170,6 +170,14 @@ export interface DeckState {
   scratching: boolean;
 
   /**
+   * True while this deck's audio is routed into the shared headphone CUE
+   * bus (pre-fader listen, independent of the channel fader/crossfader/EQ).
+   * Resets to false on loadTrack/clearTrack, like scratching — a per-session
+   * monitoring toggle, not a persisted hardware-style setting like vinylMode.
+   */
+  cueEnabled: boolean;
+
+  /**
    * Slicer window size in beats — each of the 8 SLICER pads represents
    * sliceWindowBeats / 8 beats. Mirrors beatJumpSize's reset convention:
    * survives loadTrack, resets to the default (8) on clearTrack/eject.

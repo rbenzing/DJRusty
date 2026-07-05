@@ -11,6 +11,7 @@ import { snapToGrid } from '../utils/quantize';
 import { DEFAULT_SLICE_WINDOW_BEATS, sliceStartFor } from '../utils/slicer';
 import { transition, type TransportEvent } from '../utils/transport';
 import { consumePendingGrid, consumePendingLoop } from '../services/sessionStore';
+import { cueEngine } from '../services/cueEngine';
 
 /**
  * Initial state for a single deck.
@@ -51,6 +52,7 @@ function createInitialDeckState(deckId: 'A' | 'B'): DeckState {
     sliceWindowBeats: DEFAULT_SLICE_WINDOW_BEATS,
     vinylMode: true,
     scratching: false,
+    cueEnabled: false,
     eqKillLow: false,
     eqKillMid: false,
     eqKillHigh: false,
@@ -208,6 +210,9 @@ interface DeckStoreActions {
   /** Enable or disable VINYL scratch mode for the specified deck's jog wheel. Persists across track loads (like padMode); forces any in-progress scratch to end when disabled. */
   setVinylMode: (deckId: 'A' | 'B', enabled: boolean) => void;
 
+  /** Toggle headphone CUE (pre-fader listen) for the specified deck. Both decks can be cued simultaneously. */
+  toggleCue: (deckId: 'A' | 'B') => void;
+
   /** Begin a jog-wheel scratch gesture. No-op if VINYL mode is off or no track is loaded. Starts SLIP shadow tracking if slipMode is on. */
   beginScratch: (deckId: 'A' | 'B') => void;
 
@@ -322,6 +327,9 @@ export const useDeckStore = create<DeckStore>((set, get) => ({
   },
 
   loadTrack: (deckId, trackId, { title, artist, duration, thumbnailUrl }, autoPlay = false) => {
+    if (get().decks[deckId].cueEnabled) {
+      cueEngine.setDeckCueEnabled(deckId, false);
+    }
     updateDeck(set, deckId, {
       trackId,
       title,
@@ -355,6 +363,7 @@ export const useDeckStore = create<DeckStore>((set, get) => ({
       rollStartPosition: null,
       autoPlayOnLoad: autoPlay,
       scratching: false,
+      cueEnabled: false,
       anchor: null,
       gridConfirmed: false,
       cuePoint: null,
@@ -588,6 +597,12 @@ export const useDeckStore = create<DeckStore>((set, get) => ({
     updateDeck(set, deckId, { vinylMode: enabled });
   },
 
+  toggleCue: (deckId) => {
+    const enabled = !get().decks[deckId].cueEnabled;
+    cueEngine.setDeckCueEnabled(deckId, enabled);
+    updateDeck(set, deckId, { cueEnabled: enabled });
+  },
+
   beginScratch: (deckId) => {
     const deck = get().decks[deckId];
     if (deck.trackId === null || !deck.vinylMode) return;
@@ -627,6 +642,9 @@ export const useDeckStore = create<DeckStore>((set, get) => ({
   },
 
   clearTrack: (deckId) => {
+    if (get().decks[deckId].cueEnabled) {
+      cueEngine.setDeckCueEnabled(deckId, false);
+    }
     updateDeck(set, deckId, {
       trackId: null,
       title: '',
@@ -661,6 +679,7 @@ export const useDeckStore = create<DeckStore>((set, get) => ({
       rollStartPosition: null,
       autoPlayOnLoad: false,
       scratching: false,
+      cueEnabled: false,
       anchor: null,
       gridConfirmed: false,
       cuePoint: null,
@@ -898,6 +917,7 @@ export function useDeckActions() {
       setGrid: s.setGrid, nudgeGrid: s.nudgeGrid,
       setVinylMode: s.setVinylMode, beginScratch: s.beginScratch, endScratch: s.endScratch,
       dispatchTransport: s.dispatchTransport, syncToDeck: s.syncToDeck, beatJump: s.beatJump,
+      toggleCue: s.toggleCue,
     })),
   );
 }
