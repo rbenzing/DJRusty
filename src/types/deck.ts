@@ -40,7 +40,7 @@ export interface DeckState {
   waveformPeaks: Float32Array | null;
 
   /**
-   * Frequency-colored peak data for the CenterWaveform display.
+   * Frequency-colored peak data for the per-deck DeckWaveform display.
    * Each entry corresponds to one bar; contains amplitude + bass/mid/high energy shares.
    * Null until waveform analysis completes (MP3 only).
    */

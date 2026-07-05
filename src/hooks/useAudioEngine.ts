@@ -307,7 +307,7 @@ async function loadAudioFile(
     const peaks = extractWaveformPeaks(buffer, WAVEFORM_PEAKS);
     if (isMountedRef.current) useDeckStore.getState().setWaveformPeaks(deckId, peaks);
 
-    // Frequency-colored peaks for CenterWaveform display
+    // Frequency-colored peaks for the per-deck DeckWaveform display
     const coloredPeaks = extractColoredPeaks(buffer, WAVEFORM_PEAKS);
     if (isMountedRef.current) useDeckStore.getState().setWaveformColoredPeaks(deckId, coloredPeaks);
 

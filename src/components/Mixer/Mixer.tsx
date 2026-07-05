@@ -14,10 +14,12 @@ import styles from './Mixer.module.css';
  * Layout: EQPanel (Deck A) | vertical mixer stack | EQPanel (Deck B).
  * The vertical stack itself contains (top to bottom):
  *   - "MIXER" section label
+ *   - Master volume control
+ *   - Per-deck channel input trim (GAIN)
  *   - Per-deck channel volume faders (CH A / CH B)
  *   - VU meters (visual-only, animated from volume level)
+ *   - Beatmatch guide (tempo + phase alignment between decks)
  *   - Crossfader (with crossfader curve selector)
- *   - Master volume control
  *
  * Volume application pattern:
  *   mixerStore.setCrossfaderPosition / setChannelFaderA / setChannelFaderB
