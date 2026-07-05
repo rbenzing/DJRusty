@@ -11,8 +11,8 @@ import { Deck } from '../components/Deck/Deck';
 import { useDeckStore } from '../store/deckStore';
 import styles from '../components/Deck/Deck.module.css';
 
-describe('Deck — Tap BPM / FX / Grid Control consolidated row', () => {
-  it('renders TapTempo, EffectsPanel, and GridControl as siblings inside one row wrapper, in that order', () => {
+describe('Deck — FX / Tap BPM / Grid Control consolidated row', () => {
+  it('renders EffectsPanel, TapTempo, and GridControl as siblings inside one row wrapper, in that order', () => {
     useDeckStore.setState({
       decks: { ...useDeckStore.getState().decks, A: { ...useDeckStore.getState().decks['A'], trackId: null } },
     });
@@ -22,10 +22,10 @@ describe('Deck — Tap BPM / FX / Grid Control consolidated row', () => {
     expect(row).not.toBeNull();
     expect(row?.children.length).toBe(3);
 
-    // TapTempo's own root has the "BPM" label; GridControl's root has an
-    // aria-label containing "beat grid"; EffectsPanel's root contains "FX".
-    expect(row?.children[0]?.textContent).toContain('BPM');
-    expect(row?.children[1]?.textContent).toContain('FX');
+    // EffectsPanel's root contains "FX"; TapTempo's own root has the "BPM"
+    // label; GridControl's root has an aria-label containing "beat grid".
+    expect(row?.children[0]?.textContent).toContain('FX');
+    expect(row?.children[1]?.textContent).toContain('BPM');
     expect(row?.children[2]?.getAttribute('aria-label')).toContain('beat grid');
   });
 });

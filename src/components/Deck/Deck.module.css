@@ -48,12 +48,12 @@
 }
 
 .tapFxGridRow > *:nth-child(1) {
-  flex-shrink: 0;
+  flex: 1;
+  min-width: 200px;
 }
 
 .tapFxGridRow > *:nth-child(2) {
-  flex: 1;
-  min-width: 200px;
+  flex-shrink: 0;
 }
 
 .tapFxGridRow > *:nth-child(3) {

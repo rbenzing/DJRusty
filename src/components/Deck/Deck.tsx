@@ -10,7 +10,7 @@
  *   DeckModifiers      — SHIFT / QUANTIZE / ROLL / SLIP
  *   PadGrid            — HOT CUE / LOOP / SLICER / SAMPLER
  *   BeatJump
- *   Tap BPM / FX / Grid Control — consolidated row
+ *   FX / Tap BPM / Grid Control — consolidated row
  *   Volume fader / Pitch slider — consolidated row
  *
  * EQ controls now live in Mixer.tsx, flanking the mixer's channel strip —
@@ -157,10 +157,10 @@ export function Deck({ deckId }: DeckProps) {
       {/* Beat jump controls */}
       <BeatJump deckId={deckId} />
 
-      {/* Tap BPM / FX / Grid Control — consolidated 3-column row */}
+      {/* FX / Tap BPM / Grid Control — consolidated 3-column row */}
       <div className={styles.tapFxGridRow}>
-        <TapTempo deckId={deckId} />
         <EffectsPanel deckId={deckId} />
+        <TapTempo deckId={deckId} />
         <GridControl deckId={deckId} />
       </div>
 
