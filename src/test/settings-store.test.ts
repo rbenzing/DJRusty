@@ -10,8 +10,15 @@
  * - openSettings sets isSettingsOpen to true
  * - closeSettings sets isSettingsOpen to false
  */
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { act } from '@testing-library/react';
+
+vi.mock('../services/cueEngine', () => ({
+  cueEngine: {
+    setHeadphoneMix: vi.fn(),
+    setHeadphoneDeviceId: vi.fn().mockResolvedValue(undefined),
+  },
+}));
 
 const STORAGE_KEY = 'dj-rusty-settings';
 
@@ -36,11 +43,19 @@ async function freshStore() {
 
 beforeEach(() => {
   localStorage.clear();
+  vi.clearAllMocks();
 
   // Reset the module-singleton store to known state without re-importing
   // (avoids import() overhead for non-hydration tests)
   import('../store/settingsStore').then(({ useSettingsStore }) => {
-    useSettingsStore.setState({ masterVolume: 100, isSettingsOpen: false });
+    useSettingsStore.setState({
+      masterVolume: 100,
+      isSettingsOpen: false,
+      headphoneMix: 0.5,
+      headphoneDeviceId: null,
+      availableOutputDevices: [],
+      outputDeviceLabelsUnlocked: false,
+    });
   });
 });
 
@@ -57,6 +72,139 @@ describe('settingsStore — initial state', () => {
   it('defaults isSettingsOpen to false', async () => {
     const { useSettingsStore } = await import('../store/settingsStore');
     expect(useSettingsStore.getState().isSettingsOpen).toBe(false);
+  });
+});
+
+describe('settingsStore — initial state (Phase 4 fields)', () => {
+  it('defaults headphoneMix to 0.5', async () => {
+    const { useSettingsStore } = await import('../store/settingsStore');
+    expect(useSettingsStore.getState().headphoneMix).toBe(0.5);
+  });
+
+  it('defaults headphoneDeviceId to null', async () => {
+    const { useSettingsStore } = await import('../store/settingsStore');
+    expect(useSettingsStore.getState().headphoneDeviceId).toBeNull();
+  });
+
+  it('defaults availableOutputDevices to an empty array', async () => {
+    const { useSettingsStore } = await import('../store/settingsStore');
+    expect(useSettingsStore.getState().availableOutputDevices).toEqual([]);
+  });
+
+  it('defaults outputDeviceLabelsUnlocked to false', async () => {
+    const { useSettingsStore } = await import('../store/settingsStore');
+    expect(useSettingsStore.getState().outputDeviceLabelsUnlocked).toBe(false);
+  });
+});
+
+describe('settingsStore — setHeadphoneMix', () => {
+  it('updates headphoneMix to the given value', async () => {
+    const { useSettingsStore } = await import('../store/settingsStore');
+    act(() => { useSettingsStore.getState().setHeadphoneMix(0.8); });
+    expect(useSettingsStore.getState().headphoneMix).toBe(0.8);
+  });
+
+  it('clamps values above 1 to 1', async () => {
+    const { useSettingsStore } = await import('../store/settingsStore');
+    act(() => { useSettingsStore.getState().setHeadphoneMix(1.5); });
+    expect(useSettingsStore.getState().headphoneMix).toBe(1);
+  });
+
+  it('clamps values below 0 to 0', async () => {
+    const { useSettingsStore } = await import('../store/settingsStore');
+    act(() => { useSettingsStore.getState().setHeadphoneMix(-0.5); });
+    expect(useSettingsStore.getState().headphoneMix).toBe(0);
+  });
+
+  it('calls cueEngine.setHeadphoneMix with the clamped value', async () => {
+    const { useSettingsStore } = await import('../store/settingsStore');
+    const { cueEngine } = await import('../services/cueEngine');
+    act(() => { useSettingsStore.getState().setHeadphoneMix(1.5); });
+    expect(cueEngine.setHeadphoneMix).toHaveBeenCalledWith(1);
+  });
+
+  it('persists headphoneMix to localStorage', async () => {
+    const { useSettingsStore } = await import('../store/settingsStore');
+    act(() => { useSettingsStore.getState().setHeadphoneMix(0.25); });
+    const raw = localStorage.getItem(STORAGE_KEY);
+    const parsed = JSON.parse(raw!) as { headphoneMix: number };
+    expect(parsed.headphoneMix).toBe(0.25);
+  });
+
+  it('does not clobber masterVolume when persisting', async () => {
+    const { useSettingsStore } = await import('../store/settingsStore');
+    act(() => { useSettingsStore.getState().setMasterVolume(42); });
+    act(() => { useSettingsStore.getState().setHeadphoneMix(0.9); });
+    const raw = localStorage.getItem(STORAGE_KEY);
+    const parsed = JSON.parse(raw!) as { masterVolume: number; headphoneMix: number };
+    expect(parsed.masterVolume).toBe(42);
+    expect(parsed.headphoneMix).toBe(0.9);
+  });
+});
+
+describe('settingsStore — setHeadphoneDeviceId', () => {
+  it('updates headphoneDeviceId to the given value', async () => {
+    const { useSettingsStore } = await import('../store/settingsStore');
+    act(() => { useSettingsStore.getState().setHeadphoneDeviceId('device-abc'); });
+    expect(useSettingsStore.getState().headphoneDeviceId).toBe('device-abc');
+  });
+
+  it('accepts null to reset to the default device', async () => {
+    const { useSettingsStore } = await import('../store/settingsStore');
+    act(() => { useSettingsStore.getState().setHeadphoneDeviceId('device-abc'); });
+    act(() => { useSettingsStore.getState().setHeadphoneDeviceId(null); });
+    expect(useSettingsStore.getState().headphoneDeviceId).toBeNull();
+  });
+
+  it('calls cueEngine.setHeadphoneDeviceId with the given id', async () => {
+    const { useSettingsStore } = await import('../store/settingsStore');
+    const { cueEngine } = await import('../services/cueEngine');
+    act(() => { useSettingsStore.getState().setHeadphoneDeviceId('device-xyz'); });
+    expect(cueEngine.setHeadphoneDeviceId).toHaveBeenCalledWith('device-xyz');
+  });
+
+  it('persists headphoneDeviceId to localStorage', async () => {
+    const { useSettingsStore } = await import('../store/settingsStore');
+    act(() => { useSettingsStore.getState().setHeadphoneDeviceId('device-abc'); });
+    const raw = localStorage.getItem(STORAGE_KEY);
+    const parsed = JSON.parse(raw!) as { headphoneDeviceId: string | null };
+    expect(parsed.headphoneDeviceId).toBe('device-abc');
+  });
+});
+
+describe('settingsStore — setAvailableOutputDevices', () => {
+  it('updates availableOutputDevices', async () => {
+    const { useSettingsStore } = await import('../store/settingsStore');
+    const devices = [{ deviceId: 'd1', label: 'Speakers', kind: 'audiooutput', groupId: 'g1' }] as MediaDeviceInfo[];
+    act(() => { useSettingsStore.getState().setAvailableOutputDevices(devices); });
+    expect(useSettingsStore.getState().availableOutputDevices).toEqual(devices);
+  });
+
+  it('does not persist availableOutputDevices to localStorage', async () => {
+    const { useSettingsStore } = await import('../store/settingsStore');
+    const devices = [{ deviceId: 'd1', label: 'Speakers', kind: 'audiooutput', groupId: 'g1' }] as MediaDeviceInfo[];
+    act(() => { useSettingsStore.getState().setAvailableOutputDevices(devices); });
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw) as Record<string, unknown>;
+      expect('availableOutputDevices' in parsed).toBe(false);
+    }
+  });
+});
+
+describe('settingsStore — setOutputDeviceLabelsUnlocked', () => {
+  it('updates outputDeviceLabelsUnlocked to true', async () => {
+    const { useSettingsStore } = await import('../store/settingsStore');
+    act(() => { useSettingsStore.getState().setOutputDeviceLabelsUnlocked(true); });
+    expect(useSettingsStore.getState().outputDeviceLabelsUnlocked).toBe(true);
+  });
+
+  it('persists outputDeviceLabelsUnlocked to localStorage', async () => {
+    const { useSettingsStore } = await import('../store/settingsStore');
+    act(() => { useSettingsStore.getState().setOutputDeviceLabelsUnlocked(true); });
+    const raw = localStorage.getItem(STORAGE_KEY);
+    const parsed = JSON.parse(raw!) as { outputDeviceLabelsUnlocked: boolean };
+    expect(parsed.outputDeviceLabelsUnlocked).toBe(true);
   });
 });
 
