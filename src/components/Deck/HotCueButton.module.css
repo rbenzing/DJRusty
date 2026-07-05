@@ -1,12 +1,14 @@
 /**
  * HotCueButton.module.css — Styles for a single hot cue button.
  *
- * Per ui-spec.md §4.5:
- *   Size:         36px × 28px
- *   Empty cue:    background #1a1a1a, border #333, text #555
- *   Set cue:      colour-coded background tint, bright border + text in cue colour
- *   Hover:        slightly brighter border
- *   Disabled:     opacity 0.35, cursor not-allowed
+ * Empty cue:    background #1a1a1a, border #333, text #555
+ * Set cue:      colour-coded background tint, bright border + text in cue colour
+ * Hover:        slightly brighter border
+ * Disabled:     opacity 0.35, cursor not-allowed
+ *
+ * Sized with min-width (not a fixed width) so it stretches to fill its
+ * grid cell in PadGridHotCue.module.css's 4-column grid, matching how
+ * PadGridLoop/PadGridSampler's pads fill their own grid cells.
  *
  * CSS custom properties injected inline by the component when set:
  *   --cue-color        Full accent hex (e.g. #ff4444)
@@ -18,7 +20,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
+  min-width: 36px;
   height: 28px;
   padding: 0;
   border-radius: var(--radius-md);
