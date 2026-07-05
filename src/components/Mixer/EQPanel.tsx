@@ -205,8 +205,8 @@ function FilterSweepKnob({ deckId, value, onChange }: FilterSweepProps) {
 // ── Main EQPanel ───────────────────────────────────────────────────────────
 
 export function EQPanel({ deckId }: EQPanelProps) {
-  const { setEq, setEqKill, setFilterSweep } = useDeckActions();
-  const { eqLow, eqMid, eqHigh, eqKillLow, eqKillMid, eqKillHigh, filterSweep } =
+  const { setEq, setEqKill, setFilterSweep, toggleCue } = useDeckActions();
+  const { eqLow, eqMid, eqHigh, eqKillLow, eqKillMid, eqKillHigh, filterSweep, cueEnabled } =
     useDeckStore(
       useShallow((s) => {
         const d = s.decks[deckId];
@@ -218,6 +218,7 @@ export function EQPanel({ deckId }: EQPanelProps) {
           eqKillMid: d.eqKillMid,
           eqKillHigh: d.eqKillHigh,
           filterSweep: d.filterSweep,
+          cueEnabled: d.cueEnabled,
         };
       }),
     );
@@ -264,6 +265,16 @@ export function EQPanel({ deckId }: EQPanelProps) {
           onChange={handleFilterSweep}
         />
       </div>
+      <button
+        type="button"
+        className={`${styles.cueBtn} ${cueEnabled ? styles.cueBtnActive : ''}`}
+        aria-label={`Headphone cue for Deck ${deckId}`}
+        aria-pressed={cueEnabled}
+        onClick={() => toggleCue(deckId)}
+        title="CUE — monitor this deck in headphones (pre-fader listen)"
+      >
+        CUE
+      </button>
     </div>
   );
 }
