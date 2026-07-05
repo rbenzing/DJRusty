@@ -157,6 +157,17 @@ describe('cueEngine — registerDeckProgramTap catch-up on lazy init', () => {
   });
 });
 
+describe('cueEngine — registerDeckCueSend catch-up on lazy init', () => {
+  it('connects a cue send registered AFTER init if the deck was already marked cue-enabled', () => {
+    // Simulates: deck A's send registers late (e.g. remount) after cue was already
+    // toggled on and the graph already initialized via deck B.
+    cueEngine.setDeckCueEnabled('A', true); // triggers lazy init; no send registered yet for A
+    const sendA = makeFakeGainNode();
+    cueEngine.registerDeckCueSend('A', sendA);
+    expect(sendA.connect).toHaveBeenCalledWith(mockCueBusGain);
+  });
+});
+
 describe('cueEngine — unregisterDeck', () => {
   it('disconnects a currently cue-enabled deck and forgets it', () => {
     const send = makeFakeGainNode();

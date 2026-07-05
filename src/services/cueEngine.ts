@@ -73,6 +73,9 @@ export const cueEngine = {
   /** Register a deck's pre-fader cue-send node. Pure bookkeeping — safe on every deck mount. */
   registerDeckCueSend(deckId: DeckId, cueSendGain: GainNode): void {
     deckCueSends.set(deckId, cueSendGain);
+    if (initialized && deckCueEnabled.get(deckId)) {
+      cueSendGain.connect(cueBusGain);
+    }
   },
 
   /** Register a deck's final analyser node as a program-bus tap. Pure bookkeeping — safe on every deck mount. */
