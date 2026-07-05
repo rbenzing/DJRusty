@@ -51,7 +51,16 @@ interface MockAudioEngine {
   _endedCallback: (() => void) | null;
 }
 
+// Monotonic counter so each makeMockEngine() call produces getAnalyser()/getCueSendNode()
+// return values that are structurally distinguishable (not just distinct references) from
+// every other instance's. vitest's toHaveBeenCalledWith uses deep equality, so two bare
+// `{}` objects compare equal regardless of which instance produced them — tagging each
+// with a unique id is what lets an assertion actually prove "this deck's node", not
+// "any deck's node, or none at all".
+let mockEngineIdCounter = 0;
+
 function makeMockEngine(): MockAudioEngine {
+  const engineId = mockEngineIdCounter++;
   const engine: MockAudioEngine = {
     loadBuffer: vi.fn(),
     primeScratch: vi.fn(),
@@ -63,8 +72,8 @@ function makeMockEngine(): MockAudioEngine {
     setGain: vi.fn(),
     setPlaybackRate: vi.fn(),
     setEQ: vi.fn(),
-    getAnalyser: vi.fn().mockReturnValue({} as AnalyserNode),
-    getCueSendNode: vi.fn().mockReturnValue({} as GainNode),
+    getAnalyser: vi.fn().mockReturnValue({ __mockEngineId: engineId, __mockNodeKind: 'analyser' } as unknown as AnalyserNode),
+    getCueSendNode: vi.fn().mockReturnValue({ __mockEngineId: engineId, __mockNodeKind: 'cueSend' } as unknown as GainNode),
     isReady: vi.fn().mockReturnValue(true),
     isPlaying: vi.fn().mockReturnValue(false),
     onEnded: vi.fn().mockImplementation((cb: () => void) => {
@@ -318,6 +327,16 @@ describe('useAudioEngine — lifecycle: unmount', () => {
 // ---------------------------------------------------------------------------
 
 describe('useAudioEngine — cue engine registration', () => {
+  beforeEach(() => {
+    resetStores();
+    mockEngineInstances.length = 0;
+    vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+
   it('registers the deck cue-send node and program tap on mount', () => {
     renderHook(() => useAudioEngine('A'));
     const engine = mockEngineInstances[0]!;
