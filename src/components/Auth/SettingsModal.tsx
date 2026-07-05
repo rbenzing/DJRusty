@@ -19,6 +19,7 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useSettingsStore } from '../../store/settingsStore';
+import { cueEngine } from '../../services/cueEngine';
 import styles from './SettingsModal.module.css';
 
 const APP_VERSION = 'v1.0.0';
@@ -57,8 +58,15 @@ export function SettingsModal() {
   const closeSettings = useSettingsStore((s) => s.closeSettings);
   const masterVolume = useSettingsStore((s) => s.masterVolume);
   const setMasterVolume = useSettingsStore((s) => s.setMasterVolume);
+  const headphoneDeviceId = useSettingsStore((s) => s.headphoneDeviceId);
+  const setHeadphoneDeviceId = useSettingsStore((s) => s.setHeadphoneDeviceId);
+  const availableOutputDevices = useSettingsStore((s) => s.availableOutputDevices);
+  const setAvailableOutputDevices = useSettingsStore((s) => s.setAvailableOutputDevices);
+  const outputDeviceLabelsUnlocked = useSettingsStore((s) => s.outputDeviceLabelsUnlocked);
+  const setOutputDeviceLabelsUnlocked = useSettingsStore((s) => s.setOutputDeviceLabelsUnlocked);
 
   const dialogRef = useRef<HTMLDivElement>(null);
+  const labelsUnlockAttemptedRef = useRef(false);
 
   // ── Close on Escape key ──────────────────────────────────────────────────
   useEffect(() => {
@@ -117,6 +125,28 @@ export function SettingsModal() {
     document.addEventListener('keydown', onKeyDown);
     return () => document.removeEventListener('keydown', onKeyDown);
   }, [isOpen]);
+
+  // ── Headphone output devices: enumerate when the modal opens ────────────
+  useEffect(() => {
+    if (!isOpen || !cueEngine.isOutputDeviceSelectionSupported()) return;
+
+    async function refreshOutputDevices(): Promise<void> {
+      if (!outputDeviceLabelsUnlocked && !labelsUnlockAttemptedRef.current) {
+        labelsUnlockAttemptedRef.current = true;
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          stream.getTracks().forEach((track) => track.stop());
+          setOutputDeviceLabelsUnlocked(true);
+        } catch {
+          // Permission denied — fall through and enumerate without labels.
+        }
+      }
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      setAvailableOutputDevices(devices.filter((d) => d.kind === 'audiooutput'));
+    }
+
+    void refreshOutputDevices();
+  }, [isOpen, outputDeviceLabelsUnlocked, setAvailableOutputDevices, setOutputDeviceLabelsUnlocked]);
 
   // ── Backdrop click ───────────────────────────────────────────────────────
   const handleBackdropClick = useCallback(
@@ -210,6 +240,32 @@ export function SettingsModal() {
               </button>
             </div>
           </div>
+
+          {/* Headphone output device (Phase 4) */}
+          {cueEngine.isOutputDeviceSelectionSupported() ? (
+            <div className={styles.controlRow}>
+              <label htmlFor="headphone-device" className={styles.controlLabel}>
+                Headphone Output
+              </label>
+              <select
+                id="headphone-device"
+                className={styles.deviceSelect}
+                value={headphoneDeviceId ?? ''}
+                onChange={(e) => setHeadphoneDeviceId(e.target.value || null)}
+              >
+                <option value="">Default</option>
+                {availableOutputDevices.map((d, i) => (
+                  <option key={d.deviceId} value={d.deviceId}>
+                    {d.label || `Output ${i + 1}`}
+                  </option>
+                ))}
+              </select>
+            </div>
+          ) : (
+            <p className={styles.deviceUnsupportedNote}>
+              Output device selection is not supported in this browser.
+            </p>
+          )}
         </section>
 
         {/* ── Divider ────────────────────────────────────────────────────── */}
