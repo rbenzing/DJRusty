@@ -15,6 +15,7 @@
  * AudioContext.
  */
 import { getAudioContext } from './audioContext';
+import { useSettingsStore } from '../store/settingsStore';
 
 type DeckId = 'A' | 'B';
 
@@ -52,6 +53,21 @@ function ensureInitialized(): void {
   audioEl = document.createElement('audio');
   audioEl.autoplay = true;
   audioEl.srcObject = mediaStreamDestination.stream;
+  // Keep the element mounted for the app's lifetime (never removed on
+  // unregisterDeck or elsewhere) — detached elements are less reliable
+  // across browsers' autoplay policies than ones actually in the document.
+  audioEl.style.display = 'none';
+  document.body.appendChild(audioEl);
+  // play() is spec'd to return a Promise, but guard defensively — e.g. jsdom's
+  // stub returns undefined rather than a thenable — so a non-Promise result
+  // doesn't blow up with "Cannot read properties of undefined (reading 'catch')".
+  const playResult: unknown = audioEl.play();
+  if (playResult && typeof (playResult as Promise<void>).catch === 'function') {
+    void (playResult as Promise<void>).catch(() => {
+      /* autoplay may be blocked until a user gesture; the element is already
+         configured and will play once one occurs */
+    });
+  }
 
   // Connect anything registered before this lazy init fired.
   for (const analyser of deckAnalysers.values()) {
@@ -61,6 +77,25 @@ function ensureInitialized(): void {
     if (!enabled) continue;
     const send = deckCueSends.get(deckId);
     if (send) send.connect(cueBusGain);
+  }
+
+  // Seed the graph from whatever was already persisted, so toggling CUE for
+  // the first time in a session doesn't silently blast full-cue + full-program
+  // simultaneously until the user happens to touch the MIX slider. This is
+  // the initial synchronous setup of a newly-created node (not a live ramp
+  // of an already-audible value), so set .value directly rather than
+  // setTargetAtTime.
+  const { headphoneMix, headphoneDeviceId } = useSettingsStore.getState();
+  const clampedMix = Math.max(0, Math.min(1, headphoneMix));
+  cueMixGain.gain.value = 1 - clampedMix;
+  programMixGain.gain.value = clampedMix;
+
+  if (isOutputDeviceSelectionSupported() && headphoneDeviceId) {
+    void (audioEl as HTMLAudioElement & { setSinkId(id: string): Promise<void> })
+      .setSinkId(headphoneDeviceId)
+      .catch(() => {
+        /* setSinkId can reject for an invalid/disconnected device id; nothing actionable here */
+      });
   }
 }
 
@@ -119,8 +154,8 @@ export const cueEngine = {
 
   /** Route the cue/program blend to a specific output device (setSinkId), or the default if deviceId is null. Triggers lazy init. */
   async setHeadphoneDeviceId(deviceId: string | null): Promise<void> {
-    ensureInitialized();
     if (!isOutputDeviceSelectionSupported()) return;
+    ensureInitialized();
     await (audioEl as HTMLAudioElement & { setSinkId(id: string): Promise<void> }).setSinkId(deviceId ?? '');
   },
 

@@ -6,7 +6,7 @@ import { useSettingsStore } from '../store/settingsStore';
 vi.mock('../services/cueEngine', () => ({
   cueEngine: {
     setHeadphoneMix: vi.fn(),
-    setHeadphoneDeviceId: vi.fn(),
+    setHeadphoneDeviceId: vi.fn().mockResolvedValue(undefined),
   },
 }));
 

@@ -13,7 +13,7 @@ vi.mock('../services/cueEngine', () => ({
   cueEngine: {
     isOutputDeviceSelectionSupported: vi.fn(),
     setHeadphoneMix: vi.fn(),
-    setHeadphoneDeviceId: vi.fn(),
+    setHeadphoneDeviceId: vi.fn().mockResolvedValue(undefined),
   },
 }));
 

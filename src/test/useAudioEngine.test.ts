@@ -111,7 +111,7 @@ vi.mock('../services/cueEngine', () => ({
     unregisterDeck: vi.fn(),
     setDeckCueEnabled: vi.fn(),
     setHeadphoneMix: vi.fn(),
-    setHeadphoneDeviceId: vi.fn(),
+    setHeadphoneDeviceId: vi.fn().mockResolvedValue(undefined),
     isOutputDeviceSelectionSupported: vi.fn(),
   },
 }));

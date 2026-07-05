@@ -142,7 +142,9 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
   },
 
   setHeadphoneDeviceId: (deviceId) => {
-    void cueEngine.setHeadphoneDeviceId(deviceId);
+    void cueEngine.setHeadphoneDeviceId(deviceId).catch(() => {
+      // setSinkId can reject for an invalid/disconnected device id; nothing actionable here
+    });
     savePersistedSettings({
       masterVolume: get().masterVolume,
       headphoneMix: get().headphoneMix,

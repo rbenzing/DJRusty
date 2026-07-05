@@ -51,6 +51,7 @@ vi.mock('../services/audioContext', () => ({
 }));
 
 import { cueEngine, __resetCueEngineForTests } from '../services/cueEngine';
+import { useSettingsStore } from '../store/settingsStore';
 
 function makeFakeGainNode() {
   return { connect: vi.fn(), disconnect: vi.fn() } as unknown as GainNode;
@@ -64,10 +65,18 @@ beforeEach(() => {
   __resetCueEngineForTests();
   mockContext.currentTime = 0;
   setupAudioContextMocks();
+  // Deterministic settingsStore state regardless of test order/pollution —
+  // matches the store's own documented defaults.
+  useSettingsStore.setState({ headphoneMix: 0.5, headphoneDeviceId: null });
+  // jsdom has no real play() implementation and logs a noisy "Not implemented"
+  // error to stderr on every call — stub it so ensureInitialized()'s play()
+  // call (needed for the hidden <audio> sink) doesn't spam test output.
+  (HTMLMediaElement.prototype as unknown as Record<string, unknown>).play = vi.fn().mockResolvedValue(undefined);
 });
 
 afterEach(() => {
   delete (HTMLMediaElement.prototype as unknown as Record<string, unknown>).setSinkId;
+  delete (HTMLMediaElement.prototype as unknown as Record<string, unknown>).play;
 });
 
 describe('cueEngine — registration is pure bookkeeping', () => {
@@ -231,6 +240,36 @@ describe('cueEngine — setHeadphoneDeviceId', () => {
 
   it('does nothing when setSinkId is unsupported (jsdom default)', async () => {
     await expect(cueEngine.setHeadphoneDeviceId('device-123')).resolves.toBeUndefined();
+  });
+});
+
+describe('cueEngine — seeds from persisted settingsStore state on lazy init', () => {
+  it('seeds cueMixGain/programMixGain from the current headphoneMix, not the Web Audio default', () => {
+    useSettingsStore.setState({ headphoneMix: 0.2 });
+    cueEngine.setDeckCueEnabled('A', true); // triggers lazy init
+
+    expect(mockCueMixGain.gain.value).toBe(0.8);
+    expect(mockProgramMixGain.gain.value).toBe(0.2);
+  });
+
+  it('calls setSinkId with the persisted headphoneDeviceId when supported', () => {
+    const mockSetSinkId = vi.fn().mockResolvedValue(undefined);
+    (HTMLMediaElement.prototype as unknown as Record<string, unknown>).setSinkId = mockSetSinkId;
+    useSettingsStore.setState({ headphoneDeviceId: 'device-xyz' });
+
+    cueEngine.setDeckCueEnabled('A', true); // triggers lazy init
+
+    expect(mockSetSinkId).toHaveBeenCalledWith('device-xyz');
+  });
+
+  it('does not call setSinkId on init when no device was persisted', () => {
+    const mockSetSinkId = vi.fn().mockResolvedValue(undefined);
+    (HTMLMediaElement.prototype as unknown as Record<string, unknown>).setSinkId = mockSetSinkId;
+    useSettingsStore.setState({ headphoneDeviceId: null });
+
+    cueEngine.setDeckCueEnabled('A', true); // triggers lazy init
+
+    expect(mockSetSinkId).not.toHaveBeenCalled();
   });
 });
 
