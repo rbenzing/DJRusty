@@ -7,9 +7,9 @@
  *   DeckDisplay        — deck label, BPM, per-deck waveform, track title, channel, time/rate
  *   JogWheel           — animated vinyl platter + scratch/bend drag surface
  *   DeckControls       — Play/Pause, Cue, Set Cue
- *   DeckModifiers      — SHIFT / QUANTIZE / ROLL
+ *   DeckModifiers      — SHIFT / QUANTIZE / ROLL / SLIP
  *   PadGrid            — HOT CUE / LOOP / SLICER / SAMPLER
- *   SlipButton, BeatJump
+ *   BeatJump
  *   Tap BPM / FX / Grid Control — consolidated row
  *   Volume fader / Pitch slider — consolidated row
  *
@@ -35,7 +35,6 @@ import { DeckDisplay } from './DeckDisplay';
 import { EffectsPanel } from './EffectsPanel';
 import { PadGrid } from './PadGrid';
 import { BeatJump } from './BeatJump';
-import { SlipButton } from './SlipButton';
 import { PitchSlider } from './PitchSlider';
 import { TapTempo } from './TapTempo';
 import { GridControl } from './GridControl';
@@ -149,14 +148,11 @@ export function Deck({ deckId }: DeckProps) {
       {/* Transport controls */}
       <DeckControls deckId={deckId} />
 
-      {/* SHIFT + QUANTIZE + ROLL modifier row */}
+      {/* SHIFT + QUANTIZE + ROLL + SLIP modifier row */}
       <DeckModifiers deckId={deckId} />
 
       {/* Unified performance-pad grid: HOT CUE / LOOP functional, SLICER / SAMPLER coming later */}
       <PadGrid deckId={deckId} />
-
-      {/* Slip mode toggle */}
-      <SlipButton deckId={deckId} />
 
       {/* Beat jump controls */}
       <BeatJump deckId={deckId} />

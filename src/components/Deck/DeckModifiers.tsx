@@ -1,14 +1,21 @@
 /**
- * DeckModifiers.tsx — Compact SHIFT + QUANTIZE + ROLL toggle row for a deck.
- * Rendered under the transport. Buttons are small and clearly button-shaped
- * (fixed width, bordered, lit when active) — never a full-width bar.
+ * DeckModifiers.tsx — Compact SHIFT + QUANTIZE + ROLL + SLIP toggle row for
+ * a deck. Rendered under the transport. Buttons are small and clearly
+ * button-shaped (fixed width, bordered, lit when active) — never a
+ * full-width bar.
  *
  * ROLL relocated here from the loop pad panel (Phase 2a) — it's a modifier
  * that changes how the loop pads react (click-toggle vs. hold-to-roll), not
  * a pad itself. Reuses the pre-existing rollMode/setRollMode unchanged.
+ *
+ * SLIP relocated here (viewport-layout-overhaul follow-up) — it was
+ * previously rendered on its own row between PadGrid and BeatJump, where it
+ * sat alone with a lot of unused horizontal space. It's the same kind of
+ * per-deck behavior toggle as SHIFT/QUANTIZE/ROLL, so it belongs in this row.
  */
 import { useShallow } from 'zustand/react/shallow';
 import { useDeckStore, useDeckActions } from '../../store/deckStore';
+import { SlipButton } from './SlipButton';
 import styles from './DeckModifiers.module.css';
 
 interface DeckModifiersProps {
@@ -57,6 +64,7 @@ export function DeckModifiers({ deckId }: DeckModifiersProps) {
       >
         ROLL
       </button>
+      <SlipButton deckId={deckId} />
     </div>
   );
 }
