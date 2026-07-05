@@ -9,6 +9,13 @@ import { getAudioContext, ensureAudioContextResumed } from './audioContext';
 import type { DeckPlayer } from './playerRegistry';
 import { dbToLinear } from '../utils/gain';
 
+/**
+ * Gain (dB) applied to a killed EQ band's own filter. Comfortably below the
+ * noise floor for DJ mixing purposes without pushing outside a BiquadFilterNode's
+ * typical documented gain range.
+ */
+const EQ_KILL_DB = -40;
+
 export interface AudioEngine extends DeckPlayer {
   /** Load an AudioBuffer for playback. */
   loadBuffer(buffer: AudioBuffer): void;
@@ -141,10 +148,17 @@ export class AudioEngineImpl implements AudioEngine {
   private lowFilter: BiquadFilterNode;
   private midFilter: BiquadFilterNode;
   private highFilter: BiquadFilterNode;
-  // Kill gain nodes — set to 0 to silence a band
-  private lowKillGain: GainNode;
-  private midKillGain: GainNode;
-  private highKillGain: GainNode;
+  // EQ state: each band's actual (non-killed) dB value, tracked separately
+  // from what's currently applied to the filter so a killed band can be
+  // un-killed back to its real knob position. Kill is implemented as an
+  // extreme cut on that band's OWN filter gain — not a separate downstream
+  // gain node — because lowFilter/midFilter/highFilter are wired in series
+  // in the single full-spectrum signal path (shelving/peaking filters pass
+  // the whole signal through, they don't split it into isolated bands), so
+  // a serial gain node set to 0 would silence everything downstream of it,
+  // not just its own band.
+  private eqDbValues: Record<'low' | 'mid' | 'high', number> = { low: 0, mid: 0, high: 0 };
+  private eqKilled: Record<'low' | 'mid' | 'high', boolean> = { low: false, mid: false, high: false };
   // Filter sweep: single BiquadFilter inserted after EQ
   private sweepFilter: BiquadFilterNode;
   // Effects: dry/wet nodes + per-effect nodes (tracked for teardown)
@@ -179,15 +193,12 @@ export class AudioEngineImpl implements AudioEngine {
     this.context = getAudioContext();
 
     // Create persistent signal chain nodes
-    // trimGain must be created first so the test mock ordering (trim, gain, kills…) holds.
+    // trimGain must be created first so the test mock ordering (trim, gain…) holds.
     this.trimGain = this.context.createGain();
     this.gainNode = this.context.createGain();
     this.lowFilter = this.context.createBiquadFilter();
     this.midFilter = this.context.createBiquadFilter();
     this.highFilter = this.context.createBiquadFilter();
-    this.lowKillGain = this.context.createGain();
-    this.midKillGain = this.context.createGain();
-    this.highKillGain = this.context.createGain();
     this.sweepFilter = this.context.createBiquadFilter();
     this.dryGain = this.context.createGain();
     this.wetGain = this.context.createGain();
@@ -217,19 +228,17 @@ export class AudioEngineImpl implements AudioEngine {
     this.trimGain.gain.value = 1;
 
     // Signal chain head: source → trimGain → gainNode(volume) → EQ…
-    // Gain → LowFilter → LowKillGain → MidFilter → MidKillGain → HighFilter → HighKillGain
-    //      → SweepFilter → DryGain → Analyser → Destination
-    //                    ↘ WetGain → [effectNode] → Analyser
+    // Gain → LowFilter → MidFilter → HighFilter → SweepFilter → DryGain → Analyser → Destination
+    //                                                          ↘ WetGain → [effectNode] → Analyser
     //      ↘ (trimGain also feeds) CueSendGain → cueEngine's shared cue bus (pre-fader listen)
+    //
+    // EQ kill is NOT a separate gain node in this chain — see setEQKill().
     this.trimGain.connect(this.gainNode);
     this.trimGain.connect(this.cueSendGain);
     this.gainNode.connect(this.lowFilter);
-    this.lowFilter.connect(this.lowKillGain);
-    this.lowKillGain.connect(this.midFilter);
-    this.midFilter.connect(this.midKillGain);
-    this.midKillGain.connect(this.highFilter);
-    this.highFilter.connect(this.highKillGain);
-    this.highKillGain.connect(this.sweepFilter);
+    this.lowFilter.connect(this.midFilter);
+    this.midFilter.connect(this.highFilter);
+    this.highFilter.connect(this.sweepFilter);
     this.sweepFilter.connect(this.dryGain);
     this.dryGain.connect(this.analyser);
     this.analyser.connect(this.context.destination);
@@ -392,6 +401,12 @@ export class AudioEngineImpl implements AudioEngine {
   }
 
   setEQ(band: 'low' | 'mid' | 'high', gainDb: number): void {
+    this.eqDbValues[band] = gainDb;
+    // A killed band stays silent (its filter is pinned to EQ_KILL_DB) until
+    // it's un-killed — turning the knob while killed shouldn't audibly
+    // change anything, matching hardware kill-EQ behavior.
+    if (this.eqKilled[band]) return;
+
     const filter = {
       low: this.lowFilter,
       mid: this.midFilter,
@@ -402,12 +417,15 @@ export class AudioEngineImpl implements AudioEngine {
   }
 
   setEQKill(band: 'low' | 'mid' | 'high', kill: boolean): void {
-    const killGain = {
-      low: this.lowKillGain,
-      mid: this.midKillGain,
-      high: this.highKillGain,
+    this.eqKilled[band] = kill;
+
+    const filter = {
+      low: this.lowFilter,
+      mid: this.midFilter,
+      high: this.highFilter,
     }[band];
-    killGain.gain.value = kill ? 0 : 1;
+
+    filter.gain.value = kill ? EQ_KILL_DB : this.eqDbValues[band];
   }
 
   setFilterSweep(position: number): void {
@@ -618,8 +636,7 @@ export class AudioEngineImpl implements AudioEngine {
     }
     this.effectNodes = [];
     [
-      this.trimGain, this.gainNode, this.lowFilter, this.lowKillGain,
-      this.midFilter, this.midKillGain, this.highFilter, this.highKillGain,
+      this.trimGain, this.gainNode, this.lowFilter, this.midFilter, this.highFilter,
       this.sweepFilter, this.dryGain, this.wetGain, this.cueSendGain, this.analyser,
     ].forEach((n) => { try { n.disconnect(); } catch { /* ok */ } });
   }

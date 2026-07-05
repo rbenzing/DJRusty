@@ -36,9 +36,6 @@ function makeMockFilter(type: string, freq: number) {
 // Named mocks for the signal chain nodes (in constructor order)
 let mockTrimGain: ReturnType<typeof makeMockGain>;
 let mockGainNode: ReturnType<typeof makeMockGain>;
-let mockLowKillGain: ReturnType<typeof makeMockGain>;
-let mockMidKillGain: ReturnType<typeof makeMockGain>;
-let mockHighKillGain: ReturnType<typeof makeMockGain>;
 let mockDryGain: ReturnType<typeof makeMockGain>;
 let mockWetGain: ReturnType<typeof makeMockGain>;
 let mockCueSendGain: ReturnType<typeof makeMockGain>;
@@ -96,9 +93,6 @@ vi.mock('../services/audioContext', () => ({
 function setupConstructorMocks() {
   mockTrimGain     = makeMockGain();
   mockGainNode     = makeMockGain();
-  mockLowKillGain  = makeMockGain();
-  mockMidKillGain  = makeMockGain();
-  mockHighKillGain = makeMockGain();
   mockDryGain      = makeMockGain();
   mockWetGain      = makeMockGain();
   mockCueSendGain  = makeMockGain();
@@ -107,13 +101,10 @@ function setupConstructorMocks() {
   mockHighFilter   = makeMockFilter('highshelf', 3200);
   mockSweepFilter  = makeMockFilter('allpass',  20000);
 
-  // createGain order: trimGain, gainNode, lowKill, midKill, highKill, dryGain, wetGain, cueSendGain
+  // createGain order: trimGain, gainNode, dryGain, wetGain, cueSendGain
   mockContext.createGain
     .mockReturnValueOnce(mockTrimGain)
     .mockReturnValueOnce(mockGainNode)
-    .mockReturnValueOnce(mockLowKillGain)
-    .mockReturnValueOnce(mockMidKillGain)
-    .mockReturnValueOnce(mockHighKillGain)
     .mockReturnValueOnce(mockDryGain)
     .mockReturnValueOnce(mockWetGain)
     .mockReturnValueOnce(mockCueSendGain);
@@ -149,20 +140,21 @@ describe('AudioEngine', () => {
 
   describe('initialization', () => {
     it('creates the signal chain correctly', () => {
-      expect(mockContext.createGain).toHaveBeenCalledTimes(8);        // trim + gain + 3 kills + dry + wet + cueSend
+      expect(mockContext.createGain).toHaveBeenCalledTimes(5);        // trim + gain + dry + wet + cueSend
       expect(mockContext.createBiquadFilter).toHaveBeenCalledTimes(4); // low + mid + high + sweep
       expect(mockContext.createAnalyser).toHaveBeenCalled();
 
-      // Key connections
+      // Key connections — EQ filters are chained directly, with no serial
+      // "kill" gain nodes in the main path (a gain node here would zero out
+      // the entire full-spectrum signal, not just its own band — see the
+      // "EQ kill" describe block below for why kill is implemented via each
+      // filter's own gain parameter instead).
       expect(mockTrimGain.connect).toHaveBeenCalledWith(mockGainNode);
       expect(mockTrimGain.connect).toHaveBeenCalledWith(mockCueSendGain);
       expect(mockGainNode.connect).toHaveBeenCalledWith(mockLowFilter);
-      expect(mockLowFilter.connect).toHaveBeenCalledWith(mockLowKillGain);
-      expect(mockLowKillGain.connect).toHaveBeenCalledWith(mockMidFilter);
-      expect(mockMidFilter.connect).toHaveBeenCalledWith(mockMidKillGain);
-      expect(mockMidKillGain.connect).toHaveBeenCalledWith(mockHighFilter);
-      expect(mockHighFilter.connect).toHaveBeenCalledWith(mockHighKillGain);
-      expect(mockHighKillGain.connect).toHaveBeenCalledWith(mockSweepFilter);
+      expect(mockLowFilter.connect).toHaveBeenCalledWith(mockMidFilter);
+      expect(mockMidFilter.connect).toHaveBeenCalledWith(mockHighFilter);
+      expect(mockHighFilter.connect).toHaveBeenCalledWith(mockSweepFilter);
       expect(mockSweepFilter.connect).toHaveBeenCalledWith(mockDryGain);
       expect(mockDryGain.connect).toHaveBeenCalledWith(mockAnalyser);
       expect(mockAnalyser.connect).toHaveBeenCalledWith(mockContext.destination);
@@ -392,15 +384,50 @@ describe('AudioEngine', () => {
   });
 
   describe('EQ kill', () => {
-    it('silences a band when killed', () => {
+    it('silences a band by cutting that band\'s own filter gain, not a downstream gain stage', () => {
       engine.setEQKill('low', true);
-      expect(mockLowKillGain.gain.value).toBe(0);
+      expect(mockLowFilter.gain.value).toBeLessThanOrEqual(-40);
     });
 
-    it('restores a band when unkilled', () => {
+    it('killing the low band does NOT affect mid/high filter gain (regression: kill gain nodes used to be wired serially in the single full-spectrum signal path, so killing any one band silenced the entire track)', () => {
+      engine.setEQ('mid', 3);
+      engine.setEQ('high', -2);
+      engine.setEQKill('low', true);
+      expect(mockMidFilter.gain.value).toBe(3);
+      expect(mockHighFilter.gain.value).toBe(-2);
+    });
+
+    it('killing the mid band does NOT affect low/high filter gain', () => {
+      engine.setEQ('low', 4);
+      engine.setEQ('high', -1);
+      engine.setEQKill('mid', true);
+      expect(mockLowFilter.gain.value).toBe(4);
+      expect(mockHighFilter.gain.value).toBe(-1);
+    });
+
+    it('killing the high band does NOT affect low/mid filter gain', () => {
+      engine.setEQ('low', 2);
+      engine.setEQ('mid', -5);
+      engine.setEQKill('high', true);
+      expect(mockLowFilter.gain.value).toBe(2);
+      expect(mockMidFilter.gain.value).toBe(-5);
+    });
+
+    it('restores the band\'s actual EQ value (not just unity/0) when unkilled', () => {
+      engine.setEQ('mid', 6);
       engine.setEQKill('mid', true);
       engine.setEQKill('mid', false);
-      expect(mockMidKillGain.gain.value).toBe(1);
+      expect(mockMidFilter.gain.value).toBe(6);
+    });
+
+    it('adjusting EQ while killed updates the stored value but does not un-mute the live filter until unkilled', () => {
+      engine.setEQ('high', 1);
+      engine.setEQKill('high', true);
+      const killedValue = mockHighFilter.gain.value;
+      engine.setEQ('high', 9); // twist the knob while still killed
+      expect(mockHighFilter.gain.value).toBe(killedValue); // still killed, no audible change
+      engine.setEQKill('high', false);
+      expect(mockHighFilter.gain.value).toBe(9); // reveals the new knob position
     });
   });
 
