@@ -3,6 +3,7 @@ import { Crossfader } from './Crossfader';
 import { ChannelFader } from './ChannelFader';
 import { CrossfaderCurveSelector } from './CrossfaderCurveSelector';
 import { MasterVolumeKnob } from './MasterVolumeKnob';
+import { HeadphoneMixKnob } from './HeadphoneMixKnob';
 import { GainKnob } from './GainKnob';
 import { BeatmatchGuide } from './BeatmatchGuide';
 import { EQPanel } from './EQPanel';
@@ -15,6 +16,7 @@ import styles from './Mixer.module.css';
  * The vertical stack itself contains (top to bottom):
  *   - "MIXER" section label
  *   - Master volume control
+ *   - Headphone CUE/MIX blend (Phase 4)
  *   - Per-deck channel input trim (GAIN)
  *   - Per-deck channel volume faders (CH A / CH B)
  *   - VU meters (visual-only, animated from volume level)
@@ -46,6 +48,11 @@ export function Mixer() {
         {/* Master volume — global output level above channel faders */}
         <section className={styles.section} aria-label="Master volume">
           <MasterVolumeKnob />
+        </section>
+
+        {/* Headphone CUE/MIX blend — Phase 4 */}
+        <section className={styles.section} aria-label="Headphone mix">
+          <HeadphoneMixKnob />
         </section>
 
         {/* Channel input trim (GAIN) — top of the controller's mixer column */}
