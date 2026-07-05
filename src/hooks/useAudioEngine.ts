@@ -8,6 +8,7 @@ import { useRef, useEffect } from 'react';
 import { AudioEngineImpl } from '../services/audioEngine';
 import { decodeAudioFile } from '../services/audioDecoder';
 import { playerRegistry } from '../services/playerRegistry';
+import { cueEngine } from '../services/cueEngine';
 import { useDeckStore } from '../store/deckStore';
 import { useLibraryStore } from '../store/libraryStore';
 import { usePlaylistStore } from '../store/playlistStore';
@@ -47,6 +48,8 @@ export function useAudioEngine(deckId: 'A' | 'B'): void {
     const engine = new AudioEngineImpl();
     engineRef.current = engine;
     playerRegistry.register(deckId, engine);
+    cueEngine.registerDeckCueSend(deckId, engine.getCueSendNode());
+    cueEngine.registerDeckProgramTap(deckId, engine.getAnalyser());
 
     engine.onEnded(() => {
       if (!isMountedRef.current) return;
@@ -58,6 +61,7 @@ export function useAudioEngine(deckId: 'A' | 'B'): void {
     return () => {
       isMountedRef.current = false;
       if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
+      cueEngine.unregisterDeck(deckId);
       playerRegistry.unregister(deckId);
       engine.destroy();
       engineRef.current = null;

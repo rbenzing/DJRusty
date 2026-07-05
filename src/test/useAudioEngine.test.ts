@@ -63,8 +63,8 @@ function makeMockEngine(): MockAudioEngine {
     setGain: vi.fn(),
     setPlaybackRate: vi.fn(),
     setEQ: vi.fn(),
-    getAnalyser: vi.fn(),
-    getCueSendNode: vi.fn(),
+    getAnalyser: vi.fn().mockReturnValue({} as AnalyserNode),
+    getCueSendNode: vi.fn().mockReturnValue({} as GainNode),
     isReady: vi.fn().mockReturnValue(true),
     isPlaying: vi.fn().mockReturnValue(false),
     onEnded: vi.fn().mockImplementation((cb: () => void) => {
@@ -95,6 +95,18 @@ vi.mock('../services/playerRegistry', () => ({
   },
 }));
 
+vi.mock('../services/cueEngine', () => ({
+  cueEngine: {
+    registerDeckCueSend: vi.fn(),
+    registerDeckProgramTap: vi.fn(),
+    unregisterDeck: vi.fn(),
+    setDeckCueEnabled: vi.fn(),
+    setHeadphoneMix: vi.fn(),
+    setHeadphoneDeviceId: vi.fn(),
+    isOutputDeviceSelectionSupported: vi.fn(),
+  },
+}));
+
 // Mock audioDecoder — decodeAudioFile returns a fake AudioBuffer.
 const fakeAudioBuffer: AudioBuffer = {
   duration: 240,
@@ -119,6 +131,7 @@ vi.mock('../services/audioDecoder', () => ({
 // NOTE: The hook does not exist yet. This import will fail in the RED phase.
 // That is expected behaviour for TDD.
 import { useAudioEngine } from '../hooks/useAudioEngine';
+import { cueEngine } from '../services/cueEngine';
 
 // ---------------------------------------------------------------------------
 // Store reset helper — mirrors the pattern used in stores.test.ts
@@ -299,6 +312,31 @@ describe('useAudioEngine — lifecycle: unmount', () => {
   it('does not call destroy before unmount', () => {
     renderHook(() => useAudioEngine('A'));
     expect(mockEngineInstances[0]!.destroy).not.toHaveBeenCalled();
+  });
+});
+
+// ---------------------------------------------------------------------------
+
+describe('useAudioEngine — cue engine registration', () => {
+  it('registers the deck cue-send node and program tap on mount', () => {
+    renderHook(() => useAudioEngine('A'));
+    const engine = mockEngineInstances[0]!;
+
+    expect(cueEngine.registerDeckCueSend).toHaveBeenCalledWith('A', engine.getCueSendNode());
+    expect(cueEngine.registerDeckProgramTap).toHaveBeenCalledWith('A', engine.getAnalyser());
+  });
+
+  it('unregisters the deck from cueEngine on unmount', () => {
+    const { unmount } = renderHook(() => useAudioEngine('A'));
+    unmount();
+    expect(cueEngine.unregisterDeck).toHaveBeenCalledWith('A');
+  });
+
+  it('registers independently per deck', () => {
+    renderHook(() => useAudioEngine('A'));
+    renderHook(() => useAudioEngine('B'));
+    expect(cueEngine.registerDeckCueSend).toHaveBeenCalledWith('A', expect.anything());
+    expect(cueEngine.registerDeckCueSend).toHaveBeenCalledWith('B', expect.anything());
   });
 });
 
