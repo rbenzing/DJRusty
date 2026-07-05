@@ -31,6 +31,7 @@ interface MockAudioEngine {
   setFilterSweep: ReturnType<typeof vi.fn>;
   setEffect: ReturnType<typeof vi.fn>;
   getAnalyser: ReturnType<typeof vi.fn>;
+  getCueSendNode: ReturnType<typeof vi.fn>;
   isReady: ReturnType<typeof vi.fn>;
   isPlaying: ReturnType<typeof vi.fn>;
   onEnded: ReturnType<typeof vi.fn>;
@@ -54,6 +55,7 @@ function makeMockEngine(): MockAudioEngine {
     setFilterSweep: vi.fn(),
     setEffect: vi.fn(),
     getAnalyser: vi.fn(),
+    getCueSendNode: vi.fn(),
     isReady: vi.fn().mockReturnValue(true),
     isPlaying: vi.fn().mockReturnValue(false),
     onEnded: vi.fn().mockImplementation((cb: () => void) => {

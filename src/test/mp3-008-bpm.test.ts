@@ -25,7 +25,7 @@ vi.stubGlobal('Worker', MockWorkerClass);
 
 // ── Engine mock ──────────────────────────────────────────────────────────
 
-type MockEngine = { loadBuffer: ReturnType<typeof vi.fn>; primeScratch: ReturnType<typeof vi.fn>; play: ReturnType<typeof vi.fn>; pause: ReturnType<typeof vi.fn>; seekTo: ReturnType<typeof vi.fn>; setVolume: ReturnType<typeof vi.fn>; setGain: ReturnType<typeof vi.fn>; setEQ: ReturnType<typeof vi.fn>; setPlaybackRate: ReturnType<typeof vi.fn>; onEnded: ReturnType<typeof vi.fn>; destroy: ReturnType<typeof vi.fn>; getCurrentTime: ReturnType<typeof vi.fn>; isReady: ReturnType<typeof vi.fn>; isPlaying: ReturnType<typeof vi.fn>; getAnalyser: ReturnType<typeof vi.fn>; stop: ReturnType<typeof vi.fn>; };
+type MockEngine = { loadBuffer: ReturnType<typeof vi.fn>; primeScratch: ReturnType<typeof vi.fn>; play: ReturnType<typeof vi.fn>; pause: ReturnType<typeof vi.fn>; seekTo: ReturnType<typeof vi.fn>; setVolume: ReturnType<typeof vi.fn>; setGain: ReturnType<typeof vi.fn>; setEQ: ReturnType<typeof vi.fn>; setPlaybackRate: ReturnType<typeof vi.fn>; onEnded: ReturnType<typeof vi.fn>; destroy: ReturnType<typeof vi.fn>; getCurrentTime: ReturnType<typeof vi.fn>; isReady: ReturnType<typeof vi.fn>; isPlaying: ReturnType<typeof vi.fn>; getAnalyser: ReturnType<typeof vi.fn>; getCueSendNode: ReturnType<typeof vi.fn>; stop: ReturnType<typeof vi.fn>; };
 const mockEngineInstances: MockEngine[] = [];
 
 vi.mock('../services/audioEngine', () => ({
@@ -35,7 +35,7 @@ vi.mock('../services/audioEngine', () => ({
       seekTo: vi.fn(), setVolume: vi.fn(), setGain: vi.fn(), setEQ: vi.fn(), setPlaybackRate: vi.fn(),
       stop: vi.fn(), onEnded: vi.fn(), destroy: vi.fn(),
       getCurrentTime: vi.fn().mockReturnValue(0), isReady: vi.fn().mockReturnValue(true),
-      isPlaying: vi.fn().mockReturnValue(false), getAnalyser: vi.fn(),
+      isPlaying: vi.fn().mockReturnValue(false), getAnalyser: vi.fn(), getCueSendNode: vi.fn(),
     };
     mockEngineInstances.push(e);
     return e;

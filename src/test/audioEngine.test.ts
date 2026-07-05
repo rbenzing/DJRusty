@@ -41,6 +41,7 @@ let mockMidKillGain: ReturnType<typeof makeMockGain>;
 let mockHighKillGain: ReturnType<typeof makeMockGain>;
 let mockDryGain: ReturnType<typeof makeMockGain>;
 let mockWetGain: ReturnType<typeof makeMockGain>;
+let mockCueSendGain: ReturnType<typeof makeMockGain>;
 let mockLowFilter: ReturnType<typeof makeMockFilter>;
 let mockMidFilter: ReturnType<typeof makeMockFilter>;
 let mockHighFilter: ReturnType<typeof makeMockFilter>;
@@ -100,12 +101,13 @@ function setupConstructorMocks() {
   mockHighKillGain = makeMockGain();
   mockDryGain      = makeMockGain();
   mockWetGain      = makeMockGain();
+  mockCueSendGain  = makeMockGain();
   mockLowFilter    = makeMockFilter('lowshelf',  320);
   mockMidFilter    = makeMockFilter('peaking',  1000);
   mockHighFilter   = makeMockFilter('highshelf', 3200);
   mockSweepFilter  = makeMockFilter('allpass',  20000);
 
-  // createGain order: trimGain, gainNode, lowKill, midKill, highKill, dryGain, wetGain
+  // createGain order: trimGain, gainNode, lowKill, midKill, highKill, dryGain, wetGain, cueSendGain
   mockContext.createGain
     .mockReturnValueOnce(mockTrimGain)
     .mockReturnValueOnce(mockGainNode)
@@ -113,7 +115,8 @@ function setupConstructorMocks() {
     .mockReturnValueOnce(mockMidKillGain)
     .mockReturnValueOnce(mockHighKillGain)
     .mockReturnValueOnce(mockDryGain)
-    .mockReturnValueOnce(mockWetGain);
+    .mockReturnValueOnce(mockWetGain)
+    .mockReturnValueOnce(mockCueSendGain);
 
   // createBiquadFilter order: low, mid, high, sweep
   mockContext.createBiquadFilter
@@ -146,12 +149,13 @@ describe('AudioEngine', () => {
 
   describe('initialization', () => {
     it('creates the signal chain correctly', () => {
-      expect(mockContext.createGain).toHaveBeenCalledTimes(7);        // trim + gain + 3 kills + dry + wet
+      expect(mockContext.createGain).toHaveBeenCalledTimes(8);        // trim + gain + 3 kills + dry + wet + cueSend
       expect(mockContext.createBiquadFilter).toHaveBeenCalledTimes(4); // low + mid + high + sweep
       expect(mockContext.createAnalyser).toHaveBeenCalled();
 
       // Key connections
       expect(mockTrimGain.connect).toHaveBeenCalledWith(mockGainNode);
+      expect(mockTrimGain.connect).toHaveBeenCalledWith(mockCueSendGain);
       expect(mockGainNode.connect).toHaveBeenCalledWith(mockLowFilter);
       expect(mockLowFilter.connect).toHaveBeenCalledWith(mockLowKillGain);
       expect(mockLowKillGain.connect).toHaveBeenCalledWith(mockMidFilter);
@@ -162,6 +166,11 @@ describe('AudioEngine', () => {
       expect(mockSweepFilter.connect).toHaveBeenCalledWith(mockDryGain);
       expect(mockDryGain.connect).toHaveBeenCalledWith(mockAnalyser);
       expect(mockAnalyser.connect).toHaveBeenCalledWith(mockContext.destination);
+    });
+
+    it('getCueSendNode returns the node tapped from trimGain, independent of the fader', () => {
+      expect(engine.getCueSendNode()).toBe(mockCueSendGain);
+      expect(mockTrimGain.connect).toHaveBeenCalledWith(mockCueSendGain);
     });
 
     it('configures EQ filters correctly', () => {
@@ -448,6 +457,7 @@ describe('AudioEngine', () => {
       expect(mockHighFilter.disconnect).toHaveBeenCalled();
       expect(mockAnalyser.disconnect).toHaveBeenCalled();
       expect(mockDryGain.disconnect).toHaveBeenCalled();
+      expect(mockCueSendGain.disconnect).toHaveBeenCalled();
     });
   });
 

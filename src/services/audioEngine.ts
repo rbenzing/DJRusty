@@ -56,6 +56,15 @@ export interface AudioEngine extends DeckPlayer {
   /** Get the AnalyserNode for visualization. */
   getAnalyser(): AnalyserNode;
 
+  /**
+   * Get the per-deck headphone-cue send node: a tap of the trimmed
+   * (GAIN-adjusted) signal taken BEFORE the fader/crossfader, EQ, filter,
+   * and FX — the literal "pre-fader listen" point. Always full-strength
+   * regardless of the channel fader/crossfader position. Registered with
+   * cueEngine on deck creation (see useAudioEngine.ts).
+   */
+  getCueSendNode(): GainNode;
+
   /** Check if the engine is ready for playback. */
   isReady(): boolean;
 
@@ -143,6 +152,8 @@ export class AudioEngineImpl implements AudioEngine {
   private wetGain: GainNode;
   private effectNodes: AudioNode[] = [];
   private analyser: AnalyserNode;
+  // Headphone-cue send: tapped from trimGain, pre-fader/pre-EQ/pre-FX.
+  private cueSendGain: GainNode;
 
   // Playback state
   private sourceNode: AudioBufferSourceNode | null = null;
@@ -180,6 +191,7 @@ export class AudioEngineImpl implements AudioEngine {
     this.sweepFilter = this.context.createBiquadFilter();
     this.dryGain = this.context.createGain();
     this.wetGain = this.context.createGain();
+    this.cueSendGain = this.context.createGain();
     this.analyser = this.context.createAnalyser();
 
     // Configure EQ filters
@@ -208,7 +220,9 @@ export class AudioEngineImpl implements AudioEngine {
     // Gain → LowFilter → LowKillGain → MidFilter → MidKillGain → HighFilter → HighKillGain
     //      → SweepFilter → DryGain → Analyser → Destination
     //                    ↘ WetGain → [effectNode] → Analyser
+    //      ↘ (trimGain also feeds) CueSendGain → cueEngine's shared cue bus (pre-fader listen)
     this.trimGain.connect(this.gainNode);
+    this.trimGain.connect(this.cueSendGain);
     this.gainNode.connect(this.lowFilter);
     this.lowFilter.connect(this.lowKillGain);
     this.lowKillGain.connect(this.midFilter);
@@ -577,6 +591,10 @@ export class AudioEngineImpl implements AudioEngine {
     return this.analyser;
   }
 
+  getCueSendNode(): GainNode {
+    return this.cueSendGain;
+  }
+
   isReady(): boolean {
     return this.buffer !== null;
   }
@@ -602,7 +620,7 @@ export class AudioEngineImpl implements AudioEngine {
     [
       this.trimGain, this.gainNode, this.lowFilter, this.lowKillGain,
       this.midFilter, this.midKillGain, this.highFilter, this.highKillGain,
-      this.sweepFilter, this.dryGain, this.wetGain, this.analyser,
+      this.sweepFilter, this.dryGain, this.wetGain, this.cueSendGain, this.analyser,
     ].forEach((n) => { try { n.disconnect(); } catch { /* ok */ } });
   }
 
