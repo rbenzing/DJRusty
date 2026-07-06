@@ -169,4 +169,39 @@ describe('DeckWaveform', () => {
     expect(mockCtx.fillRect).toHaveBeenCalledWith(0, 23, 300, 2);
     expect(mockCtx.fillRect).toHaveBeenCalledWith(149, 0, 2, 48);
   });
+
+  it('draws fewer bars at a narrower zoom level (waveformZoomIndex 0 = 41 bars vs. default 361)', async () => {
+    playerRegistry.register('A', {
+      seekTo: vi.fn(),
+      getCurrentTime: () => 60,
+      getDuration: () => 120,
+    });
+    const peaks = Array.from({ length: 1000 }, () => ({ amp: 0.5, bass: 0.3, mid: 0.3, high: 0.3 }));
+
+    // First render at the default zoom (361 bars) and record the fillRect count.
+    useDeckStore.setState({
+      decks: {
+        ...useDeckStore.getState().decks,
+        A: { ...useDeckStore.getState().decks['A'], waveformColoredPeaks: peaks, duration: 120 },
+      },
+    });
+    const { unmount } = render(<DeckWaveform deckId="A" />);
+    await flushRaf();
+    const defaultZoomCallCount = mockCtx.fillRect.mock.calls.length;
+    unmount();
+
+    // Now render at the narrowest zoom (index 0 = 41 bars) and compare.
+    vi.clearAllMocks();
+    useDeckStore.setState({
+      decks: {
+        ...useDeckStore.getState().decks,
+        A: { ...useDeckStore.getState().decks['A'], waveformZoomIndex: 0 },
+      },
+    });
+    render(<DeckWaveform deckId="A" />);
+    await flushRaf();
+    const narrowZoomCallCount = mockCtx.fillRect.mock.calls.length;
+
+    expect(narrowZoomCallCount).toBeLessThan(defaultZoomCallCount);
+  });
 });

@@ -16,11 +16,10 @@ import { useRef, useEffect, useCallback, useState } from 'react';
 import { useDeck } from '../../store/deckStore';
 import { usePlayhead } from '../../hooks/usePlayhead';
 import type { ColoredPeak } from '../../utils/extractColoredPeaks';
+import { WAVEFORM_ZOOM_LEVELS, DEFAULT_WAVEFORM_ZOOM_INDEX } from '../../utils/waveformZoom';
 import styles from './DeckWaveform.module.css';
 
 const TOTAL_BARS = 1000; // must match WAVEFORM_PEAKS in useAudioEngine.ts
-const VISIBLE_HALF = 180;
-const VISIBLE_BARS = VISIBLE_HALF * 2 + 1;
 const CANVAS_HEIGHT = 48;
 const FALLBACK_WIDTH = 300; // used until ResizeObserver reports a real width
 
@@ -36,8 +35,10 @@ export function DeckWaveform({ deckId }: DeckWaveformProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [canvasWidth, setCanvasWidth] = useState(FALLBACK_WIDTH);
-  const { waveformColoredPeaks, waveformPeaks, duration, hotCues } = useDeck(deckId);
+  const { waveformColoredPeaks, waveformPeaks, duration, hotCues, waveformZoomIndex } = useDeck(deckId);
   const playhead = usePlayhead(deckId);
+  const visibleHalf = WAVEFORM_ZOOM_LEVELS[waveformZoomIndex] ?? WAVEFORM_ZOOM_LEVELS[DEFAULT_WAVEFORM_ZOOM_INDEX];
+  const visibleBars = visibleHalf * 2 + 1;
 
   const deckColor = deckId === 'A' ? '#4af5ff' : '#ff8c42';
   const playedColor = deckId === 'A' ? 'rgba(74,245,255,0.3)' : 'rgba(255,140,66,0.3)';
@@ -82,11 +83,11 @@ export function DeckWaveform({ deckId }: DeckWaveformProps) {
       ? Math.round((currentTime / duration) * (TOTAL_BARS - 1))
       : 0;
 
-    const barWidth = width / VISIBLE_BARS;
+    const barWidth = width / visibleBars;
     const centerX = width / 2;
 
-    for (let i = 0; i < VISIBLE_BARS; i++) {
-      const barIndex = playheadBar - VISIBLE_HALF + i;
+    for (let i = 0; i < visibleBars; i++) {
+      const barIndex = playheadBar - visibleHalf + i;
       const x = i * barWidth;
 
       if (barIndex < 0 || barIndex >= TOTAL_BARS) {
@@ -129,7 +130,7 @@ export function DeckWaveform({ deckId }: DeckWaveformProps) {
       if (typeof cueSec !== 'number') return;
       const cueBar = Math.round((cueSec / duration) * (TOTAL_BARS - 1));
       const offsetBars = cueBar - playheadBar;
-      if (offsetBars < -VISIBLE_HALF || offsetBars > VISIBLE_HALF) return;
+      if (offsetBars < -visibleHalf || offsetBars > visibleHalf) return;
       const cueX = centerX + offsetBars * barWidth;
       ctx.fillStyle = '#ff4444';
       ctx.fillRect(cueX - 1, 0, 2, height);
@@ -152,7 +153,7 @@ export function DeckWaveform({ deckId }: DeckWaveformProps) {
     grd.addColorStop(1, 'rgba(255,255,255,0)');
     ctx.fillStyle = grd;
     ctx.fillRect(centerX - 20, 0, 40, height);
-  }, [waveformColoredPeaks, waveformPeaks, duration, hotCues, deckColor, playedColor]);
+  }, [waveformColoredPeaks, waveformPeaks, duration, hotCues, deckColor, playedColor, visibleHalf, visibleBars]);
 
   useEffect(() => {
     let rafId = 0;
