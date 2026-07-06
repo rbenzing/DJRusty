@@ -97,6 +97,20 @@
   font-family: var(--font-primary);
 }
 
+/* Spin marker: a fixed reference line in the platter's own rotating frame —
+   spans the outer band from the rim in to the center label's edge (platter
+   radius 50% minus the label's radius 19%, i.e. its 38%-diameter / 2). */
+.spinMarker {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 3px;
+  height: 31%;
+  transform: translateX(-50%);
+  background: var(--color-accent-primary);
+  border-radius: 2px;
+}
+
 /* Buffering spinner overlay */
 .bufferingOverlay {
   position: absolute;

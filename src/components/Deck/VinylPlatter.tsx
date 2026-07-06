@@ -61,6 +61,11 @@ export function VinylPlatter({ isPlaying, isBuffering, pitchRate, thumbnailUrl, 
           )}
         </div>
 
+        {/* Spin marker — a fixed reference line in the platter's own rotating
+            frame, so it sweeps past the tonearm notch once per revolution and
+            makes rotation (and full spins) visible at a glance. */}
+        <div className={styles.spinMarker} aria-hidden="true" />
+
         {/* Buffering overlay — shown during buffering state */}
         {isBuffering && (
           <div className={styles.bufferingOverlay} aria-hidden="true">
