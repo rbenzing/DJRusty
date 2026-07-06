@@ -552,6 +552,13 @@ export class AudioEngineImpl implements AudioEngine {
     // already false from the first call's stopSource(), which would clobber
     // wasPlayingBeforeScratch and silently break the resume-to-playing behavior.
     if (!this.scratchWorkletReady || !this.scratchNode || !this.buffer || this.scratching) return;
+    // The AudioContext starts (and stays) suspended until a user gesture
+    // resumes it — normally play()'s job. A scratch attempted before the
+    // deck's first Play press would otherwise connect the worklet into a
+    // graph nothing is pulling: process() never runs, so no sound and no
+    // position updates. Fire-and-forget is enough — resume() settles well
+    // before the next pointermove/readRate update reaches the worklet.
+    void ensureAudioContextResumed();
     this.wasPlayingBeforeScratch = this.isPlayingFlag;
     // Read the live position BEFORE flipping isPlayingFlag — getCurrentTime()'s
     // analytic formula only integrates elapsed time while isPlayingFlag is

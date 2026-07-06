@@ -654,6 +654,18 @@ describe('AudioEngine', () => {
       expect(lastScratchNode?.connect).toHaveBeenCalledWith(mockTrimGain);
     });
 
+    it('beginScratch resumes the AudioContext, matching play() — otherwise a scratch attempted before the first Play press is silent (the context stays suspended, so the worklet\'s process() never runs)', async () => {
+      // No engine.play() call here — this reproduces a user dragging the jog
+      // wheel on a freshly loaded track without ever pressing Play first.
+      engine.primeScratch(mockBuffer);
+      await Promise.resolve();
+      await Promise.resolve();
+
+      engine.beginScratch();
+
+      expect(audioContext.ensureAudioContextResumed).toHaveBeenCalled();
+    });
+
     it('updateScratchRate automates the readRate param via a short ramp', async () => {
       engine.primeScratch(mockBuffer);
       await Promise.resolve();
