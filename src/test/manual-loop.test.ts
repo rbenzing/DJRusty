@@ -83,6 +83,41 @@ describe('manual loop IN/OUT/RELOOP', () => {
     expect(d.lastManualLoop).toBeNull();
   });
 
+  it('setLoopOut starts slip tracking when slipMode is on (SLIP must apply to manual loops, not just ROLL)', () => {
+    const s = useDeckStore.getState();
+    s.loadTrack('A', 'x', { title: '', artist: '', duration: 180, thumbnailUrl: null });
+    s.setSlipMode('A', true);
+    s.setCurrentTime('A', 1.0); s.setLoopIn('A');
+    s.setCurrentTime('A', 2.0); s.setLoopOut('A');
+    const d = useDeckStore.getState().decks.A;
+    expect(d.slipStartTime).not.toBeNull();
+    expect(d.slipStartPosition).toBeCloseTo(2.0, 6);
+    expect(d.slipPosition).toBeCloseTo(2.0, 6);
+  });
+
+  it('setLoopOut does not start slip tracking when slipMode is off', () => {
+    const s = useDeckStore.getState();
+    s.loadTrack('A', 'x', { title: '', artist: '', duration: 180, thumbnailUrl: null });
+    s.setCurrentTime('A', 1.0); s.setLoopIn('A');
+    s.setCurrentTime('A', 2.0); s.setLoopOut('A');
+    expect(useDeckStore.getState().decks.A.slipStartTime).toBeNull();
+  });
+
+  it('reloop starts slip tracking when re-arming a loop with slipMode on', () => {
+    const eng = mockEngine();
+    playerRegistry.register('A', eng as never);
+    const s = useDeckStore.getState();
+    s.loadTrack('A', 'x', { title: '', artist: '', duration: 180, thumbnailUrl: null });
+    s.setCurrentTime('A', 1.0); s.setLoopIn('A');
+    s.setCurrentTime('A', 2.0); s.setLoopOut('A');
+    s.deactivateLoop('A');
+    s.setSlipMode('A', true);
+    s.reloop('A');
+    const d = useDeckStore.getState().decks.A;
+    expect(d.loopActive).toBe(true);
+    expect(d.slipStartTime).not.toBeNull();
+  });
+
   it('activateLoopBeat clears a pending (not-yet-OUT) manualLoopIn but preserves lastManualLoop', () => {
     const eng = mockEngine();
     playerRegistry.register('A', eng as never);

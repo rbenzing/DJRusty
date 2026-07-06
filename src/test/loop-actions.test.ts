@@ -45,4 +45,30 @@ describe('grid-snapped loop actions', () => {
     expect(useDeckStore.getState().decks.A.loopActive).toBe(false);
     expect(eng.setLoop).not.toHaveBeenCalled();
   });
+
+  it('activateLoopBeat starts slip tracking when slipMode is on (SLIP must apply to plain beat-loops, not just ROLL)', () => {
+    const eng = mockEngine();
+    playerRegistry.register('A', eng as never);
+    const s = useDeckStore.getState();
+    s.loadTrack('A', 'x', { title: '', artist: '', duration: 180, thumbnailUrl: null });
+    s.setGrid('A', 120, 0.5);
+    s.setSlipMode('A', true);
+    s.setCurrentTime('A', 1.7);
+    s.activateLoopBeat('A', 4);
+    const d = useDeckStore.getState().decks.A;
+    expect(d.slipStartTime).not.toBeNull();
+    expect(d.slipStartPosition).toBeCloseTo(1.7, 6);
+    expect(d.slipPosition).toBeCloseTo(1.7, 6);
+  });
+
+  it('activateLoopBeat does not start slip tracking when slipMode is off', () => {
+    const eng = mockEngine();
+    playerRegistry.register('A', eng as never);
+    const s = useDeckStore.getState();
+    s.loadTrack('A', 'x', { title: '', artist: '', duration: 180, thumbnailUrl: null });
+    s.setGrid('A', 120, 0.5);
+    s.setCurrentTime('A', 1.7);
+    s.activateLoopBeat('A', 4);
+    expect(useDeckStore.getState().decks.A.slipStartTime).toBeNull();
+  });
 });

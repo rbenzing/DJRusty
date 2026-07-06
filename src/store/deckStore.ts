@@ -487,6 +487,12 @@ export const useDeckStore = create<DeckStore>((set, get) => ({
     const loopEnd = deck.duration > 0 ? Math.min(rawEnd, deck.duration) : rawEnd;
     getActivePlayer(deckId)?.setLoop?.(loopStart, loopEnd);
     updateDeck(set, deckId, { loopActive: true, loopStart, loopEnd, loopBeatCount: beatCount, manualLoopIn: null });
+    // SLIP applies to any loop that traps the playhead, not just ROLL — start
+    // the shadow-position tracking here too so deactivateLoop's slip-aware
+    // exit has a position to resume from.
+    if (deck.slipMode) {
+      get().startSlipTracking(deckId);
+    }
   },
 
   deactivateLoop: (deckId) => {
@@ -528,6 +534,11 @@ export const useDeckStore = create<DeckStore>((set, get) => ({
       manualLoopIn: null,
       lastManualLoop: { start: deck.manualLoopIn, end },
     });
+    // SLIP applies to any loop that traps the playhead, not just ROLL — see
+    // activateLoopBeat's matching call for why.
+    if (deck.slipMode) {
+      get().startSlipTracking(deckId);
+    }
   },
 
   reloop: (deckId) => {
@@ -546,6 +557,11 @@ export const useDeckStore = create<DeckStore>((set, get) => ({
       loopEnd: lm.end,
       loopBeatCount: null,
     });
+    // SLIP applies to any loop that traps the playhead, not just ROLL — see
+    // activateLoopBeat's matching call for why.
+    if (deck.slipMode) {
+      get().startSlipTracking(deckId);
+    }
   },
 
   setHotCue: (deckId, index, timestamp) => {
