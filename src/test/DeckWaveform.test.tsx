@@ -3,6 +3,7 @@ import { render, screen } from '@testing-library/react';
 import { DeckWaveform } from '../components/Deck/DeckWaveform';
 import { useDeckStore } from '../store/deckStore';
 import { playerRegistry } from '../services/playerRegistry';
+import { DEFAULT_WAVEFORM_ZOOM_INDEX } from '../utils/waveformZoom';
 
 // ── Canvas mock ───────────────────────────────────────────────────────────
 //
@@ -38,6 +39,7 @@ function resetDeck(deckId: 'A' | 'B'): void {
         waveformPeaks: null,
         duration: 0,
         hotCues: {},
+        waveformZoomIndex: DEFAULT_WAVEFORM_ZOOM_INDEX,
       },
     },
   });
