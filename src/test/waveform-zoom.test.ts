@@ -7,7 +7,9 @@ describe('waveform zoom', () => {
     useDeckStore.getState().clearTrack('A');
     // Reset zoom level to default for test isolation
     const { decks } = useDeckStore.getState();
-    Object.assign(decks.A, { waveformZoomIndex: DEFAULT_WAVEFORM_ZOOM_INDEX });
+    useDeckStore.setState({
+      decks: { ...decks, A: { ...decks.A, waveformZoomIndex: DEFAULT_WAVEFORM_ZOOM_INDEX } },
+    });
   });
 
   it('defaults to DEFAULT_WAVEFORM_ZOOM_INDEX', () => {
