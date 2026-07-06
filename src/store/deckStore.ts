@@ -12,6 +12,7 @@ import { DEFAULT_SLICE_WINDOW_BEATS, sliceStartFor } from '../utils/slicer';
 import { transition, type TransportEvent } from '../utils/transport';
 import { consumePendingGrid, consumePendingLoop } from '../services/sessionStore';
 import { cueEngine } from '../services/cueEngine';
+import { WAVEFORM_ZOOM_LEVELS, DEFAULT_WAVEFORM_ZOOM_INDEX } from '../utils/waveformZoom';
 
 /**
  * Initial state for a single deck.
@@ -51,6 +52,7 @@ function createInitialDeckState(deckId: 'A' | 'B'): DeckState {
     padMode: 'hotcue',
     sliceWindowBeats: DEFAULT_SLICE_WINDOW_BEATS,
     vinylMode: true,
+    waveformZoomIndex: DEFAULT_WAVEFORM_ZOOM_INDEX,
     scratching: false,
     cueEnabled: false,
     eqKillLow: false,
@@ -209,6 +211,12 @@ interface DeckStoreActions {
 
   /** Enable or disable VINYL scratch mode for the specified deck's jog wheel. Persists across track loads (like padMode); forces any in-progress scratch to end when disabled. */
   setVinylMode: (deckId: 'A' | 'B', enabled: boolean) => void;
+
+  /** Move to a narrower waveform view (fewer bars visible, more detail), clamped at the most-zoomed-in level (index 0). */
+  zoomWaveformIn: (deckId: 'A' | 'B') => void;
+
+  /** Move to a wider waveform view (more bars visible), clamped at the last level (the whole track at once). */
+  zoomWaveformOut: (deckId: 'A' | 'B') => void;
 
   /** Toggle headphone CUE (pre-fader listen) for the specified deck. Both decks can be cued simultaneously. */
   toggleCue: (deckId: 'A' | 'B') => void;
@@ -611,6 +619,18 @@ export const useDeckStore = create<DeckStore>((set, get) => ({
       get().endScratch(deckId);
     }
     updateDeck(set, deckId, { vinylMode: enabled });
+  },
+
+  zoomWaveformIn: (deckId) => {
+    const deck = get().decks[deckId];
+    const nextIndex = Math.max(0, deck.waveformZoomIndex - 1);
+    updateDeck(set, deckId, { waveformZoomIndex: nextIndex });
+  },
+
+  zoomWaveformOut: (deckId) => {
+    const deck = get().decks[deckId];
+    const nextIndex = Math.min(WAVEFORM_ZOOM_LEVELS.length - 1, deck.waveformZoomIndex + 1);
+    updateDeck(set, deckId, { waveformZoomIndex: nextIndex });
   },
 
   toggleCue: (deckId) => {

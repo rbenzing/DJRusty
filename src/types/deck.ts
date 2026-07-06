@@ -164,6 +164,14 @@ export interface DeckState {
   vinylMode: boolean;
 
   /**
+   * Index into WAVEFORM_ZOOM_LEVELS (src/utils/waveformZoom.ts) controlling
+   * how many bars are visible around the playhead in DeckWaveform. Persists
+   * across track loads/ejects (like vinylMode) — a per-deck display
+   * preference, not track state.
+   */
+  waveformZoomIndex: number;
+
+  /**
    * True while a jog-wheel scratch gesture is in progress. Reset to false
    * on loadTrack/clearTrack (unlike vinylMode, which persists).
    */
