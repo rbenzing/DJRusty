@@ -8,6 +8,7 @@
 import { useDeck } from '../../store/deckStore';
 import { formatTime } from '../../utils/formatTime';
 import { DeckWaveform } from './DeckWaveform';
+import { WaveformZoomControls } from './WaveformZoomControls';
 import styles from './DeckDisplay.module.css';
 
 interface DeckDisplayProps {
@@ -41,6 +42,7 @@ export function DeckDisplay({ deckId }: DeckDisplayProps) {
       {/* Per-deck frequency-colored waveform — moved to the top of the deck,
           replacing the formerly shared CenterWaveform */}
       <div className={styles.waveformRow}>
+        <WaveformZoomControls deckId={deckId} />
         <DeckWaveform deckId={deckId} />
       </div>
 
