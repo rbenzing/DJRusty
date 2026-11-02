@@ -76,7 +76,7 @@ function makeMockEngine(): MockAudioEngine {
 }
 
 vi.mock('../services/audioEngine', () => ({
-  AudioEngineImpl: vi.fn().mockImplementation(() => {
+  AudioEngineImpl: vi.fn().mockImplementation(function () {
     const instance = makeMockEngine();
     mockEngineInstances.push(instance);
     return instance;

@@ -32,6 +32,6 @@ export async function decodeAudioFile(source: File | ArrayBuffer): Promise<Audio
   try {
     return await context.decodeAudioData(arrayBuffer);
   } catch (error) {
-    throw new Error(`Failed to decode audio file: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    throw new Error(`Failed to decode audio file: ${error instanceof Error ? error.message : 'Unknown error'}`, { cause: error });
   }
 }

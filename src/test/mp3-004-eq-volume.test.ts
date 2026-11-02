@@ -12,7 +12,7 @@ type MockEngine = { setVolume: ReturnType<typeof vi.fn>; setEQ: ReturnType<typeo
 const mockEngineInstances: MockEngine[] = [];
 
 vi.mock('../services/audioEngine', () => ({
-  AudioEngineImpl: vi.fn().mockImplementation(() => {
+  AudioEngineImpl: vi.fn().mockImplementation(function () {
     const e: MockEngine = {
       setVolume: vi.fn(), setEQ: vi.fn(), loadBuffer: vi.fn(),
       play: vi.fn().mockResolvedValue(undefined), pause: vi.fn(), seekTo: vi.fn(),
@@ -29,7 +29,7 @@ const fakeBuffer = { duration: 120, length: 5292000, numberOfChannels: 1, sample
 const mockDecode = vi.fn().mockResolvedValue(fakeBuffer);
 vi.mock('../services/audioDecoder', () => ({ decodeAudioFile: (...a: unknown[]) => mockDecode(...a) }));
 vi.mock('../utils/extractWaveformPeaks', () => ({ extractWaveformPeaks: vi.fn().mockReturnValue(new Float32Array(0)) }));
-vi.stubGlobal('Worker', vi.fn().mockImplementation(() => ({ onmessage: null, onerror: null, postMessage: vi.fn(), terminate: vi.fn() })));
+vi.stubGlobal('Worker', vi.fn().mockImplementation(function () { return { onmessage: null, onerror: null, postMessage: vi.fn(), terminate: vi.fn() }; }));
 
 import { useAudioEngine } from '../hooks/useAudioEngine';
 

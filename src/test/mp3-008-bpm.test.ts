@@ -16,7 +16,7 @@ type MockWorkerInstance = {
 };
 const workerInstances: MockWorkerInstance[] = [];
 
-const MockWorkerClass = vi.fn().mockImplementation(() => {
+const MockWorkerClass = vi.fn().mockImplementation(function () {
   const w: MockWorkerInstance = { onmessage: null, onerror: null, postMessage: vi.fn(), terminate: vi.fn() };
   workerInstances.push(w);
   return w;
@@ -29,7 +29,7 @@ type MockEngine = { loadBuffer: ReturnType<typeof vi.fn>; primeScratch: ReturnTy
 const mockEngineInstances: MockEngine[] = [];
 
 vi.mock('../services/audioEngine', () => ({
-  AudioEngineImpl: vi.fn().mockImplementation(() => {
+  AudioEngineImpl: vi.fn().mockImplementation(function () {
     const e: MockEngine = {
       loadBuffer: vi.fn(), primeScratch: vi.fn(), play: vi.fn().mockResolvedValue(undefined), pause: vi.fn(),
       seekTo: vi.fn(), setVolume: vi.fn(), setGain: vi.fn(), setEQ: vi.fn(), setPlaybackRate: vi.fn(),

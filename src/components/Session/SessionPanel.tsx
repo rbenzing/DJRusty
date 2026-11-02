@@ -12,7 +12,11 @@ export function SessionPanel() {
     setSessions(await listSessions());
   }, []);
 
-  useEffect(() => { void refresh(); }, [refresh]);
+  useEffect(() => {
+    let cancelled = false;
+    void listSessions().then((s) => { if (!cancelled) setSessions(s); });
+    return () => { cancelled = true; };
+  }, []);
 
   async function handleSave() {
     const n = name.trim();
